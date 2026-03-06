@@ -209,7 +209,8 @@
       const res = await fetch(
         `https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292`,
       );
-      const data = JSON.parse(text);
+      const text = await res.text();
+const data = JSON.parse('[' + text + ']');
       products = (Array.isArray(data) ? data : [data]).map(r => ({
         id: r.fields['商品ID'],
         recordId: r.id,
