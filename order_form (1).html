@@ -197,8 +197,6 @@
   // ★ 設定：ここだけ変更してください
   // =============================
   const WEBHOOK_URL = "https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu";
-  const AIRTABLE_TOKEN = "patKaFmv5sPvMVpLD.5ce6e2702bc7b6d47daec179bd7c0233e6e853155cb94d066373e5bf697f5ba5";
-  const AIRTABLE_BASE_ID = "app5f38ddekcb3s32";
   const AIRTABLE_TABLE_NAME = "商品マスタ";
   // =============================
 
@@ -209,8 +207,7 @@
     const sel = document.getElementById('productSelect');
     try {
       const res = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?fields[]=商品名&fields[]=価格&fields[]=商品ID&sort[0][field]=商品ID&sort[0][direction]=asc`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}` } }
+        `https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292`,
       );
       const data = await res.json();
       products = data.records.map(r => ({
