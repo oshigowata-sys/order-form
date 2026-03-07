@@ -317,6 +317,20 @@
 
   .company-name { font-weight: 700; font-size: 13px; }
 
+  .status-select {
+    border: none;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .status-select.status-新規受注 { background: #eff6ff; color: #2563eb; }
+  .status-select.status-処理中 { background: #fff7ed; color: #ea580c; }
+  .status-select.status-出荷済み { background: var(--green-pale); color: var(--green); }
+
   .status-badge {
     display: inline-flex;
     align-items: center;
@@ -622,6 +636,7 @@
   // ✅ セキュリティ対応完了：APIトークン完全削除、全てWebhook経由
   const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
   const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub';
+  const MAKE_STATUS_WEBHOOK = 'https://hook.eu1.make.com/96kboj601xud2djwplgvjrkollivgu7d';
 
   let allOrders = [];
   let currentFilter = 'all';
@@ -714,11 +729,39 @@
           <td><span class="order-id">${f['受注ID'] || order.id.substring(0,8)}</span></td>
           <td><span class="company-name">${f['取引先名'] || '-'}</span></td>
           <td>${date}</td>
-          <td><span class="status-badge status-${status}">${status}</span></td>
+          <td onclick="event.stopPropagation()">
+            <select class="status-select status-${status}" onchange="updateStatus('${order.id}', this)">
+              <option value="新規受注" ${status==='新規受注'?'selected':''}>新規受注</option>
+              <option value="処理中" ${status==='処理中'?'selected':''}>処理中</option>
+              <option value="出荷済み" ${status==='出荷済み'?'selected':''}>出荷済み</option>
+            </select>
+          </td>
           <td><span class="amount">${amount}</span></td>
           <td><button class="detail-btn" onclick="event.stopPropagation();openDetail('${order.id}')">詳細 →</button></td>
         </tr>`;
     }).join('');
+  }
+
+  // ===== ステータス更新 =====
+  async function updateStatus(recordId, selectEl) {
+    const newStatus = selectEl.value;
+    const oldStatus = selectEl.dataset.prev || selectEl.querySelector('option[selected]')?.value || newStatus;
+    selectEl.dataset.prev = newStatus;
+
+    // クラス更新
+    selectEl.className = `status-select status-${newStatus}`;
+
+    try {
+      const res = await fetch(`${MAKE_STATUS_WEBHOOK}?record_id=${encodeURIComponent(recordId)}&status=${encodeURIComponent(newStatus)}`);
+      if (!res.ok) throw new Error('error');
+      // ローカルデータも更新
+      const order = allOrders.find(o => o.id === recordId);
+      if (order) order.fields['受注ステータス'] = newStatus;
+    } catch(e) {
+      alert('ステータスの更新に失敗しました');
+      selectEl.value = oldStatus;
+      selectEl.className = `status-select status-${oldStatus}`;
+    }
   }
 
   // ===== フィルター =====
