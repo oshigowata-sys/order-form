@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeguRee - ダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f3ee;
+    --surface: #ffffff;
+    --border: #e2d9ce;
+    --orange: #e8630a;
+    --orange-light: #f97316;
+    --orange-pale: #fff4ec;
+    --green: #1e6641;
+    --green-light: #2d9a5f;
+    --green-pale: #e8f5ee;
+    --text: #1a1208;
+    --text-muted: #7a6a55;
+    --sidebar-bg: #1a1208;
+    --sidebar-text: #e8d5bc;
+    --sidebar-active: #e8630a;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .sidebar-logo img {
+    width: 140px;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-nav {
+    padding: 16px 12px;
+    flex: 1;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    color: rgba(232,213,188,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 12px;
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--sidebar-text);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.06); }
+  .nav-item.active { background: var(--orange); color: white; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .user-name { font-size: 12px; color: var(--sidebar-text); font-weight: 500; }
+  .user-role { font-size: 10px; color: rgba(232,213,188,0.4); }
+
+  .logout-btn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 8px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: rgba(232,213,188,0.5);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .logout-btn:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-text); }
+
+  /* ===== MAIN ===== */
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .page-title { font-size: 18px; font-weight: 700; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+  }
+
+  .search-box input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    width: 200px;
+  }
+
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* ===== STATS ===== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 16px 0 80px;
+    opacity: 0.08;
+  }
+
+  .stat-card.orange::before { background: var(--orange); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.blue::before { background: #3b82f6; }
+  .stat-card.purple::before { background: #8b5cf6; }
+
+  .stat-icon { font-size: 24px; margin-bottom: 12px; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .stat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+  .stat-badge.up { background: var(--green-pale); color: var(--green); }
+  .stat-badge.warn { background: #fff7ed; color: #ea580c; }
+
+  /* ===== TABLE ===== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title { font-size: 15px; font-weight: 700; }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text-muted);
+  }
+
+  .filter-btn.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: white;
+  }
+
+  .filter-btn:hover:not(.active) { border-color: var(--orange); color: var(--orange); }
+
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead tr {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+
+  td {
+    padding: 14px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .order-id {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .company-name { font-weight: 700; font-size: 13px; }
+
+  .status-select {
+    border: none;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .status-select.status-新規受注 { background: #eff6ff; color: #2563eb; }
+  .status-select.status-処理中 { background: #fff7ed; color: #ea580c; }
+  .status-select.status-出荷済み { background: var(--green-pale); color: var(--green); }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .status-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .status-新規受注 { background: #eff6ff; color: #2563eb; }
+  .status-新規受注::before { background: #2563eb; }
+  .status-処理中 { background: #fff7ed; color: #ea580c; }
+  .status-処理中::before { background: #ea580c; }
+  .status-出荷済み { background: var(--green-pale); color: var(--green); }
+  .status-出荷済み::before { background: var(--green); }
+  .status-キャンセル { background: #fef2f2; color: #dc2626; }
+  .status-キャンセル::before { background: #dc2626; }
+
+  .amount {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    color: var(--orange);
+  }
+
+  .detail-btn {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+  }
+
+  .detail-btn:hover { background: var(--orange); border-color: var(--orange); color: white; }
+
+  .loading-row td {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: var(--bg); }
+
+  .modal-body { padding: 24px 28px; }
+
+  .modal-section { margin-bottom: 24px; }
+  .modal-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .info-item { }
+  .info-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .info-value { font-size: 14px; font-weight: 500; }
+
+  .items-table { width: 100%; border-collapse: collapse; }
+  .items-table th {
+    padding: 8px 12px;
+    background: var(--bg);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: left;
+    font-weight: 700;
+  }
+  .items-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .items-table tr:last-child td { border-bottom: none; }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--orange-pale);
+    border-radius: 12px;
+    margin-top: 12px;
+  }
+
+  .total-label { font-size: 14px; font-weight: 700; }
+  .total-amount { font-size: 22px; font-weight: 700; color: var(--orange); font-family: 'Space Grotesk', sans-serif; }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state-text { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
+    <div style="font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase;">受注管理システム</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item active" onclick="showPage('orders')">
+      <span class="icon">📋</span> 受注一覧
+    </a>
+    <a class="nav-item" onclick="showPage('customers')">
+      <span class="icon">🏪</span> 取引先管理
+    </a>
+    <a class="nav-item" onclick="alert('近日公開予定です')">
+      <span class="icon">🧾</span> 請求書
+    </a>
+    <a class="nav-item" onclick="alert('近日公開予定です')">
+      <span class="icon">⚙️</span> 設定
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar" id="userInitial">H</div>
+      <div>
+        <div class="user-name" id="userName">ひかる商店</div>
+        <div class="user-role">管理者</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="pageTitle">受注一覧</div>
+      <div class="page-sub" id="pageSub">すべての受注を確認・管理できます</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="searchInput" placeholder="取引先名・受注IDで検索..." oninput="filterOrders()" />
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card orange">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="statTotal">-</div>
+        <div class="stat-label">総受注数</div>
+        <div class="stat-badge up" id="statNew">読込中...</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="statShipped">-</div>
+        <div class="stat-label">出荷済み</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-icon">🕐</div>
+        <div class="stat-value" id="statPending">-</div>
+        <div class="stat-label">新規受注</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="statRevenue">-</div>
+        <div class="stat-label">売上合計</div>
+      </div>
+    </div>
+
+    <!-- ORDERS TABLE -->
+    <div class="section-header">
+      <div class="section-title">受注一覧</div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
+        <button class="filter-btn" onclick="setFilter('新規受注', this)">新規受注</button>
+        <button class="filter-btn" onclick="setFilter('処理中', this)">処理中</button>
+        <button class="filter-btn" onclick="setFilter('出荷済み', this)">出荷済み</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>受注ID</th>
+            <th>取引先名</th>
+            <th>受注日</th>
+            <th>受注ステータス</th>
+            <th>注文合計</th>
+            <th>詳細</th>
+          </tr>
+        </thead>
+        <tbody id="orderTableBody">
+          <tr class="loading-row">
+            <td colspan="6">
+              <span class="spinner"></span>受注データを読み込み中...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">受注詳細</div>
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== 設定 =====
+  // ✅ セキュリティ対応完了：APIトークン完全削除、全てWebhook経由
+  const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
+  const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub';
+  const MAKE_STATUS_WEBHOOK = 'https://hook.eu1.make.com/96kboj601xud2djwplgvjrkollivgu7d';
+
+  let allOrders = [];
+  let currentFilter = 'all';
+  let currentSearch = '';
+
+  // ===== 初期化 =====
+  window.onload = async () => {
+    const user = sessionStorage.getItem('user');
+    if (!user) { window.location.href = 'login.html'; return; }
+    const userData = JSON.parse(user);
+    document.getElementById('userName').textContent = userData.name || 'ユーザー';
+    document.getElementById('userInitial').textContent = (userData.name || 'U')[0];
+    await loadOrders();
+  };
+
+  // ===== 受注データ取得（Webhook経由）=====
+  async function loadOrders() {
+    try {
+      const res = await fetch(MAKE_ORDERS_WEBHOOK);
+      const data = await res.json();
+      allOrders = data.map(item => ({
+        id: item.id,
+        fields: {
+          '受注ID':        item['受注ID'],
+          '取引先名':      item['取引先名'],
+          '担当者名':      item['担当者名'],
+          '受注日':        item['受注日'],
+          '受注ステータス': item['受注ステータス'],
+          '注文合計':      item['注文金額'] ? Number(item['注文金額']) : 0,
+          '備考':          item['備考'],
+        }
+      }));
+      updateStats();
+      renderOrders();
+    } catch(e) {
+      document.getElementById('orderTableBody').innerHTML = `
+        <tr class="loading-row"><td colspan="6">⚠️ データの読み込みに失敗しました</td></tr>`;
+    }
+  }
+
+  // ===== 統計更新 =====
+  function updateStats() {
+    const total = allOrders.length;
+    const shipped = allOrders.filter(o => o.fields['受注ステータス'] === '出荷済み').length;
+    const pending = allOrders.filter(o => o.fields['受注ステータス'] === '新規受注').length;
+    const revenue = allOrders.reduce((sum, o) => sum + (o.fields['注文合計'] || 0), 0);
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statShipped').textContent = shipped;
+    document.getElementById('statPending').textContent = pending;
+    document.getElementById('statRevenue').textContent = '¥' + revenue.toLocaleString();
+    document.getElementById('statNew').textContent = `新規 ${pending}件`;
+  }
+
+  // ===== 受注一覧描画 =====
+  function renderOrders() {
+    let filtered = allOrders;
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(o => o.fields['受注ステータス'] === currentFilter);
+    }
+    if (currentSearch) {
+      const q = currentSearch.toLowerCase();
+      filtered = filtered.filter(o =>
+        (o.fields['取引先名'] || '').toLowerCase().includes(q) ||
+        (o.fields['受注ID'] || '').toLowerCase().includes(q)
+      );
+    }
+
+    const tbody = document.getElementById('orderTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr class="loading-row">
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-text">受注データがありません</div>
+            </div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(order => {
+      const f = order.fields;
+      const status = f['受注ステータス'] || '不明';
+      const date = f['受注日'] ? new Date(f['受注日']).toLocaleDateString('ja-JP') : '-';
+      const amount = f['注文合計'] ? '¥' + Number(f['注文合計']).toLocaleString() : '-';
+      return `
+        <tr onclick="openDetail('${order.id}')">
+          <td><span class="order-id">${f['受注ID'] || order.id.substring(0,8)}</span></td>
+          <td><span class="company-name">${f['取引先名'] || '-'}</span></td>
+          <td>${date}</td>
+          <td onclick="event.stopPropagation()">
+            <select class="status-select status-${status}" onchange="updateStatus('${order.id}', this)">
+              <option value="新規受注" ${status==='新規受注'?'selected':''}>新規受注</option>
+              <option value="処理中" ${status==='処理中'?'selected':''}>処理中</option>
+              <option value="出荷済み" ${status==='出荷済み'?'selected':''}>出荷済み</option>
+            </select>
+          </td>
+          <td><span class="amount">${amount}</span></td>
+          <td><button class="detail-btn" onclick="event.stopPropagation();openDetail('${order.id}')">詳細 →</button></td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ===== ステータス更新 =====
+  async function updateStatus(recordId, selectEl) {
+    const newStatus = selectEl.value;
+    const oldStatus = selectEl.dataset.prev || selectEl.querySelector('option[selected]')?.value || newStatus;
+    selectEl.dataset.prev = newStatus;
+
+    // クラス更新
+    selectEl.className = `status-select status-${newStatus}`;
+
+    try {
+      const res = await fetch(`${MAKE_STATUS_WEBHOOK}?record_id=${encodeURIComponent(recordId)}&status=${encodeURIComponent(newStatus)}`);
+      if (!res.ok) throw new Error('error');
+      // ローカルデータも更新
+      const order = allOrders.find(o => o.id === recordId);
+      if (order) order.fields['受注ステータス'] = newStatus;
+    } catch(e) {
+      alert('ステータスの更新に失敗しました');
+      selectEl.value = oldStatus;
+      selectEl.className = `status-select status-${oldStatus}`;
+    }
+  }
+
+  // ===== フィルター =====
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders();
+  }
+
+  function filterOrders() {
+    currentSearch = document.getElementById('searchInput').value;
+    renderOrders();
+  }
+
+  // ===== 詳細モーダル =====
+  async function openDetail(orderId) {
+    const order = allOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const f = order.fields;
+    document.getElementById('modalTitle').textContent = `受注詳細 - ${f['受注ID'] || orderId}`;
+    document.getElementById('modalBody').innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">基本情報</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">受注ID</div>
+            <div class="info-value">${f['受注ID'] || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">取引先名</div>
+            <div class="info-value">${f['取引先名'] || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">受注日</div>
+            <div class="info-value">${f['受注日'] ? new Date(f['受注日']).toLocaleDateString('ja-JP') : '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">受注ステータス</div>
+            <div class="info-value"><span class="status-badge status-${f['受注ステータス'] || '不明'}">${f['受注ステータス'] || '-'}</span></div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">請求ステータス</div>
+            <div class="info-value">${f['請求ステータス'] || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">出荷日</div>
+            <div class="info-value">${f['出荷日'] ? new Date(f['出荷日']).toLocaleDateString('ja-JP') : '-'}</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">注文明細</div>
+        <div id="modalItems"><span class="spinner"></span> 読込中...</div>
+      </div>
+    `;
+
+    document.getElementById('modalOverlay').classList.add('show');
+    await loadOrderItems(f['受注ID'], f['注文合計']);
+  }
+
+  // ===== 注文明細取得（Webhook経由）✅ =====
+  async function loadOrderItems(juchiID, totalAmount) {
+    try {
+      const res = await fetch(`${MAKE_ITEMS_WEBHOOK}?受注ID=${encodeURIComponent(juchiID)}`);
+      const items = await res.json();
+
+      const itemsHtml = items.length > 0 ? `
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>商品名</th>
+              <th>数量</th>
+              <th>単価</th>
+              <th>小計</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr>
+                <td>${item['商品名'] || '-'}</td>
+                <td>${item['数量'] || 0}</td>
+                <td>¥${Number(item['単価'] || 0).toLocaleString()}</td>
+                <td>¥${Number(item['小計'] || 0).toLocaleString()}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="total-row">
+          <div class="total-label">注文合計</div>
+          <div class="total-amount">¥${Number(totalAmount || 0).toLocaleString()}</div>
+        </div>
+      ` : '<p style="color:var(--text-muted);font-size:13px;">明細データがありません</p>';
+
+      document.getElementById('modalItems').innerHTML = itemsHtml;
+    } catch(e) {
+      document.getElementById('modalItems').innerHTML = '<p style="color:red;font-size:13px;">明細の読み込みに失敗しました</p>';
+    }
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModalBtn();
+  }
+
+  function closeModalBtn() {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  // ===== ログアウト =====
+  function logout() {
+    sessionStorage.removeItem('user');
+    window.location.href = 'login.html';
+  }
+
+  function showPage(page) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>
