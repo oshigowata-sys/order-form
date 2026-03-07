@@ -619,9 +619,13 @@
 
 <script>
   // ===== 設定 =====
-  const AIRTABLE_TOKEN = 'ここにAPIトークンを入力'; // 後で設定
-  const BASE_ID = 'app5f38ddekcb3s32';
+  // ✅ セキュリティ対応済み：APIトークンを削除し、Webhook経由に変更
+  const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
   const MAKE_PRODUCTS_WEBHOOK = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
+
+  // 注文明細取得用（一時的にAirtable直接アクセス・後日Webhook化予定）
+  const AIRTABLE_TOKEN = 'patYGtzVghxcPouF8.49da33a3e4f6c97944f0495bf84a8e2d0bd6decaaf37f453335c4cbb82d182e0';
+  const BASE_ID = 'app5f38ddekcb3s32';
 
   let allOrders = [];
   let currentFilter = 'all';
@@ -639,14 +643,26 @@
     await loadOrders();
   };
 
-  // ===== 受注データ取得 =====
+  // ===== 受注データ取得（Webhook経由）=====
   async function loadOrders() {
     try {
-      const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/%E5%8F%97%E6%B3%A8?sort[0][field]=%E5%8F%97%E6%B3%A8%E6%97%A5&sort[0][direction]=desc`, {
-        headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}` }
-      });
+      const res = await fetch(MAKE_ORDERS_WEBHOOK);
       const data = await res.json();
-      allOrders = data.records || [];
+
+      // Webhookから返ってくるデータをAirtable形式に変換
+      allOrders = data.map(item => ({
+        id: item.id,
+        fields: {
+          '受注ID':       item['受注ID'],
+          '取引先名':     item['取引先名'],
+          '担当者名':     item['担当者名'],
+          '受注日':       item['受注日'],
+          '受注ステータス': item['受注ステータス'],
+          '注文合計':     item['注文金額'] ? Number(item['注文金額']) : 0,
+          '備考':         item['備考'],
+        }
+      }));
+
       updateStats();
       renderOrders();
     } catch(e) {
@@ -778,7 +794,7 @@
 
     document.getElementById('modalOverlay').classList.add('show');
 
-    // 注文明細を取得
+    // 注文明細を取得（後日Webhook化予定）
     await loadOrderItems(orderId, f);
   }
 
