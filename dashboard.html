@@ -619,13 +619,9 @@
 
 <script>
   // ===== 設定 =====
-  // ✅ セキュリティ対応済み：APIトークンを削除し、Webhook経由に変更
+  // ✅ セキュリティ対応完了：APIトークン完全削除、全てWebhook経由
   const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
-  const MAKE_PRODUCTS_WEBHOOK = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
-
-  // 注文明細取得用（一時的にAirtable直接アクセス・後日Webhook化予定）
-  const AIRTABLE_TOKEN = 'patYGtzVghxcPouF8.49da33a3e4f6c97944f0495bf84a8e2d0bd6decaaf37f453335c4cbb82d182e0';
-  const BASE_ID = 'app5f38ddekcb3s32';
+  const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub';
 
   let allOrders = [];
   let currentFilter = 'all';
@@ -633,13 +629,11 @@
 
   // ===== 初期化 =====
   window.onload = async () => {
-    // ログインチェック
     const user = sessionStorage.getItem('user');
     if (!user) { window.location.href = 'login.html'; return; }
     const userData = JSON.parse(user);
     document.getElementById('userName').textContent = userData.name || 'ユーザー';
     document.getElementById('userInitial').textContent = (userData.name || 'U')[0];
-
     await loadOrders();
   };
 
@@ -648,21 +642,18 @@
     try {
       const res = await fetch(MAKE_ORDERS_WEBHOOK);
       const data = await res.json();
-
-      // Webhookから返ってくるデータをAirtable形式に変換
       allOrders = data.map(item => ({
         id: item.id,
         fields: {
-          '受注ID':       item['受注ID'],
-          '取引先名':     item['取引先名'],
-          '担当者名':     item['担当者名'],
-          '受注日':       item['受注日'],
+          '受注ID':        item['受注ID'],
+          '取引先名':      item['取引先名'],
+          '担当者名':      item['担当者名'],
+          '受注日':        item['受注日'],
           '受注ステータス': item['受注ステータス'],
-          '注文合計':     item['注文金額'] ? Number(item['注文金額']) : 0,
-          '備考':         item['備考'],
+          '注文合計':      item['注文金額'] ? Number(item['注文金額']) : 0,
+          '備考':          item['備考'],
         }
       }));
-
       updateStats();
       renderOrders();
     } catch(e) {
@@ -688,11 +679,9 @@
   // ===== 受注一覧描画 =====
   function renderOrders() {
     let filtered = allOrders;
-
     if (currentFilter !== 'all') {
       filtered = filtered.filter(o => o.fields['受注ステータス'] === currentFilter);
     }
-
     if (currentSearch) {
       const q = currentSearch.toLowerCase();
       filtered = filtered.filter(o =>
@@ -702,7 +691,6 @@
     }
 
     const tbody = document.getElementById('orderTableBody');
-
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr class="loading-row">
@@ -721,7 +709,6 @@
       const status = f['受注ステータス'] || '不明';
       const date = f['受注日'] ? new Date(f['受注日']).toLocaleDateString('ja-JP') : '-';
       const amount = f['注文合計'] ? '¥' + Number(f['注文合計']).toLocaleString() : '-';
-
       return `
         <tr onclick="openDetail('${order.id}')">
           <td><span class="order-id">${f['受注ID'] || order.id.substring(0,8)}</span></td>
@@ -754,7 +741,6 @@
 
     const f = order.fields;
     document.getElementById('modalTitle').textContent = `受注詳細 - ${f['受注ID'] || orderId}`;
-
     document.getElementById('modalBody').innerHTML = `
       <div class="modal-section">
         <div class="modal-section-title">基本情報</div>
@@ -785,7 +771,6 @@
           </div>
         </div>
       </div>
-
       <div class="modal-section">
         <div class="modal-section-title">注文明細</div>
         <div id="modalItems"><span class="spinner"></span> 読込中...</div>
@@ -793,18 +778,14 @@
     `;
 
     document.getElementById('modalOverlay').classList.add('show');
-
-    // 注文明細を取得（後日Webhook化予定）
-    await loadOrderItems(orderId, f);
+    await loadOrderItems(f['受注ID'], f['注文合計']);
   }
 
-  async function loadOrderItems(orderId, orderFields) {
+  // ===== 注文明細取得（Webhook経由）✅ =====
+  async function loadOrderItems(juchiID, totalAmount) {
     try {
-      const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/%E6%B3%A8%E6%96%87%E6%98%8E%E7%B4%B0?filterByFormula={%E5%8F%97%E6%B3%A8ID}="${orderFields['受注ID']}"`, {
-        headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}` }
-      });
-      const data = await res.json();
-      const items = data.records || [];
+      const res = await fetch(`${MAKE_ITEMS_WEBHOOK}?受注ID=${encodeURIComponent(juchiID)}`);
+      const items = await res.json();
 
       const itemsHtml = items.length > 0 ? `
         <table class="items-table">
@@ -817,23 +798,18 @@
             </tr>
           </thead>
           <tbody>
-            ${items.map(item => {
-              const f = item.fields;
-              const productName = Array.isArray(f['商品名']) ? f['商品名'][0] : (f['商品名'] || '-');
-              const price = Array.isArray(f['単価']) ? f['単価'][0] : (f['単価'] || 0);
-              return `
-                <tr>
-                  <td>${productName}</td>
-                  <td>${f['数量'] || 0}</td>
-                  <td>¥${Number(price).toLocaleString()}</td>
-                  <td>¥${Number(f['小計'] || 0).toLocaleString()}</td>
-                </tr>`;
-            }).join('')}
+            ${items.map(item => `
+              <tr>
+                <td>${item['商品名'] || '-'}</td>
+                <td>${item['数量'] || 0}</td>
+                <td>¥${Number(item['単価'] || 0).toLocaleString()}</td>
+                <td>¥${Number(item['小計'] || 0).toLocaleString()}</td>
+              </tr>`).join('')}
           </tbody>
         </table>
         <div class="total-row">
           <div class="total-label">注文合計</div>
-          <div class="total-amount">¥${Number(orderFields['注文合計'] || 0).toLocaleString()}</div>
+          <div class="total-amount">¥${Number(totalAmount || 0).toLocaleString()}</div>
         </div>
       ` : '<p style="color:var(--text-muted);font-size:13px;">明細データがありません</p>';
 
