@@ -818,7 +818,10 @@
         <div class="modal-section-title">注文明細</div>
         <div id="modalItems"><span class="spinner"></span> 読込中...</div>
       </div>
-    `;
+      <div class="modal-section" style="padding-top:0;">
+        <a href="invoice.html?order_id=${encodeURIComponent(f['受注ID'] || '')}&record_id=${encodeURIComponent(orderId)}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#1e6641;color:white;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;">🧾 請求書を発行</a>
+      </div>
+    \`;
 
     document.getElementById('modalOverlay').classList.add('show');
     await loadOrderItems(f['受注ID'], f['注文合計']);
