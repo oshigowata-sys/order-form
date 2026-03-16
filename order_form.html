@@ -320,12 +320,21 @@ const data = JSON.parse('[' + cleaned + ']');
     btn.disabled = true;
     btn.textContent = '送信中...';
 
+    // sessionStorageから顧客レコードIDを取得（ログイン済みの場合）
+    let customerRecordId = '';
+    try {
+      const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+      customerRecordId = user.recordId || '';
+    } catch(e) {}
+
     const payload = {
       company_name: company,
       person_name: document.getElementById('personName').value.trim(),
       note: document.getElementById('note').value.trim(),
+      customer_record_id: customerRecordId,
       items: items.map(i => ({
         product_id: i.id,
+        product_record_id: i.recordId,
         product_name: i.name,
         price: i.price,
         qty: i.qty,

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeguRee - 掛け率管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f3ee;
+    --surface: #ffffff;
+    --border: #e2d9ce;
+    --orange: #e8630a;
+    --orange-light: #f97316;
+    --orange-pale: #fff4ec;
+    --green: #1e6641;
+    --green-light: #2d9a5f;
+    --green-pale: #e8f5ee;
+    --text: #1a1208;
+    --text-muted: #7a6a55;
+    --sidebar-bg: #1a1208;
+    --sidebar-text: #e8d5bc;
+    --sidebar-active: #e8630a;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 240px; min-height: 100vh; background: var(--sidebar-bg);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-logo img { width: 140px; margin-bottom: 4px; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; }
+  .nav-label {
+    font-size: 10px; color: rgba(232,213,188,0.3); letter-spacing: 2px;
+    text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; margin-top: 16px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 10px; cursor: pointer; color: var(--sidebar-text);
+    font-size: 13px; font-weight: 500; transition: all 0.2s;
+    text-decoration: none; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); }
+  .nav-item.active { background: var(--orange); color: white; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .user-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 10px; background: rgba(255,255,255,0.05);
+  }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .user-name { font-size: 12px; color: var(--sidebar-text); font-weight: 500; }
+  .user-role { font-size: 10px; color: rgba(232,213,188,0.4); }
+  .logout-btn {
+    margin-top: 8px; width: 100%; padding: 8px; background: none;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    color: rgba(232,213,188,0.5); font-size: 12px; cursor: pointer;
+    transition: all 0.2s; font-family: 'Noto Sans JP', sans-serif;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-text); }
+
+  /* ===== MAIN ===== */
+  .main { margin-left: 240px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title { font-size: 18px; font-weight: 700; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* ===== TABLE ===== */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  }
+  .section-title { font-size: 15px; font-weight: 700; }
+
+  .filter-row { display: flex; gap: 10px; align-items: center; }
+  .filter-select {
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px;
+    font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text); background: var(--surface); outline: none;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .filter-select:focus { border-color: var(--orange); }
+
+  .table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--bg); border-bottom: 1px solid var(--border); }
+  th {
+    padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700;
+    color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  td { padding: 14px 16px; font-size: 13px; vertical-align: middle; }
+  .company-name { font-weight: 700; font-size: 13px; }
+  .product-name { font-weight: 500; }
+  .amount {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--orange);
+  }
+  .rate-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;
+    background: var(--green-pale); color: var(--green);
+  }
+
+  .spinner {
+    display: inline-block; width: 20px; height: 20px;
+    border: 2px solid var(--border); border-top-color: var(--orange);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-row td { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
+  .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state-text { font-size: 14px; }
+
+  /* ===== BUTTONS ===== */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--orange); color: white; padding: 10px 20px;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; transition: background 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-primary:hover { background: var(--orange-light); }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg); color: var(--text); padding: 7px 14px;
+    border-radius: 8px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+
+  .btn-danger {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fef2f2; color: #dc2626; padding: 7px 14px;
+    border-radius: 8px; font-size: 12px; font-weight: 500;
+    border: 1px solid #fecaca; cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-danger:hover { background: #fee2e2; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+    padding: 24px; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 20px; width: 100%; max-width: 520px;
+    max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    padding: 24px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--surface); border-radius: 20px 20px 0 0;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+    background: none; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+  }
+  .modal-close:hover { background: var(--bg); }
+  .modal-body { padding: 24px 28px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;
+  }
+  .form-input {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text); background: var(--bg); outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--orange); background: white; }
+  .form-input::placeholder { color: #bbb; }
+
+  .form-actions { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
+  .save-success {
+    display: none; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--green); font-weight: 600;
+  }
+  .save-success.show { display: flex; }
+
+  .calc-preview {
+    background: var(--orange-pale); border: 1px solid #fdd0a8;
+    border-radius: 12px; padding: 14px 18px; margin-top: 8px;
+    font-size: 13px; color: var(--text);
+  }
+  .calc-preview .calc-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .calc-preview .calc-value { font-size: 18px; font-weight: 700; color: var(--orange); font-family: 'Space Grotesk', sans-serif; }
+
+  .info-notice {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+    padding: 12px 16px; font-size: 12px; color: #1d4ed8;
+    margin-bottom: 20px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
+    <div style="font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase;">受注管理システム</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html">
+      <span class="icon">📋</span> 受注一覧
+    </a>
+    <a class="nav-item" href="customer.html">
+      <span class="icon">🏪</span> 取引先マスタ
+    </a>
+    <a class="nav-item" href="products.html">
+      <span class="icon">📦</span> 商品マスタ
+    </a>
+    <a class="nav-item active" href="pricing.html">
+      <span class="icon">💹</span> 掛け率管理
+    </a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="dashboard.html" onclick="sessionStorage.setItem('openPage','settings')">
+      <span class="icon">⚙️</span> 設定
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar" id="userInitial">U</div>
+      <div>
+        <div class="user-name" id="userName">ユーザー</div>
+        <div class="user-role">管理者</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">掛け率管理</div>
+      <div class="page-sub">取引先ごとの商品別掛け率を設定します（単価 = 基本単価 × 掛け率）</div>
+    </div>
+    <div>
+      <button class="btn-primary" onclick="openAddModal()">＋ 新規掛け率</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-header">
+      <div class="section-title">掛け率一覧</div>
+      <div class="filter-row">
+        <select class="filter-select" id="filterCustomer" onchange="renderPricingTable()">
+          <option value="">すべての取引先</option>
+        </select>
+        <select class="filter-select" id="filterProduct" onchange="renderPricingTable()">
+          <option value="">すべての商品</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="info-notice">
+      <span>ℹ️</span>
+      <span>掛け率は「取引先別単価テーブル」から取得されます。受注登録時、Make側で 基本単価 × 掛け率 = 注文単価 として自動計算されます。</span>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>取引先</th>
+            <th>商品名</th>
+            <th>基本単価</th>
+            <th>掛け率</th>
+            <th>適用単価</th>
+            <th>メモ</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="pricingTableBody">
+          <tr class="loading-row"><td colspan="7"><span class="spinner"></span>読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">掛け率を登録</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editRecordId" />
+      <div class="form-group">
+        <label class="form-label">取引先 *</label>
+        <select class="form-input" id="formCustomer">
+          <option value="">-- 取引先を選択 --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">商品 *</label>
+        <select class="form-input" id="formProduct" onchange="updateCalcPreview()">
+          <option value="">-- 商品を選択 --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">掛け率 *（例: 0.8 = 80%）</label>
+        <input type="number" class="form-input" id="formRate" min="0" max="10" step="0.01" placeholder="例：0.8" oninput="updateCalcPreview()" />
+        <div class="calc-preview" id="calcPreview" style="display:none;">
+          <div class="calc-label">適用単価プレビュー</div>
+          <div class="calc-value" id="calcValue">-</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ（任意）</label>
+        <input type="text" class="form-input" id="formMemo" placeholder="例：特約価格、キャンペーン等" />
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" id="saveBtn" onclick="savePricing()">保存する</button>
+        <div class="save-success" id="saveSuccess">保存しました</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== セキュリティ・共通 =====
+  const API_SECRET = 'meguree-secret-2026';
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  // ===== Webhook URLs =====
+  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
+  const PRODUCT_LIST_WEBHOOK  = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
+  const PRICING_SAVE_WEBHOOK  = 'https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu';
+
+  async function secureFetch(url, options = {}) {
+    const sep = url.includes('?') ? '&' : '?';
+    const secureUrl = url + sep + 'secret=' + encodeURIComponent(API_SECRET);
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    return fetch(secureUrl, { ...options, headers });
+  }
+
+  // ===== 認証チェック =====
+  window.onload = () => {
+    const user = sessionStorage.getItem('user');
+    if (!user) { window.location.href = 'login.html'; return; }
+    const userData = JSON.parse(user);
+    document.getElementById('userName').textContent = userData.name || 'ユーザー';
+    document.getElementById('userInitial').textContent = (userData.name || 'U')[0];
+    loadAll();
+  };
+
+  function logout() {
+    sessionStorage.removeItem('user');
+    window.location.href = 'login.html';
+  }
+
+  // ===== データ =====
+  let allCustomers = [];
+  let allProducts = [];
+  let allPricings = [];
+
+  async function loadAll() {
+    await Promise.all([loadCustomers(), loadProducts(), loadPricings()]);
+    populateFilters();
+    populateFormSelects();
+    renderPricingTable();
+  }
+
+  async function loadCustomers() {
+    try {
+      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
+      const data = await res.json();
+      allCustomers = (Array.isArray(data) ? data : []).map(r => ({
+        id: r.id || r.recordId,
+        name: r['会社名'] || r.fields?.['会社名'] || '',
+      }));
+    } catch(e) { console.error('顧客読込エラー:', e); }
+  }
+
+  async function loadProducts() {
+    try {
+      const res = await secureFetch(PRODUCT_LIST_WEBHOOK);
+      const text = await res.text();
+      const cleaned = text.trim().replace(/^"|"$/g, '');
+      const data = JSON.parse('[' + cleaned + ']');
+      allProducts = (Array.isArray(data) ? data : [data]).map(r => ({
+        id: r.id,
+        name: r.fields?.['商品名'] || '',
+        price: r.fields?.['価格'] || r.fields?.['基本単価'] || 0,
+      }));
+    } catch(e) { console.error('商品読込エラー:', e); }
+  }
+
+  async function loadPricings() {
+    try {
+      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_pricing');
+      const data = await res.json();
+      allPricings = (Array.isArray(data) ? data : []).map(r => ({
+        id: r.id || r.recordId,
+        customerName: r['取引先名'] || r.fields?.['取引先名'] || '',
+        customerId: r['取引先ID'] || r.fields?.['取引先']?.[0] || '',
+        productName: r['商品名'] || r.fields?.['商品名'] || '',
+        productId: r['商品ID'] || r.fields?.['商品']?.[0] || '',
+        rate: r['掛け率'] || r.fields?.['掛け率'] || 0,
+        basePrice: r['基本単価'] || r.fields?.['基本単価'] || 0,
+        memo: r['メモ'] || r.fields?.['メモ'] || '',
+      }));
+    } catch(e) {
+      console.error('掛け率読込エラー:', e);
+    }
+  }
+
+  function populateFilters() {
+    const custFilter = document.getElementById('filterCustomer');
+    const uniqueCustomers = [...new Set(allPricings.map(p => p.customerName))].filter(Boolean);
+    uniqueCustomers.forEach(name => {
+      custFilter.innerHTML += `<option value="${esc(name)}">${esc(name)}</option>`;
+    });
+
+    const prodFilter = document.getElementById('filterProduct');
+    const uniqueProducts = [...new Set(allPricings.map(p => p.productName))].filter(Boolean);
+    uniqueProducts.forEach(name => {
+      prodFilter.innerHTML += `<option value="${esc(name)}">${esc(name)}</option>`;
+    });
+  }
+
+  function populateFormSelects() {
+    const custSelect = document.getElementById('formCustomer');
+    custSelect.innerHTML = '<option value="">-- 取引先を選択 --</option>' +
+      allCustomers.map(c => `<option value="${esc(c.id)}" data-name="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+
+    const prodSelect = document.getElementById('formProduct');
+    prodSelect.innerHTML = '<option value="">-- 商品を選択 --</option>' +
+      allProducts.map(p => `<option value="${esc(p.id)}" data-price="${p.price}">${esc(p.name)}（¥${Number(p.price).toLocaleString()}）</option>`).join('');
+  }
+
+  function renderPricingTable() {
+    const custFilter = document.getElementById('filterCustomer').value;
+    const prodFilter = document.getElementById('filterProduct').value;
+
+    let filtered = allPricings;
+    if (custFilter) filtered = filtered.filter(p => p.customerName === custFilter);
+    if (prodFilter) filtered = filtered.filter(p => p.productName === prodFilter);
+
+    const tbody = document.getElementById('pricingTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="7"><div class="empty-state"><div class="empty-state-icon">💹</div><div class="empty-state-text">掛け率データがありません<br><span style="font-size:12px;">「＋ 新規掛け率」から登録してください</span></div></div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(p => {
+      const appliedPrice = p.basePrice ? Math.round(p.basePrice * p.rate) : '-';
+      const appliedPriceStr = typeof appliedPrice === 'number' ? '¥' + appliedPrice.toLocaleString() : '-';
+      const basePriceStr = p.basePrice ? '¥' + Number(p.basePrice).toLocaleString() : '-';
+      return `<tr>
+        <td><span class="company-name">${esc(p.customerName)}</span></td>
+        <td><span class="product-name">${esc(p.productName)}</span></td>
+        <td>${basePriceStr}</td>
+        <td><span class="rate-badge">${Number(p.rate).toFixed(2)}</span></td>
+        <td><span class="amount">${appliedPriceStr}</span></td>
+        <td style="font-size:12px;color:var(--text-muted);">${esc(p.memo)}</td>
+        <td>
+          <button class="btn-secondary" onclick="openEditModal('${esc(p.id)}')">編集</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ===== 計算プレビュー =====
+  function updateCalcPreview() {
+    const prodSelect = document.getElementById('formProduct');
+    const rateInput = document.getElementById('formRate');
+    const preview = document.getElementById('calcPreview');
+    const calcValue = document.getElementById('calcValue');
+
+    const selectedOption = prodSelect.options[prodSelect.selectedIndex];
+    const basePrice = selectedOption ? Number(selectedOption.dataset.price) || 0 : 0;
+    const rate = Number(rateInput.value) || 0;
+
+    if (basePrice > 0 && rate > 0) {
+      const applied = Math.round(basePrice * rate);
+      calcValue.textContent = `¥${basePrice.toLocaleString()} × ${rate} = ¥${applied.toLocaleString()}`;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  // ===== モーダル =====
+  function openAddModal() {
+    document.getElementById('modalTitle').textContent = '掛け率を登録';
+    document.getElementById('editRecordId').value = '';
+    document.getElementById('formCustomer').value = '';
+    document.getElementById('formProduct').value = '';
+    document.getElementById('formRate').value = '';
+    document.getElementById('formMemo').value = '';
+    document.getElementById('calcPreview').style.display = 'none';
+    document.getElementById('saveSuccess').classList.remove('show');
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function openEditModal(recordId) {
+    const p = allPricings.find(x => x.id === recordId);
+    if (!p) return;
+    document.getElementById('modalTitle').textContent = '掛け率を編集';
+    document.getElementById('editRecordId').value = recordId;
+    document.getElementById('formCustomer').value = p.customerId;
+    document.getElementById('formProduct').value = p.productId;
+    document.getElementById('formRate').value = p.rate || '';
+    document.getElementById('formMemo').value = p.memo || '';
+    document.getElementById('saveSuccess').classList.remove('show');
+    updateCalcPreview();
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  async function savePricing() {
+    const customerId = document.getElementById('formCustomer').value;
+    const productId = document.getElementById('formProduct').value;
+    const rate = document.getElementById('formRate').value;
+
+    if (!customerId) { alert('取引先を選択してください'); return; }
+    if (!productId) { alert('商品を選択してください'); return; }
+    if (!rate) { alert('掛け率を入力してください'); return; }
+
+    const recordId = document.getElementById('editRecordId').value;
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    const payload = {
+      action: recordId ? 'update_pricing' : 'create_pricing',
+      record_id: recordId || undefined,
+      customer_id: customerId,
+      product_id: productId,
+      rate: Number(rate),
+      memo: document.getElementById('formMemo').value.trim(),
+    };
+
+    try {
+      await secureFetch(PRICING_SAVE_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      const successEl = document.getElementById('saveSuccess');
+      successEl.classList.add('show');
+      setTimeout(() => {
+        closeModal();
+        loadAll();
+      }, 800);
+    } catch(e) {
+      alert('保存に失敗しました。もう一度お試しください。');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '保存する';
+    }
+  }
+</script>
+</body>
+</html>
