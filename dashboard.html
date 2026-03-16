@@ -1026,15 +1026,15 @@
       .replace(/'/g, '&#x27;');
   }
 
-  // ① ② 共通fetchヘルパー：シークレットキーとトークンを自動付与
+  // ① ② 共通fetchヘルパー：シークレットキーをURLパラメータで付与（CORSでヘッダー方式は不可）
   async function secureFetch(url, options = {}) {
+    const sep = url.includes('?') ? '&' : '?';
+    const secureUrl = url + sep + 'secret=' + encodeURIComponent(API_SECRET);
     const headers = {
       'Content-Type': 'application/json',
-      'X-Api-Key': API_SECRET,          // ① シークレットキー
-      'X-Session-Token': getToken(),    // ② セッショントークン
       ...(options.headers || {}),
     };
-    return fetch(url, { ...options, headers });
+    return fetch(secureUrl, { ...options, headers });
   }
 
   // ===== 設定 =====

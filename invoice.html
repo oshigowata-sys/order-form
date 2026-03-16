@@ -549,8 +549,9 @@
 </div>
 
 <script>
-  const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub';
-  const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
+  const API_SECRET = 'meguree-secret-2026';
+  const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub?secret=' + encodeURIComponent(API_SECRET);
+  const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji?secret=' + encodeURIComponent(API_SECRET);
 
   // URLパラメータ取得
   const params = new URLSearchParams(location.search);
@@ -783,7 +784,7 @@
       let items = [];
       if (orderId) {
         try {
-          const itemRes = await fetch(`${MAKE_ITEMS_WEBHOOK}?受注ID=${encodeURIComponent(orderId)}`);
+          const itemRes = await fetch(`${MAKE_ITEMS_WEBHOOK}&受注ID=${encodeURIComponent(orderId)}`);
           const itemText = await itemRes.text();
           try { items = JSON.parse(itemText); } catch(e) {
             const m2 = itemText.match(/\[.*\]/s);
