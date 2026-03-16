@@ -327,10 +327,8 @@
   }
 
   // ===== Webhook URLs =====
-  // 顧客一覧取得用（Make側で新規シナリオが必要）
-  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
-  // 顧客登録・更新用（Make側で新規シナリオが必要）
-  const CUSTOMER_SAVE_WEBHOOK = 'https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu';
+  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
+  const CUSTOMER_SAVE_WEBHOOK = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
 
   async function secureFetch(url, options = {}) {
     const sep = url.includes('?') ? '&' : '?';
@@ -361,31 +359,21 @@
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
       const text = await res.text();
+      // 商品マスタと同じパース方式（Make Webhook → Airtable Search Records）
       const cleaned = text.trim().replace(/^"|"$/g, '');
-      let data;
-      try {
-        data = JSON.parse(cleaned);
-      } catch(e) {
-        data = JSON.parse('[' + cleaned + ']');
-      }
-      if (!Array.isArray(data)) data = [data];
-
-      allCustomers = data.map(r => {
-        // Airtable Search Records形式: { id, fields: { 会社名, ... } }
-        const f = r.fields || r;
-        return {
-          id: r.id || r.recordId || '',
-          company: f['会社名'] || '',
-          person: f['担当者名'] || '',
-          contact: f['連絡先'] || '',
-          closingDay: f['締め日'] || '',
-        };
-      });
+      const data = JSON.parse('[' + cleaned + ']');
+      allCustomers = (Array.isArray(data) ? data : [data]).map(r => ({
+        id: r.id,
+        company: r.fields?.['会社名'] || '',
+        person: r.fields?.['担当者名'] || '',
+        contact: r.fields?.['連絡先'] || '',
+        closingDay: r.fields?.['締め日'] || '',
+      }));
       renderCustomers();
     } catch(e) {
       console.error(e);
       document.getElementById('customerTableBody').innerHTML =
-        '<tr class="loading-row"><td colspan="5">⚠️ データの読み込みに失敗しました。<br><span style="font-size:12px;color:var(--text-muted);">Make側に顧客一覧取得シナリオの設定が必要です。</span></td></tr>';
+        '<tr class="loading-row"><td colspan="5">⚠️ データの読み込みに失敗しました。<br><span style="font-size:12px;color:var(--text-muted);">Make側の掛け率管理シナリオがONになっているか確認してください。</span></td></tr>';
     }
   }
 
