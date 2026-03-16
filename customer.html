@@ -360,14 +360,27 @@
   async function loadCustomers() {
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
-      const data = await res.json();
-      allCustomers = (Array.isArray(data) ? data : []).map(r => ({
-        id: r.id || r.recordId,
-        company: r['会社名'] || r.fields?.['会社名'] || '',
-        person: r['担当者名'] || r.fields?.['担当者名'] || '',
-        contact: r['連絡先'] || r.fields?.['連絡先'] || '',
-        closingDay: r['締め日'] || r.fields?.['締め日'] || '',
-      }));
+      const text = await res.text();
+      const cleaned = text.trim().replace(/^"|"$/g, '');
+      let data;
+      try {
+        data = JSON.parse(cleaned);
+      } catch(e) {
+        data = JSON.parse('[' + cleaned + ']');
+      }
+      if (!Array.isArray(data)) data = [data];
+
+      allCustomers = data.map(r => {
+        // Airtable Search Records形式: { id, fields: { 会社名, ... } }
+        const f = r.fields || r;
+        return {
+          id: r.id || r.recordId || '',
+          company: f['会社名'] || '',
+          person: f['担当者名'] || '',
+          contact: f['連絡先'] || '',
+          closingDay: f['締め日'] || '',
+        };
+      });
       renderCustomers();
     } catch(e) {
       console.error(e);
@@ -443,10 +456,10 @@
     const payload = {
       action: recordId ? 'update_customer' : 'create_customer',
       record_id: recordId || undefined,
-      company_name: company,
-      person_name: document.getElementById('formPerson').value.trim(),
-      contact: document.getElementById('formContact').value.trim(),
-      closing_day: parseInt(document.getElementById('formClosingDay').value) || null,
+      '会社名': company,
+      '担当者名': document.getElementById('formPerson').value.trim(),
+      '連絡先': document.getElementById('formContact').value.trim(),
+      '締め日': parseInt(document.getElementById('formClosingDay').value) || null,
     };
 
     try {
