@@ -357,7 +357,10 @@
 
   async function loadCustomers() {
     try {
-      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
+      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'list_customers' }),
+      });
       const text = await res.text();
       // 商品マスタと同じパース方式（Make Webhook → Airtable Search Records）
       const cleaned = text.trim().replace(/^"|"$/g, '');
