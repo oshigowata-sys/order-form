@@ -394,6 +394,7 @@
         <td>${closingDayHtml}</td>
         <td>
           <button class="btn-secondary" onclick="openEditModal('${esc(c.id)}')">編集</button>
+          <button class="btn-danger" onclick="deleteCustomer('${esc(c.id)}', '${esc(c.company)}')">削除</button>
         </td>
       </tr>`;
     }).join('');
@@ -426,6 +427,19 @@
 
   function closeModal() {
     document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  async function deleteCustomer(recordId, companyName) {
+    if (!confirm(`「${companyName}」を削除してよろしいですか？`)) return;
+    try {
+      await secureFetch(CUSTOMER_SAVE_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_customer', record_id: recordId }),
+      });
+      loadCustomers();
+    } catch(e) {
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   }
 
   async function saveCustomer() {

@@ -142,6 +142,15 @@
   }
   .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
 
+  .btn-danger {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fef2f2; color: #dc2626; padding: 7px 14px;
+    border-radius: 8px; font-size: 12px; font-weight: 500;
+    border: 1px solid #fecaca; cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-danger:hover { background: #fee2e2; }
+
   /* ===== MODAL ===== */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
@@ -367,6 +376,7 @@
         <td><span class="amount">¥${Number(p.price).toLocaleString()}</span></td>
         <td>
           <button class="btn-secondary" onclick="openEditModal('${esc(p.id)}')">編集</button>
+          <button class="btn-danger" onclick="deleteProduct('${esc(p.id)}', '${esc(p.name)}')">削除</button>
         </td>
       </tr>
     `).join('');
@@ -395,6 +405,19 @@
 
   function closeModal() {
     document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  async function deleteProduct(recordId, productName) {
+    if (!confirm(`「${productName}」を削除してよろしいですか？`)) return;
+    try {
+      await secureFetch(PRODUCT_SAVE_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_product', record_id: recordId }),
+      });
+      loadProducts();
+    } catch(e) {
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   }
 
   async function saveProduct() {

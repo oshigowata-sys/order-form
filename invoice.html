@@ -550,6 +550,17 @@
 
 <script>
   const API_SECRET = 'meguree-secret-2026';
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
   const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub?secret=' + encodeURIComponent(API_SECRET);
   const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji?secret=' + encodeURIComponent(API_SECRET);
 
@@ -648,7 +659,7 @@
           const sub = Number(it['小計'] || qty * price || 0);
           return `
             <tr>
-              <td>${it['商品名'] || '-'}</td>
+              <td>${esc(it['商品名'] || '-')}</td>
               <td>${qty.toLocaleString()}</td>
               <td>${fmt(price)}</td>
               <td>${fmt(sub)}</td>
@@ -658,17 +669,17 @@
 
     // 発行者情報
     const fromBlock = s.name
-      ? `<div class="from-name">${s.name}</div>
-         ${s.person ? `<div>${s.person}</div>` : ''}
-         ${s.address ? `<div>${s.address}</div>` : ''}
-         ${s.tel ? `<div>TEL: ${s.tel}</div>` : ''}
-         ${s.email ? `<div>${s.email}</div>` : ''}
-         ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${s.invoice_num}</div>` : ''}`
+      ? `<div class="from-name">${esc(s.name)}</div>
+         ${s.person ? `<div>${esc(s.person)}</div>` : ''}
+         ${s.address ? `<div>${esc(s.address)}</div>` : ''}
+         ${s.tel ? `<div>TEL: ${esc(s.tel)}</div>` : ''}
+         ${s.email ? `<div>${esc(s.email)}</div>` : ''}
+         ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
 
     // 振込先情報
     const bankBlock = s.bank_name
-      ? `${s.bank_name}<br>${s.bank_num}<br>口座名義: ${s.bank_holder || ''}`
+      ? `${esc(s.bank_name)}<br>${esc(s.bank_num)}<br>口座名義: ${esc(s.bank_holder || '')}`
       : '（振込先情報を設定してください）';
 
     document.getElementById('invoiceBody').innerHTML = `
@@ -679,10 +690,10 @@
         </div>
         <div class="invoice-meta">
           <table>
-            <tr><td>請求書番号</td><td>${invoiceNo}</td></tr>
-            <tr><td>発行日</td><td>${today}</td></tr>
-            <tr><td>支払期限</td><td>${dueDate}</td></tr>
-            ${f['受注ID'] ? `<tr><td>受注ID</td><td>${f['受注ID']}</td></tr>` : ''}
+            <tr><td>請求書番号</td><td>${esc(invoiceNo)}</td></tr>
+            <tr><td>発行日</td><td>${esc(today)}</td></tr>
+            <tr><td>支払期限</td><td>${esc(dueDate)}</td></tr>
+            ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
           </table>
         </div>
       </div>
@@ -690,9 +701,9 @@
       <div class="invoice-parties">
         <div class="invoice-to">
           <div class="party-label">請求先 / BILL TO</div>
-          <div class="party-name">${f['取引先名'] || '取引先名'}<span class="party-name-suffix">御中</span></div>
-          ${f['住所'] ? `<div class="party-address">${f['住所']}</div>` : ''}
-          ${f['担当者名'] ? `<div class="party-address">${f['担当者名']} 様</div>` : ''}
+          <div class="party-name">${esc(f['取引先名'] || '取引先名')}<span class="party-name-suffix">御中</span></div>
+          ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
+          ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
         </div>
         <div class="invoice-amount-highlight">
           <div class="amount-label">ご請求金額</div>
@@ -733,7 +744,7 @@
         <div>
           <div class="footer-section-title">振込先 / BANK TRANSFER</div>
           <div class="bank-info">${bankBlock}</div>
-          ${f['備考'] ? `<div style="margin-top:16px;"><div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${f['備考']}</div></div>` : ''}
+          ${f['備考'] ? `<div style="margin-top:16px;"><div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div></div>` : ''}
         </div>
         <div style="text-align:right;">
           <div class="footer-section-title">発行者 / ISSUED BY</div>
@@ -745,7 +756,7 @@
 
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('invoiceBody').style.display = 'block';
-    document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
+    document.title = `請求書 - ${(f['取引先名'] || '取引先')} - ${invoiceNo}`;
   }
 
   // ===== データ取得 =====
@@ -797,7 +808,7 @@
       renderInvoice(order, items);
 
     } catch(e) {
-      document.getElementById('loadingState').innerHTML = `<div style="padding:80px;text-align:center;color:#999;">データ取得エラー: ${e.message}</div>`;
+      document.getElementById('loadingState').innerHTML = `<div style="padding:80px;text-align:center;color:#999;">データ取得エラー: ${esc(e.message)}</div>`;
     }
   }
 
