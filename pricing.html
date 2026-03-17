@@ -378,9 +378,9 @@
   }
 
   // ===== Webhook URLs =====
-  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
+  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
   const PRODUCT_LIST_WEBHOOK  = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
-  const PRICING_SAVE_WEBHOOK  = 'https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu';
+  const PRICING_SAVE_WEBHOOK  = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
 
   async function secureFetch(url, options = {}) {
     const sep = url.includes('?') ? '&' : '?';
@@ -419,10 +419,12 @@
   async function loadCustomers() {
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
-      const data = await res.json();
-      allCustomers = (Array.isArray(data) ? data : []).map(r => ({
-        id: r.id || r.recordId,
-        name: r['会社名'] || r.fields?.['会社名'] || '',
+      const text = await res.text();
+      const cleaned = text.trim().replace(/^"|"$/g, '');
+      const data = JSON.parse('[' + cleaned + ']');
+      allCustomers = (Array.isArray(data) ? data : [data]).map(r => ({
+        id: r.id,
+        name: r.fields?.['会社名'] || '',
       }));
     } catch(e) { console.error('顧客読込エラー:', e); }
   }
@@ -444,16 +446,18 @@
   async function loadPricings() {
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_pricing');
-      const data = await res.json();
-      allPricings = (Array.isArray(data) ? data : []).map(r => ({
-        id: r.id || r.recordId,
-        customerName: r['取引先名'] || r.fields?.['取引先名'] || '',
-        customerId: r['取引先ID'] || r.fields?.['取引先']?.[0] || '',
-        productName: r['商品名'] || r.fields?.['商品名'] || '',
-        productId: r['商品ID'] || r.fields?.['商品']?.[0] || '',
-        rate: r['掛け率'] || r.fields?.['掛け率'] || 0,
-        basePrice: r['基本単価'] || r.fields?.['基本単価'] || 0,
-        memo: r['メモ'] || r.fields?.['メモ'] || '',
+      const text = await res.text();
+      const cleaned = text.trim().replace(/^"|"$/g, '');
+      const data = JSON.parse('[' + cleaned + ']');
+      allPricings = (Array.isArray(data) ? data : [data]).map(r => ({
+        id: r.id,
+        customerName: r.fields?.['取引先名'] || '',
+        customerId: r.fields?.['取引先']?.[0] || '',
+        productName: r.fields?.['商品名'] || '',
+        productId: r.fields?.['商品']?.[0] || '',
+        rate: r.fields?.['掛け率'] || 0,
+        basePrice: r.fields?.['基本単価'] || 0,
+        memo: r.fields?.['メモ'] || '',
       }));
     } catch(e) {
       console.error('掛け率読込エラー:', e);
@@ -511,6 +515,7 @@
         <td style="font-size:12px;color:var(--text-muted);">${esc(p.memo)}</td>
         <td>
           <button class="btn-secondary" onclick="openEditModal('${esc(p.id)}')">編集</button>
+          <button class="btn-danger" onclick="deletePricing('${esc(p.id)}', '${esc(p.customerName)}')">削除</button>
         </td>
       </tr>`;
     }).join('');
@@ -565,6 +570,19 @@
 
   function closeModal() {
     document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  async function deletePricing(recordId, customerName) {
+    if (!confirm(`「${customerName}」の掛け率設定を削除してよろしいですか？`)) return;
+    try {
+      await secureFetch(PRICING_SAVE_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_pricing', record_id: recordId }),
+      });
+      loadAll();
+    } catch(e) {
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   }
 
   async function savePricing() {
