@@ -327,8 +327,8 @@
   }
 
   // ===== Webhook URLs =====
-  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
-  const CUSTOMER_SAVE_WEBHOOK = 'https://hook.eu1.make.com/q6siwc1h4l9ezdlggwovhfhtvopof14e';
+  const CUSTOMER_LIST_WEBHOOK = 'https://hook.eu1.make.com/xqufuv4ps5e7pch684fmp2wnpti61v2e';
+  const CUSTOMER_SAVE_WEBHOOK = 'https://hook.eu1.make.com/xqufuv4ps5e7pch684fmp2wnpti61v2e';
 
   async function secureFetch(url, options = {}) {
     const sep = url.includes('?') ? '&' : '?';
@@ -357,7 +357,10 @@
 
   async function loadCustomers() {
     try {
-      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
+      const res = await secureFetch(CUSTOMER_LIST_WEBHOOK, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'list_customers' }),
+      });
       const text = await res.text();
       // 商品マスタと同じパース方式（Make Webhook → Airtable Search Records）
       const cleaned = text.trim().replace(/^"|"$/g, '');
