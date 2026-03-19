@@ -266,13 +266,14 @@
           <tr>
             <th>会社名</th>
             <th>担当者名</th>
-            <th>連絡先</th>
+            <th>電話番号</th>
+            <th>メール</th>
             <th>締め日</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody id="customerTableBody">
-          <tr class="loading-row"><td colspan="5"><span class="spinner"></span>読み込み中...</td></tr>
+          <tr class="loading-row"><td colspan="6"><span class="spinner"></span>読み込み中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -297,8 +298,12 @@
         <input type="text" class="form-input" id="formPerson" placeholder="例：嶋田洋" />
       </div>
       <div class="form-group">
-        <label class="form-label">連絡先（電話番号・メール等）</label>
-        <input type="text" class="form-input" id="formContact" placeholder="例：090-1234-5678" />
+        <label class="form-label">電話番号</label>
+        <input type="text" class="form-input" id="formPhone" placeholder="例：090-1234-5678" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">メール</label>
+        <input type="email" class="form-input" id="formEmail" placeholder="例：info@example.com" />
       </div>
       <div class="form-group">
         <label class="form-label">締め日（毎月何日）</label>
@@ -362,28 +367,35 @@
         body: JSON.stringify({ action: 'list_customers' }),
       });
       const text = await res.text();
-      // 商品マスタと同じパース方式（Make Webhook → Airtable Search Records）
+      // Make Webhook → Airtable Search Records のパース
       const cleaned = text.trim().replace(/^"|"$/g, '');
-      const data = JSON.parse('[' + cleaned + ']');
-      allCustomers = (Array.isArray(data) ? data : [data]).map(r => ({
+      let parsed;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        parsed = JSON.parse('[' + cleaned + ']');
+      }
+      const records = Array.isArray(parsed) ? parsed : [parsed];
+      allCustomers = records.map(r => ({
         id: r.id,
         company: r.fields?.['会社名'] || '',
         person: r.fields?.['担当者名'] || '',
-        contact: r.fields?.['連絡先'] || '',
+        phone: r.fields?.['電話番号'] || '',
+        email: r.fields?.['メール'] || '',
         closingDay: r.fields?.['締め日'] || '',
       }));
       renderCustomers();
     } catch(e) {
       console.error(e);
       document.getElementById('customerTableBody').innerHTML =
-        '<tr class="loading-row"><td colspan="5">⚠️ データの読み込みに失敗しました。<br><span style="font-size:12px;color:var(--text-muted);">Make側の掛け率管理シナリオがONになっているか確認してください。</span></td></tr>';
+        '<tr class="loading-row"><td colspan="6">⚠️ データの読み込みに失敗しました。<br><span style="font-size:12px;color:var(--text-muted);">Make側の掛け率管理シナリオがONになっているか確認してください。</span></td></tr>';
     }
   }
 
   function renderCustomers() {
     const tbody = document.getElementById('customerTableBody');
     if (allCustomers.length === 0) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="empty-state"><div class="empty-state-icon">🏪</div><div class="empty-state-text">取引先データがありません</div></div></td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="empty-state"><div class="empty-state-icon">🏪</div><div class="empty-state-text">取引先データがありません</div></div></td></tr>';
       return;
     }
     tbody.innerHTML = allCustomers.map(c => {
@@ -393,7 +405,8 @@
       return `<tr>
         <td><span class="company-name">${esc(c.company)}</span></td>
         <td>${esc(c.person)}</td>
-        <td>${esc(c.contact)}</td>
+        <td>${esc(c.phone)}</td>
+        <td>${esc(c.email)}</td>
         <td>${closingDayHtml}</td>
         <td>
           <button class="btn-secondary" onclick="openEditModal('${esc(c.id)}')">編集</button>
@@ -409,7 +422,8 @@
     document.getElementById('editRecordId').value = '';
     document.getElementById('formCompany').value = '';
     document.getElementById('formPerson').value = '';
-    document.getElementById('formContact').value = '';
+    document.getElementById('formPhone').value = '';
+    document.getElementById('formEmail').value = '';
     document.getElementById('formClosingDay').value = '';
     document.getElementById('saveSuccess').classList.remove('show');
     document.getElementById('modalOverlay').classList.add('show');
@@ -422,7 +436,8 @@
     document.getElementById('editRecordId').value = recordId;
     document.getElementById('formCompany').value = c.company;
     document.getElementById('formPerson').value = c.person;
-    document.getElementById('formContact').value = c.contact;
+    document.getElementById('formPhone').value = c.phone;
+    document.getElementById('formEmail').value = c.email;
     document.getElementById('formClosingDay').value = c.closingDay || '';
     document.getElementById('saveSuccess').classList.remove('show');
     document.getElementById('modalOverlay').classList.add('show');
@@ -463,7 +478,8 @@
       record_id: recordId || undefined,
       '会社名': company,
       '担当者名': document.getElementById('formPerson').value.trim(),
-      '連絡先': document.getElementById('formContact').value.trim(),
+      '電話番号': document.getElementById('formPhone').value.trim(),
+      'メール': document.getElementById('formEmail').value.trim(),
       '締め日': parseInt(document.getElementById('formClosingDay').value) || null,
     };
 
