@@ -411,7 +411,8 @@
   let allPricings = [];
 
   async function loadAll() {
-    await Promise.all([loadCustomers(), loadProducts(), loadPricings()]);
+    await Promise.all([loadCustomers(), loadProducts()]);
+    await loadPricings();
     populateFilters();
     populateFormSelects();
     renderPricingTable();
@@ -452,8 +453,8 @@
       const records = parseResponse(await res.text());
       allPricings = records.map(r => ({
         id: r.id,
-        customerName: r.fields?.['取引先名'] || '',
-        productName: r.fields?.['商品名'] || '',
+        customerName: allCustomers.find(c => c.id === r.fields?.['取引先名'])?.name || r.fields?.['取引先名'] || '',
+        productName: allProducts.find(p => p.id === r.fields?.['商品名'])?.name || r.fields?.['商品名'] || '',
         rate: parseFloat(r.fields?.['掛け率']) || 0,
         memo: r.fields?.['メモ'] || '',
       }));
