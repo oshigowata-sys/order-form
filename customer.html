@@ -367,15 +367,9 @@
         body: JSON.stringify({ action: 'list_customers' }),
       });
       const text = await res.text();
-      // Make Webhook → Airtable Search Records のパース
       const cleaned = text.trim().replace(/^"|"$/g, '');
-      let parsed;
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch {
-        parsed = JSON.parse('[' + cleaned + ']');
-      }
-      const records = Array.isArray(parsed) ? parsed : [parsed];
+      const parsed = JSON.parse(cleaned);
+      const records = parsed.records || (Array.isArray(parsed) ? parsed : [parsed]);
       allCustomers = records.map(r => ({
         id: r.id,
         company: r.fields?.['会社名'] || '',
