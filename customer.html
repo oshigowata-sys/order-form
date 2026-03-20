@@ -478,18 +478,22 @@
     };
 
     try {
-      await secureFetch(CUSTOMER_SAVE_WEBHOOK, {
+      const saveRes = await secureFetch(CUSTOMER_SAVE_WEBHOOK, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      const saveText = await saveRes.text();
+      console.log('save response:', saveText);
 
       const successEl = document.getElementById('saveSuccess');
       successEl.classList.add('show');
-      setTimeout(() => {
-        closeModal();
-        loadCustomers();
-      }, 800);
+
+      // Airtableへの書き込み反映を待ってから一覧を再取得
+      await new Promise(r => setTimeout(r, 1200));
+      closeModal();
+      await loadCustomers();
     } catch(e) {
+      console.error('save error:', e);
       alert('保存に失敗しました。もう一度お試しください。');
     } finally {
       btn.disabled = false;

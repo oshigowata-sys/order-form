@@ -416,13 +416,17 @@
     renderPricingTable();
   }
 
+  function parseResponse(text) {
+    const cleaned = text.trim().replace(/^"|"$/g, '');
+    const parsed = JSON.parse(cleaned);
+    return parsed.records || (Array.isArray(parsed) ? parsed : [parsed]);
+  }
+
   async function loadCustomers() {
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_customers');
-      const text = await res.text();
-      const cleaned = text.trim().replace(/^"|"$/g, '');
-      const data = JSON.parse('[' + cleaned + ']');
-      allCustomers = (Array.isArray(data) ? data : [data]).map(r => ({
+      const records = parseResponse(await res.text());
+      allCustomers = records.map(r => ({
         id: r.id,
         name: r.fields?.['会社名'] || '',
       }));
@@ -432,10 +436,8 @@
   async function loadProducts() {
     try {
       const res = await secureFetch(PRODUCT_LIST_WEBHOOK);
-      const text = await res.text();
-      const cleaned = text.trim().replace(/^"|"$/g, '');
-      const data = JSON.parse('[' + cleaned + ']');
-      allProducts = (Array.isArray(data) ? data : [data]).map(r => ({
+      const records = parseResponse(await res.text());
+      allProducts = records.map(r => ({
         id: r.id,
         name: r.fields?.['商品名'] || '',
         price: r.fields?.['価格'] || r.fields?.['基本単価'] || 0,
@@ -446,17 +448,12 @@
   async function loadPricings() {
     try {
       const res = await secureFetch(CUSTOMER_LIST_WEBHOOK + '?action=list_pricing');
-      const text = await res.text();
-      const cleaned = text.trim().replace(/^"|"$/g, '');
-      const data = JSON.parse('[' + cleaned + ']');
-      allPricings = (Array.isArray(data) ? data : [data]).map(r => ({
+      const records = parseResponse(await res.text());
+      allPricings = records.map(r => ({
         id: r.id,
         customerName: r.fields?.['取引先名'] || '',
-        customerId: r.fields?.['取引先']?.[0] || '',
         productName: r.fields?.['商品名'] || '',
-        productId: r.fields?.['商品']?.[0] || '',
-        rate: r.fields?.['掛け率'] || 0,
-        basePrice: r.fields?.['基本単価'] || 0,
+        rate: parseFloat(r.fields?.['掛け率']) || 0,
         memo: r.fields?.['メモ'] || '',
       }));
     } catch(e) {
@@ -503,9 +500,11 @@
     }
 
     tbody.innerHTML = filtered.map(p => {
-      const appliedPrice = p.basePrice ? Math.round(p.basePrice * p.rate) : '-';
+      const product = allProducts.find(pr => pr.name === p.productName);
+      const basePrice = product ? Number(product.price) : 0;
+      const appliedPrice = basePrice ? Math.round(basePrice * p.rate) : '-';
       const appliedPriceStr = typeof appliedPrice === 'number' ? '¥' + appliedPrice.toLocaleString() : '-';
-      const basePriceStr = p.basePrice ? '¥' + Number(p.basePrice).toLocaleString() : '-';
+      const basePriceStr = basePrice ? '¥' + basePrice.toLocaleString() : '-';
       return `<tr>
         <td><span class="company-name">${esc(p.customerName)}</span></td>
         <td><span class="product-name">${esc(p.productName)}</span></td>
@@ -559,8 +558,10 @@
     if (!p) return;
     document.getElementById('modalTitle').textContent = '掛け率を編集';
     document.getElementById('editRecordId').value = recordId;
-    document.getElementById('formCustomer').value = p.customerId;
-    document.getElementById('formProduct').value = p.productId;
+    const matchedCustomer = allCustomers.find(c => c.name === p.customerName);
+    const matchedProduct = allProducts.find(pr => pr.name === p.productName);
+    document.getElementById('formCustomer').value = matchedCustomer ? matchedCustomer.id : '';
+    document.getElementById('formProduct').value = matchedProduct ? matchedProduct.id : '';
     document.getElementById('formRate').value = p.rate || '';
     document.getElementById('formMemo').value = p.memo || '';
     document.getElementById('saveSuccess').classList.remove('show');
