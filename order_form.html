@@ -202,6 +202,9 @@
   const AIRTABLE_TABLE_NAME = "商品マスタ";
   // =============================
 
+  // ===== セッションキャッシュ =====
+  const sessionCache = {};
+
   // XSSエスケープ：外部データをHTMLに埋め込む前に必ず通す
   function esc(str) {
     if (str === null || str === undefined) return '';
@@ -219,16 +222,21 @@
   async function loadProducts() {
     const sel = document.getElementById('productSelect');
     try {
-      const res = await fetch(PRODUCT_WEBHOOK_URL);
-      const text = await res.text();
-const cleaned = text.trim().replace(/^"|"$/g, '');
-const data = JSON.parse('[' + cleaned + ']');
-      products = (Array.isArray(data) ? data : [data]).map(r => ({
-        id: r.fields['商品ID'],
-        recordId: r.id,
-        name: r.fields['商品名'] || '',
-        price: r.fields['価格'] || 0
-      }));
+      if (sessionCache.products) {
+        products = sessionCache.products;
+      } else {
+        const res = await fetch(PRODUCT_WEBHOOK_URL);
+        const text = await res.text();
+        const cleaned = text.trim().replace(/^"|"$/g, '');
+        const data = JSON.parse('[' + cleaned + ']');
+        products = (Array.isArray(data) ? data : [data]).map(r => ({
+          id: r.fields['商品ID'],
+          recordId: r.id,
+          name: r.fields['商品名'] || '',
+          price: r.fields['価格'] || 0
+        }));
+        sessionCache.products = products;
+      }
 
       sel.innerHTML = '<option value="">-- 商品を選択 --</option>' +
         products.map(p =>
