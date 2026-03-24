@@ -1014,6 +1014,9 @@
 </div>
 
 <script>
+  // ===== セッションキャッシュ =====
+  const sessionCache = {};
+
   // ===== セキュリティ設定 =====
   // ① Webhook共通シークレットキー（Make側と同じ値を設定）
   const API_SECRET = 'meguree-secret-2026';
@@ -1102,20 +1105,25 @@
   // ===== 受注データ取得 =====
   async function loadOrders() {
     try {
-      const res = await secureFetch(MAKE_ORDERS_WEBHOOK);
-      const data = await res.json();
-      allOrders = data.map(item => ({
-        id: item.id,
-        fields: {
-          '受注ID':         item['受注ID'],
-          '取引先名':       item['取引先名'],
-          '担当者名':       item['担当者名'],
-          '受注日':         item['受注日'],
-          '受注ステータス': item['受注ステータス'],
-          '注文合計':       item['注文金額'] ? Number(item['注文金額']) : 0,
-          '備考':           item['備考'],
-        }
-      }));
+      if (sessionCache.orders) {
+        allOrders = sessionCache.orders;
+      } else {
+        const res = await secureFetch(MAKE_ORDERS_WEBHOOK);
+        const data = await res.json();
+        allOrders = data.map(item => ({
+          id: item.id,
+          fields: {
+            '受注ID':         item['受注ID'],
+            '取引先名':       item['取引先名'],
+            '担当者名':       item['担当者名'],
+            '受注日':         item['受注日'],
+            '受注ステータス': item['受注ステータス'],
+            '注文合計':       item['注文金額'] ? Number(item['注文金額']) : 0,
+            '備考':           item['備考'],
+          }
+        }));
+        sessionCache.orders = allOrders;
+      }
       updateStats();
       renderOrders();
     } catch(e) {
@@ -1321,12 +1329,18 @@
   // ===== 注文明細取得 =====
   async function loadOrderItems(juchiID, totalAmount) {
     try {
-      const res  = await secureFetch(`${MAKE_ITEMS_WEBHOOK}?受注ID=${encodeURIComponent(juchiID)}`);
-      const text = await res.text();
-      let items  = [];
-      const trimmed = text.trim();
-      if (trimmed && trimmed !== '[]' && trimmed !== '[ ]') {
-        try { items = JSON.parse(trimmed); } catch(e) { items = []; }
+      const cacheKey = 'orderDetails_' + juchiID;
+      let items = [];
+      if (sessionCache[cacheKey]) {
+        items = sessionCache[cacheKey];
+      } else {
+        const res  = await secureFetch(`${MAKE_ITEMS_WEBHOOK}?受注ID=${encodeURIComponent(juchiID)}`);
+        const text = await res.text();
+        const trimmed = text.trim();
+        if (trimmed && trimmed !== '[]' && trimmed !== '[ ]') {
+          try { items = JSON.parse(trimmed); } catch(e) { items = []; }
+        }
+        sessionCache[cacheKey] = items;
       }
 
       const itemsHtml = items.length > 0 ? `
