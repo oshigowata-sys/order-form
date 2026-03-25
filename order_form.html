@@ -226,10 +226,8 @@
         products = sessionCache.products;
       } else {
         const res = await fetch(PRODUCT_WEBHOOK_URL);
-        const text = await res.text();
-        const cleaned = text.trim().replace(/^"|"$/g, '');
-        const data = JSON.parse('[' + cleaned + ']');
-        products = (Array.isArray(data) ? data : [data]).map(r => ({
+        const data = await res.json();
+        products = data.records.map(r => ({
           id: r.fields['商品ID'],
           recordId: r.id,
           name: r.fields['商品名'] || '',
