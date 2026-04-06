@@ -1181,7 +1181,7 @@
       const status = esc(f['受注ステータス'] || '不明');
       const date   = f['受注日'] ? new Date(f['受注日']).toLocaleDateString('ja-JP') : '-';
       const baseAmount = f['原価合計'] ? '¥' + Number(f['原価合計']).toLocaleString() : '-';
-      const amount = f['注文合計'] ? '¥' + Math.round(Number(f['注文合計']) * 1.1).toLocaleString() : '-';
+      const amount = f['注文合計'] ? '¥' + Math.round(Number(f['注文合計'])).toLocaleString() : '-';
       const orderId = esc(f['受注ID'] || order.id.substring(0,8));
       const company = esc(f['取引先名'] || '-');
       const recId   = esc(order.id);
