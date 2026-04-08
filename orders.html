@@ -4,121 +4,137 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>受注一覧 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f9f7f4;display:flex;min-height:100vh;color:#1a1a1a}
-.sidebar{width:200px;background:#1a1a1a;color:#fff;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 16px;font-size:17px;font-weight:700;color:#e8630a;border-bottom:1px solid #2a2a2a;letter-spacing:-0.3px}
-.sidebar-logo span{color:#fff;font-weight:400}
-.sidebar-section{padding:16px 16px 4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px}
-.sidebar-nav{list-style:none}
-.sidebar-nav li a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#aaa;text-decoration:none;font-size:13.5px;transition:all 0.15s}
-.sidebar-nav li a:hover{background:#242424;color:#fff}
-.sidebar-nav li a.active{background:#e8630a;color:#fff;font-weight:500}
-.sidebar-nav li a .icon{font-size:15px;width:18px;text-align:center}
-.main{margin-left:200px;flex:1;padding:28px 32px}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.page-title{font-size:24px;font-weight:700}
-.card{background:#fff;border-radius:12px;border:0.5px solid #e8e4df;padding:0;overflow:hidden}
-.filter-tabs{display:flex;gap:2px;padding:16px 16px 0;border-bottom:1px solid #f0ede8}
-.tab{padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;transition:all 0.15s}
-.tab.active{color:#e8630a;border-bottom-color:#e8630a;font-weight:600}
-.tab:hover{color:#333}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+  --green:#1e6641;--green-pale:#e8f5ee;
+  --yellow:#d97706;--yellow-pale:#fffbeb;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.06)}
+.nav-item.active{background:var(--orange);color:#fff}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:700}
+.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.content{padding:28px 32px;flex:1}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.filter-tabs{display:flex;gap:2px;padding:16px 20px 0;border-bottom:1px solid var(--border)}
+.tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans JP',sans-serif;font-weight:500;transition:all 0.15s}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
+.tab:hover{color:var(--text)}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-th{background:#f8f6f3;padding:10px 12px;text-align:left;font-size:12px;color:#666;font-weight:600;border-bottom:1px solid #ece8e2;white-space:nowrap}
-td{padding:10px 12px;font-size:13px;color:#333;border-bottom:1px solid #f5f2ee;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#fdfcfa}
-.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500}
-.badge-new{background:#fff0e6;color:#e8630a;border:1px solid rgba(232,99,10,0.3)}
-.badge-processing{background:#fffbe0;color:#a07800;border:1px solid rgba(200,160,0,0.3)}
-.badge-shipped{background:#e6f4ec;color:#1e6641;border:1px solid rgba(30,102,65,0.3)}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity 0.15s}
-.btn:hover{opacity:0.85}
-.btn-primary{background:#e8630a;color:#fff}
-.btn-sm{padding:4px 10px;font-size:12px}
+thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.3)}
+.badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.3)}
+.badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3)}
 .num-right{text-align:right}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+.btn:hover{opacity:0.85}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-outline{background:var(--surface);border:1.5px solid var(--orange);color:var(--orange)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
 /* モーダル */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
-.modal{background:#fff;border-radius:16px;width:780px;max-width:95vw;margin-bottom:40px;overflow:hidden}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #f0ede8}
-.modal-title{font-size:18px;font-weight:700}
-.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1}
-.modal-body{padding:24px}
+.modal{background:var(--surface);border-radius:20px;width:820px;max-width:95vw;margin-bottom:40px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:22px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.modal-title{font-size:17px;font-weight:700}
+.modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.2s}
+.modal-close:hover{background:var(--bg)}
+.modal-body{padding:24px 28px}
 .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.info-item label{font-size:11px;color:#888;margin-bottom:3px;display:block}
+.info-item label{font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
 .info-item span{font-size:14px;font-weight:600}
-.detail-table th{background:#f8f6f3}
-.detail-table td{font-size:13px}
-.badge-food{background:#e6f4ec;color:#1e6641;border:1px solid rgba(30,102,65,0.3);font-size:11px;padding:2px 6px;border-radius:3px;display:inline-block}
-.badge-regular{background:#f0ede8;color:#666;border:1px solid #ddd;font-size:11px;padding:2px 6px;border-radius:3px;display:inline-block}
-.modal-footer{padding:16px 24px;border-top:2px solid #f0ede8;display:flex;justify-content:space-between;align-items:center;background:#faf8f5}
+.badge-food{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
+.badge-regular{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
+.modal-footer{padding:16px 28px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
 .totals{display:flex;gap:24px;font-size:13px}
 .totals-item{text-align:right}
-.totals-item label{display:block;font-size:11px;color:#888;margin-bottom:2px}
-.totals-item span{font-weight:700;font-size:15px}
-.totals-item span.highlight{color:#e8630a}
-.totals-item span.green{color:#1e6641}
+.totals-item label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px}
+.totals-item span{font-weight:700;font-size:15px;font-family:'Space Grotesk',sans-serif}
+.totals-item span.highlight{color:var(--orange)}
+.totals-item span.green{color:var(--green)}
 .modal-btns{display:flex;gap:8px}
-.btn-outline{background:#fff;border:1.5px solid #e8630a;color:#e8630a}
 </style>
 </head>
 <body>
-<nav class="sidebar">
-  <div class="sidebar-logo">MeguRee<span>·</span></div>
-  <div class="sidebar-section">メニュー</div>
-  <ul class="sidebar-nav">
-    <li><a href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a></li>
-    <li><a href="orders.html" class="active"><span class="icon">📋</span>受注一覧</a></li>
-    <li><a href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a></li>
-  </ul>
-  <div class="sidebar-section">マスタ管理</div>
-  <ul class="sidebar-nav">
-    <li><a href="customer.html"><span class="icon">🏢</span>取引先マスタ</a></li>
-    <li><a href="products.html"><span class="icon">📦</span>商品マスタ</a></li>
-    <li><a href="pricing.html"><span class="icon">💴</span>掛け率管理</a></li>
-  </ul>
-  <div class="sidebar-section">その他</div>
-  <ul class="sidebar-nav">
-    <li><a href="login.html"><span class="icon">⚙️</span>設定</a></li>
-  </ul>
-</nav>
-<main class="main">
-  <div class="page-header">
-    <div class="page-title">受注一覧</div>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
   </div>
-  <div class="card">
-    <div class="filter-tabs">
-      <button class="tab active" data-filter="all">すべて</button>
-      <button class="tab" data-filter="新規受注">新規受注</button>
-      <button class="tab" data-filter="処理中">処理中</button>
-      <button class="tab" data-filter="出荷済み">出荷済み</button>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item active" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="login.html"><span class="icon">⚙️</span>設定</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">受注一覧</div>
+      <div class="page-sub">受注データの確認・詳細を管理します</div>
     </div>
-    <div class="table-wrapper">
-      <table>
-        <thead><tr>
-          <th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th>
-          <th class="num-right">税抜金額</th><th class="num-right">消費税額</th>
-          <th class="num-right">税込合計</th><th class="num-right">利益</th><th></th>
-        </tr></thead>
-        <tbody id="ordersTbody"></tbody>
-      </table>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="filter-tabs">
+        <button class="tab active" data-filter="all">すべて</button>
+        <button class="tab" data-filter="新規受注">新規受注</button>
+        <button class="tab" data-filter="処理中">処理中</button>
+        <button class="tab" data-filter="出荷済み">出荷済み</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr>
+            <th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th>
+            <th class="num-right">税抜金額</th><th class="num-right">消費税額</th>
+            <th class="num-right">税込合計</th><th class="num-right">利益</th><th></th>
+          </tr></thead>
+          <tbody id="ordersTbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </main>
-
-<!-- 詳細モーダル -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">受注詳細</div>
-      <button class="modal-close" onclick="closeDetail()">×</button>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
     </div>
     <div class="modal-body">
       <div class="info-grid" id="modalInfo"></div>
-      <table class="detail-table" id="modalItems"></table>
+      <table id="modalItems"></table>
     </div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
@@ -129,132 +145,69 @@ tr:hover td{background:#fdfcfa}
     </div>
   </div>
 </div>
-
 <script>
-// ===== モックデータ =====
-const PRODUCTS = {
-  'rec101': { code: '000021', name: '1,100円丸ごと玉ねぎスープ', basePrice: 700, isFood: true },
-  'rec102': { code: '000139', name: '700円北海道帆立スープ12入', basePrice: 700, isFood: true },
-  'rec103': { code: '000268', name: '648円ホタテだし塩65g',     basePrice: 385, isFood: false },
-  'rec104': { code: '000312', name: '北海道バス バスうはない',     basePrice: 480, isFood: true },
-};
-const CUSTOMERS = {
-  'rec001': 'ひかる商店',
-  'rec002': 'サンエイ札幌',
-  'rec003': '北海道商事',
-};
-const ORDERS = [
-  { id: 'ORD-2026-012', customerId: 'rec001', date: '2026/4/7', status: '新規受注',
-    items: [{ pid: 'rec101', qty: 20, unitPrice: 595, costPrice: 420 },
-            { pid: 'rec103', qty: 15, unitPrice: 327, costPrice: 230 }] },
-  { id: 'ORD-2026-011', customerId: 'rec002', date: '2026/4/6', status: '処理中',
-    items: [{ pid: 'rec101', qty: 60, unitPrice: 630, costPrice: 420 },
-            { pid: 'rec102', qty: 60, unitPrice: 560, costPrice: 390 }] },
-  { id: 'ORD-2026-010', customerId: 'rec001', date: '2026/4/5', status: '新規受注',
-    items: [{ pid: 'rec102', qty: 30, unitPrice: 560, costPrice: 390 },
-            { pid: 'rec104', qty: 20, unitPrice: 408, costPrice: 290 }] },
-  { id: 'ORD-2026-009', customerId: 'rec003', date: '2026/4/4', status: '出荷�み',
-    items: [{ pid: 'rec101', qty: 100, unitPrice: 560, costPrice: 420 },
-            { pid: 'rec103', qty: 80,  unitPrice: 308, costPrice: 230 }] },
-  { id: 'ORD-2026-008', customerId: 'rec002', date: '2026/4/2', status: '出荷済み',
-    items: [{ pid: 'rec102', qty: 60, unitPrice: 504, costPrice: 390 }] },
-  { id: 'ORD-2026-007', customerId: 'rec001', date: '2026/3/28', status: '出荷済み',
-    items: [{ pid: 'rec103', qty: 100, unitPrice: 327, costPrice: 230 },
-            { pid: 'rec104', qty: 50,  unitPrice: 408, costPrice: 290 }] },
+const PRODUCTS={'rec101':{code:'000021',name:'1,100円丸ごと玉ねぎスープ',basePrice:700,isFood:true},'rec102':{code:'000139',name:'700円北海道帆立スープ12入',basePrice:700,isFood:true},'rec103':{code:'000268',name:'648円ホタテだし塩65g',basePrice:385,isFood:false},'rec104':{code:'000312',name:'北海道バターうはない',basePrice:480,isFood:true}};
+const CUSTOMERS={'rec001':'ひかる商店','rec002':'サンエイ札幌','rec003':'北海道商事'};
+const ORDERS=[
+  {id:'ORD-2026-012',customerId:'rec001',date:'2026/4/7',status:'新規受注',items:[{pid:'rec101',qty:20,unitPrice:595,costPrice:420},{pid:'rec103',qty:15,unitPrice:327,costPrice:230}]},
+  {id:'ORD-2026-011',customerId:'rec002',date:'2026/4/6',status:'処理中',items:[{pid:'rec101',qty:60,unitPrice:630,costPrice:420},{pid:'rec102',qty:60,unitPrice:560,costPrice:390}]},
+  {id:'ORD-2026-010',customerId:'rec001',date:'2026/4/5',status:'新規受注',items:[{pid:'rec102',qty:30,unitPrice:560,costPrice:390},{pid:'rec104',qty:20,unitPrice:408,costPrice:290}]},
+  {id:'ORD-2026-009',customerId:'rec003',date:'2026/4/4',status:'出荷済み',items:[{pid:'rec101',qty:100,unitPrice:560,costPrice:420},{pid:'rec103',qty:80,unitPrice:308,costPrice:230}]},
+  {id:'ORD-2026-008',customerId:'rec002',date:'2026/4/2',status:'出荷済み',items:[{pid:'rec102',qty:60,unitPrice:504,costPrice:390}]},
+  {id:'ORD-2026-007',customerId:'rec001',date:'2026/3/28',status:'出荷済み',items:[{pid:'rec103',qty:100,unitPrice:327,costPrice:230},{pid:'rec104',qty:50,unitPrice:408,costPrice:290}]},
 ];
-
-function calcOrder(o) {
-  let excl = 0, tax = 0, cost = 0;
-  o.items.forEach(it => {
-    const p = PRODUCTS[it.pid];
-    const sub = it.unitPrice * it.qty;
-    const taxAmt = Math.round(sub * (p.isFood ? 0.08 : 0.10));
-    excl += sub;
-    tax += taxAmt;
-    cost += it.costPrice * it.qty;
-  });
-  return { excl, tax, incl: excl + tax, profit: excl - cost };
+function calcOrder(o){let excl=0,tax=0,cost=0;o.items.forEach(it=>{const p=PRODUCTS[it.pid];const sub=it.unitPrice*it.qty;const taxAmt=Math.round(sub*(p.isFood?0.08:0.10));excl+=sub;tax+=taxAmt;cost+=it.costPrice*it.qty;});return{excl,tax,incl:excl+tax,profit:excl-cost};}
+const BADGE={'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+let currentFilter='all';
+function renderOrders(){
+  const tbody=document.getElementById('ordersTbody');
+  const list=currentFilter==='all'?ORDERS:ORDERS.filter(o=>o.status===currentFilter);
+  tbody.innerHTML=list.map(o=>{const c=calcOrder(o);return`<tr>
+    <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${o.id}</td>
+    <td style="font-weight:500">${CUSTOMERS[o.customerId]}</td>
+    <td style="color:var(--text-muted);font-size:12px">${o.date}</td>
+    <td><span class="badge ${BADGE[o.status]}">${o.status}</span></td>
+    <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${c.excl.toLocaleString()}</td>
+    <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${c.tax.toLocaleString()}</td>
+    <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${c.incl.toLocaleString()}</td>
+    <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${c.profit.toLocaleString()}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="openDetail('${o.id}')">詳細 →</button></td>
+  </tr>`;}).join('');
 }
-
-const BADGE = { '新規受注': 'badge-new', '処理中': 'badge-processing', '出荷済み': 'badge-shipped' };
-let currentFilter = 'all';
-
-function renderOrders() {
-  const tbody = document.getElementById('ordersTbody');
-  const list = currentFilter === 'all' ? ORDERS : ORDERS.filter(o => o.status === currentFilter);
-  tbody.innerHTML = list.map(o => {
-    const c = calcOrder(o);
-    return `<tr>
-      <td style="font-family:monospace;color:#e8630a;font-size:12px">${o.id}</td>
-      <td>${CUSTOMERS[o.customerId]}</td>
-      <td style="color:#888;font-size:12px">${o.date}</td>
-      <td><span class="badge ${BADGE[o.status]}">${o.status}</span></td>
-      <td class="num-right">¥${c.excl.toLocaleString()}</td>
-      <td class="num-right" style="color:#888">¥${c.tax.toLocaleString()}</td>
-      <td class="num-right" style="font-weight:700">¥${c.incl.toLocaleString()}</td>
-      <td class="num-right" style="color:#1e6641;font-weight:600">¥${c.profit.toLocaleString()}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="openDetail('${o.id}')">詳細 →</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function openDetail(orderId) {
-  const o = ORDERS.find(x => x.id === orderId);
-  if (!o) return;
-  const c = calcOrder(o);
-  document.getElementById('modalTitle').textContent = `受注詳細 — ${o.id}`;
-  document.getElementById('modalInfo').innerHTML = [
-    { label: '受注ID', val: `<span style="font-family:monospace;color:#e8630a">${o.id}</span>` },
-    { label: '取引先名', val: CUSTOMERS[o.customerId] },
-    { label: '受注日', val: o.date },
-    { label: 'ステータス', val: `<span class="badge ${BADGE[o.status]}">${o.status}</span>` },
-  ].map(x => `<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
-
-  const items = o.items.map(it => {
-    const p = PRODUCTS[it.pid];
-    const sub = it.unitPrice * it.qty;
-    const taxBadge = p.isFood
-      ? '<span class="badge-food">軽8%</span>'
-      : '<span class="badge-regular">10%</span>';
-    return `<tr>
-      <td style="font-family:monospace;font-size:12px;color:#888">${p.code}</td>
-      <td>${p.name}</td>
+function openDetail(orderId){
+  const o=ORDERS.find(x=>x.id===orderId);if(!o)return;
+  const c=calcOrder(o);
+  document.getElementById('modalTitle').textContent=`受注詳細 — ${o.id}`;
+  document.getElementById('modalInfo').innerHTML=[
+    {label:'受注ID',val:`<span style="font-family:'Space Grotesk',sans-serif;color:var(--orange)">${o.id}</span>`},
+    {label:'取引先名',val:CUSTOMERS[o.customerId]},
+    {label:'受注日',val:o.date},
+    {label:'ステータス',val:`<span class="badge ${BADGE[o.status]}">${o.status}</span>`},
+  ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
+  const items=o.items.map(it=>{
+    const p=PRODUCTS[it.pid];const sub=it.unitPrice*it.qty;
+    const taxBadge=p.isFood?'<span class="badge-food">軽8%</span>':'<span class="badge-regular">10%</span>';
+    return`<tr>
+      <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${p.code}</td>
+      <td style="font-weight:500">${p.name}</td>
       <td class="num-right">${it.qty}</td>
       <td class="num-right">¥${p.basePrice.toLocaleString()}</td>
       <td class="num-right">¥${it.unitPrice.toLocaleString()}</td>
       <td class="num-right" style="font-weight:600">¥${sub.toLocaleString()}</td>
-      <td class="num-right" style="color:#888">¥${(it.costPrice * it.qty).toLocaleString()}</td>
+      <td class="num-right" style="color:var(--text-muted)">¥${(it.costPrice*it.qty).toLocaleString()}</td>
       <td>${taxBadge}</td>
     </tr>`;
   }).join('');
-  document.getElementById('modalItems').innerHTML = `
-    <thead><tr>
-      <th>商品コード</th><th>商品名</th><th class="num-right">数量</th>
-      <th class="num-right">定価</th><th class="num-right">単価</th>
-      <th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th>
-    </tr></thead>
-    <tbody>${items}</tbody>`;
-  document.getElementById('modalTotals').innerHTML = `
+  document.getElementById('modalItems').innerHTML<`<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">定価</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead><tbody>${items}</tbody>`;
+  document.getElementById('modalTotals').innerHTML=`
     <div class="totals-item"><label>利益合計</label><span class="green">¥${c.profit.toLocaleString()}</span></div>
     <div class="totals-item"><label>税抜合計</label><span>¥${c.excl.toLocaleString()}</span></div>
-    <div class="totals-item"><label>消費税</label><span style="color:#888">¥${c.tax.toLocaleString()}</span></div>
+    <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${c.tax.toLocaleString()}</span></div>
     <div class="totals-item"><label>税込合計</label><span class="highlight">¥${c.incl.toLocaleString()}</span></div>`;
   document.getElementById('detailOverlay').classList.add('open');
 }
-
-function closeDetail() {
-  document.getElementById('detailOverlay').classList.remove('open');
-}
-
-document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    currentFilter = t.dataset.filter;
-    renderOrders();
-  });
-});
-
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');}
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentFilter=t.dataset.filter;renderOrders();});});
 renderOrders();
 </script>
 </body>
