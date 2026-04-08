@@ -4,217 +4,190 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>掛け率管理 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f9f7f4;display:flex;min-height:100vh;color:#1a1a1a}
-.sidebar{width:200px;background:#1a1a1a;color:#fff;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 16px;font-size:17px;font-weight:700;color:#e8630a;border-bottom:1px solid #2a2a2a}
-.sidebar-logo span{color:#fff;font-weight:400}
-.sidebar-section{padding:16px 16px 4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px}
-.sidebar-nav{list-style:none}
-.sidebar-nav li a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#aaa;text-decoration:none;font-size:13.5px;transition:all 0.15s}
-.sidebar-nav li a:hover{background:#242424;color:#fff}
-.sidebar-nav li a.active{background:#e8630a;color:#fff;font-weight:500}
-.sidebar-nav li a .icon{font-size:15px;width:18px;text-align:center}
-.main{margin-left:200px;flex:1;padding:28px 32px}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.page-title{font-size:24px;font-weight:700}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+  --green:#1e6641;--green-pale:#e8f5ee;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.06)}
+.nav-item.active{background:var(--orange);color:#fff}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:700}
+.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.content{padding:28px 32px;flex:1}
 .layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
-.card{background:#fff;border-radius:12px;border:0.5px solid #e8e4df;overflow:hidden}
-.card-header{padding:16px 20px;border-bottom:1px solid #f0ede8}
-.card-title{font-size:15px;font-weight:700}
-.table-wrapper{overflow-x:auto}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.card-header{padding:18px 20px;border-bottom:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700}
 table{width:100%;border-collapse:collapse}
-th{background:#f8f6f3;padding:10px 14px;text-align:left;font-size:12px;color:#666;font-weight:600;border-bottom:1px solid #ece8e2}
-td{padding:11px 14px;font-size:13.5px;color:#333;border-bottom:1px solid #f5f2ee}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#fdfcfa}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity 0.15s}
+thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+td{padding:14px 16px;font-size:13px;vertical-align:middle}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
 .btn:hover{opacity:0.85}
-.btn-primary{background:#e8630a;color:#fff;width:100%;justify-content:center;margin-top:4px}
-.btn-sm{padding:5px 12px;font-size:12px}
-.btn-outline{background:#fff;border:1.5px solid #e8630a;color:#e8630a}
+.btn-primary{background:var(--orange);color:#fff;width:100%;justify-content:center;margin-top:4px}
+.btn-outline{background:var(--surface);border:1.5px solid var(--orange);color:var(--orange);width:100%;justify-content:center;margin-top:8px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
 .form-panel{padding:20px}
 .form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
-.form-group select,.form-group input{width:100%;padding:9px 12px;border:1px solid #d8d3cc;border-radius:8px;font-size:14px;outline:none;font-family:inherit;background:#fff;transition:border 0.15s}
-.form-group select:focus,.form-group input:focus{border-color:#e8630a;box-shadow:0 0 0 3px rgba(232,99,10,0.08)}
-.preview-box{background:#fef8f3;border:1px solid #e8630a;border-radius:10px;padding:14px;margin-bottom:16px;text-align:center}
-.preview-label{font-size:11px;color:#e8630a;font-weight:600;margin-bottom:4px}
-.preview-val{font-size:22px;font-weight:700;color:#e8630a}
-.preview-sub{font-size:12px;color:#888;margin-top:2px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.5px}
+.form-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--orange);background:#fff;box-shadow:0 0 0 3px rgba(232,99,10,0.08)}
+.preview-box{background:var(--orange-pale);border:1px solid var(--orange);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center}
+.preview-label{font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.preview-val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--orange)}
+.preview-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
 </style>
 </head>
 <body>
-<nav class="sidebar">
-  <div class="sidebar-logo">MeguRee<span>·</span></div>
-  <div class="sidebar-section">メニュー</div>
-  <ul class="sidebar-nav">
-    <li><a href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a></li>
-    <li><a href="orders.html"><span class="icon">📋</span>受注一覧</a></li>
-    <li><a href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a></li>
-  </ul>
-  <div class="sidebar-section">マスタ管理</div>
-  <ul class="sidebar-nav">
-    <li><a href="customer.html"><span class="icon">🏢</span>取引先マスタ</a></li>
-    <li><a href="products.html"><span class="icon">📦</span>商品マスタ</a></li>
-    <li><a href="pricing.html" class="active"><span class="icon">💴</span>掛け率管理</a></li>
-  </ul>
-  <div class="sidebar-section">その他</div>
-  <ul class="sidebar-nav">
-    <li><a href="login.html"><span class="icon">⚙️</span>設定</a></li>
-  </ul>
-</nav>
-<main class="main">
-  <div class="page-header">
-    <div class="page-title">掛け率管理</div>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
   </div>
-  <div class="layout">
-    <div class="card">
-      <div class="table-wrapper">
-        <table>
-          <thead><tr>
-            <th>取引先名</th><th>商品名</th><th>掛け率</th><th>適用単価</th><th></th>
-          </tr></thead>
-          <tbody id="pricingTbody"></tbody>
-        </table>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item active" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="login.html"><span class="icon">⚙️</span>設定</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">掛け率管理</div>
+    <div class="page-sub">取引先ごとの商品掛け率を設定します</div>
+  </div>
+  <div class="content">
+    <div class="layout">
+      <div class="card">
+        <div class="card-header"><div class="card-title">掛け率一覧</div></div>
+        <table><thead><tr>
+          <th>取引先名</th><th>商品名</th><th>掛け率</th><th>適用単価</th><th></th>
+        </tr></thead>
+        <tbody id="pricingTbody"></tbody></table>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-title" id="formTitle">新規登録</div></div>
-      <div class="form-panel">
-        <input type="hidden" id="editKey">
-        <div class="form-group">
-          <label>取引先</label>
-          <select id="fCustomer" onchange="updatePreview()">
-            <option value="">選択してください</option>
-          </select>
+      <div class="card">
+        <div class="card-header"><div class="card-title" id="formTitle">新規登録</div></div>
+        <div class="form-panel">
+          <input type="hidden" id="editKey">
+          <div class="form-group">
+            <label class="form-label">取引先</label>
+            <select class="form-input" id="fCustomer" onchange="updatePreview()">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">商品</label>
+            <select class="form-input" id="fProduct" onchange="updatePreview()">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">掛け率（0〜1）</label>
+            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.01" placeholder="例: 0.85" oninput="updatePreview()">
+          </div>
+          <div class="preview-box" id="previewBox" style="display:none">
+            <div class="preview-label">適用単価（プレビュー）</div>
+            <div class="preview-val" id="previewVal">¥0</div>
+            <div class="preview-sub" id="previewSub"></div>
+          </div>
+          <button class="btn btn-primary" onclick="savePricing()">保存する</button>
+          <button class="btn btn-outline" id="cancelBtn" style="display:none" onclick="resetForm()">キャンセル</button>
         </div>
-        <div class="form-group">
-          <label>商品</label>
-          <select id="fProduct" onchange="updatePreview()">
-            <option value="">選択してください</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>掛け率（0〜1）</label>
-          <input type="number" id="fRate" min="0" max="1" step="0.01" placeholder="例: 0.85" oninput="updatePreview()">
-        </div>
-        <div class="preview-box" id="previewBox" style="display:none">
-          <div class="preview-label">適用単価（プレビュー）</div>
-          <div class="preview-val" id="previewVal">¥0</div>
-          <div class="preview-sub" id="previewSub"></div>
-        </div>
-        <button class="btn btn-primary" onclick="savePricing()">保存する</button>
-        <button class="btn btn-outline" id="cancelBtn" style="display:none;width:100%;justify-content:center;margin-top:8px" onclick="resetForm()">キャンセル</button>
       </div>
     </div>
   </div>
 </main>
 <script>
-const CUSTOMERS = [
-  { id: 'rec001', name: 'ひかる商店' },
-  { id: 'rec002', name: 'サンエイ札幌' },
-  { id: 'rec003', name: '北海道商事' },
-  { id: 'rec004', name: '旭川フーズ' },
-];
-const PRODUCTS = [
-  { id: 'rec101', name: '1,100円丸ごと玉ねぎスープ', basePrice: 700 },
-  { id: 'rec102', name: '700円北海道帆立スープ12入', basePrice: 700 },
-  { id: 'rec103', name: '648円ホタテだし塩65g',      basePrice: 385 },
-  { id: 'rec104', name: '北海道バターサンド',          basePrice: 480 },
-  { id: 'rec105', name: '昆布だし醤油500ml',          basePrice: 320 },
-];
-let PRICING = [
-  { customerId: 'rec001', productId: 'rec101', rate: 0.85 },
-  { customerId: 'rec001', productId: 'rec102', rate: 0.80 },
-  { customerId: 'rec001', productId: 'rec103', rate: 0.85 },
-  { customerId: 'rec002', productId: 'rec101', rate: 0.90 },
-  { customerId: 'rec002', productId: 'rec102', rate: 0.80 },
-  { customerId: 'rec003', productId: 'rec103', rate: 0.75 },
-  { customerId: 'rec003', productId: 'rec104', rate: 0.85 },
-];
-
-function init() {
-  const cs = document.getElementById('fCustomer');
-  const ps = document.getElementById('fProduct');
-  CUSTOMERS.forEach(c => cs.innerHTML += `<option value="${c.id}">${c.name}</option>`);
-  PRODUCTS.forEach(p => ps.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+const CUSTOMERS=[{id:'rec001',name:'ひかる商店'},{id:'rec002',name:'サンエイ札幌'},{id:'rec003',name:'北海道商事'},{id:'rec004',name:'日本フーズ'}];
+const PRODUCTS=[{id:'rec101',name:'1,100円丸ごと玉ねぎスープ',basePrice:700},{id:'rec102',name:'700円北海道帆立スープ12入',basePrice:700},{id:'rec103',name:'648円ホタテだし塩65g',basePrice:385},{id:'rec104',name:'北海道バターうはない',basePrice:480},{id:'rec105',name:'南瓜だしたし梅500ml',basePrice:320}];
+let PRICING=[{customerId:'rec001',productId:'rec101',rate:0.85},{customerId:'rec001',productId:'rec102',rate:0.80},{customerId:'rec001',productId:'rec103',rate:0.85},{customerId:'rec002',productId:'rec101',rate:0.90},{customerId:'rec002',productId:'rec102',rate:0.80},{customerId:'rec003',productId:'rec103',rate:0.75},{customerId:'rec003',productId:'rec104',rate:0.85}];
+function init(){
+  const cs=document.getElementById('fCustomer');
+  const ps=document.getElementById('fProduct');
+  CUSTOMERS.forEach(c=>cs.innerHTML+=`<option value="${c.id}">${c.name}</option>`);
+  PRODUCTS.forEach(p=>ps.innerHTML+=`<option value="${p.id}">${p.name}</option>`);
 }
-
-function renderPricing() {
-  document.getElementById('pricingTbody').innerHTML = PRICING.map((p, i) => {
-    const c = CUSTOMERS.find(x => x.id === p.customerId);
-    const pr = PRODUCTS.find(x => x.id === p.productId);
-    const applied = Math.round(pr.basePrice * p.rate);
-    return `<tr>
-      <td>${c?.name || p.customerId}</td>
-      <td style="font-size:12px">${pr?.name || p.productId}</td>
-      <td><span style="font-weight:700;color:#e8630a">${(p.rate*100).toFixed(0)}%</span></td>
-      <td style="font-weight:600">¥${applied.toLocaleString()}</td>
-      <td><button class="btn btn-sm btn-outline" onclick="editPricing(${i})">編集</button></td>
+function renderPricing(){
+  document.getElementById('pricingTbody').innerHTML=PRICING.map((p,i)=>{
+    const c=CUSTOMERS.find(x=>x.id===p.customerId);
+    const pr=PRODUCTS.find(x=>x.id===p.productId);
+    const applied=Math.round(pr.basePrice*p.rate);
+    return`<tr>
+      <td style="font-weight:600">${c?.name||p.customerId}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${pr?.name||p.productId}</td>
+      <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${(p.rate*100).toFixed(0)}%</span></td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">¥${applied.toLocaleString()}</td>
+      <td><button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing(${i})">編集</button></td>
     </tr>`;
   }).join('');
 }
-
-function updatePreview() {
-  const pid = document.getElementById('fProduct').value;
-  const rate = parseFloat(document.getElementById('fRate').value);
-  const box = document.getElementById('previewBox');
-  if (pid && rate > 0) {
-    const p = PRODUCTS.find(x => x.id === pid);
-    const applied = Math.round(p.basePrice * rate);
-    document.getElementById('previewVal').textContent = '¥' + applied.toLocaleString();
-    document.getElementById('previewSub').textContent = `基本単価 ¥${p.basePrice.toLocaleString()} × ${(rate*100).toFixed(0)}%`;
-    box.style.display = 'block';
-  } else {
-    box.style.display = 'none';
-  }
+function updatePreview(){
+  const pid=document.getElementById('fProduct').value;
+  const rate=parseFloat(document.getElementById('fRate').value);
+  const box=document.getElementById('previewBox');
+  if(pid&&rate>0){
+    const p=PRODUCTS.find(x=>x.id===pid);
+    const applied=Math.round(p.basePrice*rate);
+    document.getElementById('previewVal').textContent='¥'+applied.toLocaleString();
+    document.getElementById('previewSub').textContent=`基本単価 ¥${p.basePrice.toLocaleString()} × ${(rate*100).toFixed(0)}%`;
+    box.style.display='block';
+  }else{box.style.display='none';}
 }
-
-function editPricing(i) {
-  const p = PRICING[i];
-  document.getElementById('editKey').value = i;
-  document.getElementById('fCustomer').value = p.customerId;
-  document.getElementById('fProduct').value = p.productId;
-  document.getElementById('fRate').value = p.rate;
-  document.getElementById('formTitle').textContent = '掛け率を編集';
-  document.getElementById('cancelBtn').style.display = '';
+function editPricing(i){
+  const p=PRICING[i];
+  document.getElementById('editKey').value=i;
+  document.getElementById('fCustomer').value=p.customerId;
+  document.getElementById('fProduct').value=p.productId;
+  document.getElementById('fRate').value=p.rate;
+  document.getElementById('formTitle').textContent='掛け率を編集';
+  document.getElementById('cancelBtn').style.display='';
   updatePreview();
-  document.querySelector('.card:last-child').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.querySelector('.card:last-child').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-
-function resetForm() {
-  document.getElementById('editKey').value = '';
-  document.getElementById('fCustomer').value = '';
-  document.getElementById('fProduct').value = '';
-  document.getElementById('fRate').value = '';
-  document.getElementById('formTitle').textContent = '新規登録';
-  document.getElementById('cancelBtn').style.display = 'none';
-  document.getElementById('previewBox').style.display = 'none';
+function resetForm(){
+  document.getElementById('editKey').value='';
+  document.getElementById('fCustomer').value='';
+  document.getElementById('fProduct').value='';
+  document.getElementById('fRate').value='';
+  document.getElementById('formTitle').textContent='新規登録';
+  document.getElementById('cancelBtn').style.display='none';
+  document.getElementById('previewBox').style.display='none';
 }
-
-function savePricing() {
-  const key = document.getElementById('editKey').value;
-  const data = {
-    customerId: document.getElementById('fCustomer').value,
-    productId: document.getElementById('fProduct').value,
-    rate: parseFloat(document.getElementById('fRate').value),
-  };
-  if (!data.customerId || !data.productId || isNaN(data.rate)) { alert('全項目を入力してください'); return; }
-  if (data.rate <= 0 || data.rate > 1) { alert('掛け率は0より大きく1以下で入力してください'); return; }
-  if (key !== '') {
-    PRICING[parseInt(key)] = data;
-  } else {
-    PRICING.push(data);
-  }
-  console.log('保存:', data);
-  resetForm();
-  renderPricing();
+function savePricing(){
+  const key=document.getElementById('editKey').value;
+  const data={customerId:document.getElementById('fCustomer').value,productId:document.getElementById('fProduct').value,rate:parseFloat(document.getElementById('fRate').value)};
+  if(!data.customerId||!data.productId||isNaN(data.rate)){alert('すべての項目を入力してください');return;}
+  if(data.rate<=0||data.rate>1){alert('掛け率は0より大きく1以下にしてください');return;}
+  if(key!==''){PRICING[parseInt(key)]=data;}else{PRICING.push(data);}
+  resetForm();renderPricing();
 }
-
-init();
-renderPricing();
+init();renderPricing();
 </script>
 </body>
 </html>
