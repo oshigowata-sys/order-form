@@ -4,182 +4,136 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ダッシュボード | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f9f7f4;display:flex;min-height:100vh;color:#1a1a1a}
-.sidebar{width:200px;background:#1a1a1a;color:#fff;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 16px;font-size:17px;font-weight:700;color:#e8630a;border-bottom:1px solid #2a2a2a;letter-spacing:-0.3px}
-.sidebar-logo span{color:#fff;font-weight:400}
-.sidebar-section{padding:16px 16px 4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px}
-.sidebar-nav{list-style:none}
-.sidebar-nav li a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#aaa;text-decoration:none;font-size:13.5px;transition:all 0.15s}
-.sidebar-nav li a:hover{background:#242424;color:#fff}
-.sidebar-nav li a.active{background:#e8630a;color:#fff;font-weight:500}
-.sidebar-nav li a .icon{font-size:15px;width:18px;text-align:center}
-.main{margin-left:200px;flex:1;padding:28px 32px}
-.page-header{margin-bottom:28px}
-.page-title{font-size:24px;font-weight:700;color:#1a1a1a}
-.page-subtitle{font-size:14px;color:#777;margin-top:4px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+  --green:#1e6641;--green-pale:#e8f5ee;
+  --yellow:#d97706;--yellow-pale:#fffbeb;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.06)}
+.nav-item.active{background:var(--orange);color:#fff}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:700}
+.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.content{padding:28px 32px;flex:1}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.kpi-card{background:#fff;border-radius:12px;border:0.5px solid #e8e4df;padding:20px;position:relative;overflow:hidden}
-.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,#e8630a)}
-.kpi-card.green::after{background:#1e6641}
-.kpi-card.orange-warn::after{background:#f0a500}
-.kpi-label{font-size:12px;color:#888;font-weight:500;margin-bottom:8px}
-.kpi-value{font-size:26px;font-weight:700;color:#1a1a1a;line-height:1.2}
-.kpi-value.warn{color:#e8630a}
-.kpi-sub{font-size:12px;color:#aaa;margin-top:4px}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.kpi-card.green::after{background:var(--green)}
+.kpi-card.yellow::after{background:var(--yellow)}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value.warn{color:var(--orange)}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
 .section-row{display:grid;grid-template-columns:1fr 1.2fr;gap:20px;align-items:start}
-.card{background:#fff;border-radius:12px;border:0.5px solid #e8e4df;padding:20px}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.card-title{font-size:15px;font-weight:700;color:#1a1a1a}
-.chart-container{height:200px;display:flex;align-items:flex-end;gap:10px;padding-bottom:24px;position:relative;border-bottom:1px solid #f0ede8}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700}
+.card-body{padding:20px}
+.chart-container{height:200px;display:flex;align-items:flex-end;gap:10px;padding-bottom:24px;position:relative;border-bottom:1px solid var(--border)}
 .chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
 .chart-bar{width:100%;border-radius:6px 6px 0 0;transition:opacity 0.2s;cursor:pointer;min-height:4px}
 .chart-bar:hover{opacity:0.8}
-.chart-bar.current{background:#e8630a}
-.chart-bar.past{background:#ddd}
-.chart-label{font-size:11px;color:#999;margin-top:4px}
-.chart-amount{font-size:10px;color:#555;font-weight:600}
+.chart-bar.current{background:var(--orange)}
+.chart-bar.past{background:var(--border)}
+.chart-label{font-size:11px;color:var(--text-muted);margin-top:4px}
+.chart-amount{font-size:10px;color:var(--text-muted);font-weight:600}
 table{width:100%;border-collapse:collapse}
-th{background:#f8f6f3;padding:9px 12px;text-align:left;font-size:12px;color:#666;font-weight:600;border-bottom:1px solid #ece8e2}
-td{padding:10px 12px;font-size:13px;color:#333;border-bottom:1px solid #f5f2ee}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#fdfcfa}
-.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500}
-.badge-new{background:#fff0e6;color:#e8630a;border:1px solid rgba(232,99,10,0.3)}
-.badge-processing{background:#fffbe0;color:#a07800;border:1px solid rgba(200,160,0,0.3)}
-.badge-shipped{background:#e6f4ec;color:#1e6641;border:1px solid rgba(30,102,65,0.3)}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity 0.15s;text-decoration:none}
+thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+td{padding:13px 16px;font-size:13px;vertical-align:middle}
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.3)}
+.badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.3)}
+.badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;text-decoration:none}
 .btn:hover{opacity:0.85}
-.btn-primary{background:#e8630a;color:#fff}
-.btn-sm{padding:4px 10px;font-size:12px}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
 </style>
 </head>
 <body>
-<nav class="sidebar">
-  <div class="sidebar-logo">MeguRee<span>·</span></div>
-  <div class="sidebar-section">メニュー</div>
-  <ul class="sidebar-nav">
-    <li><a href="dashboard.html" class="active"><span class="icon">🏠</span>ダッシュボード</a></li>
-    <li><a href="orders.html"><span class="icon">📋</span>受注一覧</a></li>
-    <li><a href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a></li>
-  </ul>
-  <div class="sidebar-section">マスタ管理</div>
-  <ul class="sidebar-nav">
-    <li><a href="customer.html"><span class="icon">🏢</span>取引先マスタ</a></li>
-    <li><a href="products.html"><span class="icon">📦</span>商品マスタ</a></li>
-    <li><a href="pricing.html"><span class="icon">💴</span>掛け率管理</a></li>
-  </ul>
-  <div class="sidebar-section">その他</div>
-  <ul class="sidebar-nav">
-    <li><a href="login.html"><span class="icon">⚙️</span>設定</a></li>
-  </ul>
-</nav>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item active" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="login.html"><span class="icon">⚙️</span>設定</a>
+  </nav>
+</aside>
 <main class="main">
-  <div class="page-header">
-    <div class="page-title">ダッシュボード</div>
-    <div class="page-subtitle">2026年4月 — 月次サマリー</div>
-  </div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-label">月次売上（税抜）</div>
-      <div class="kpi-value">¥482,000</div>
-      <div class="kpi-sub">前月比 +8.3%</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">月次利益</div>
-      <div class="kpi-value">¥96,400</div>
-      <div class="kpi-sub">利益率 20.0%</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">今月の受注件数</div>
-      <div class="kpi-value">12件</div>
-      <div class="kpi-sub">前月比 +2件</div>
-    </div>
-    <div class="kpi-card orange-warn">
-      <div class="kpi-label">未処理受注</div>
-      <div class="kpi-value warn">3件</div>
-      <div class="kpi-sub">要対応</div>
+  <div class="topbar">
+    <div>
+      <div class="page-title">ダッシュボード</div>
+      <div class="page-sub">2026年4月 — 月次サマリー</div>
     </div>
   </div>
-
-  <div class="section-row">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">月次売上推移（過去6ヶ月）</div>
-      </div>
-      <div class="chart-container" id="chart"></div>
+  <div class="content">
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value">¥482,000</div><div class="kpi-sub">前月比 +8.3%</div></div>
+      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value">¥96,400</div><div class="kpi-sub">利益率 20.0%</div></div>
+      <div class="kpi-card"><div class="kpi-label">今月の受注件数</div><div class="kpi-value">12件</div><div class="kpi-sub">前月比 +2件</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn">3件</div><div class="kpi-sub">要対応</div></div>
     </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">直近の受注</div>
-        <a href="orders.html" class="btn btn-primary btn-sm">すべて見る →</a>
+    <div class="section-row">
+      <div class="card">
+        <div class="card-header"><div class="card-title">月次売上推移（過去6ヶ月）</div></div>
+        <div class="card-body"><div class="chart-container" id="chart"></div></div>
       </div>
-      <div class="table-wrapper">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">直近の受注</div>
+          <a href="orders.html" class="btn btn-primary btn-sm">すべて見る →</a>
+        </div>
         <table id="recentOrders"></table>
       </div>
     </div>
   </div>
 </main>
-
 <script>
-// ===== モックデータ =====
-const MONTHLY_SALES = [
-  { month: '11月', amount: 310000 },
-  { month: '12月', amount: 425000 },
-  { month: '1月',  amount: 388000 },
-  { month: '2月',  amount: 452000 },
-  { month: '3月',  amount: 445000 },
-  { month: '4月',  amount: 482000, current: true },
-];
-
-const RECENT_ORDERS = [
-  { id: 'ORD-2026-012', customer: 'ひかる商店',   date: '2026/4/7', status: '新規受注', total: 36720 },
-  { id: 'ORD-2026-011', customer: 'サンエイ札幌', date: '2026/4/6', status: '処理中',   total: 88704 },
-  { id: 'ORD-2026-010', customer: 'ひかる商店',   date: '2026/4/5', status: '新規受注', total: 52800 },
-  { id: 'ORD-2026-009', customer: '北海道商事',   date: '2026/4/4', status: '出荷済み', total: 124080 },
-  { id: 'ORD-2026-008', customer: 'サンエイ札幌', date: '2026/4/2', status: '出荷済み', total: 66000 },
-];
-
-// ===== グラフ描画 =====
-function renderChart() {
-  const max = Math.max(...MONTHLY_SALES.map(d => d.amount));
-  const chart = document.getElementById('chart');
-  chart.innerHTML = MONTHLY_SALES.map(d => {
-    const h = Math.round((d.amount / max) * 160);
-    return `
-      <div class="chart-bar-wrap">
-        <div class="chart-amount">¥${(d.amount/10000).toFixed(0)}万</div>
-        <div class="chart-bar ${d.current ? 'current' : 'past'}" style="height:${h}px" title="¥${d.amount.toLocaleString()}"></div>
-        <div class="chart-label">${d.month}</div>
-      </div>`;
+const MONTHLY_SALES=[{month:'11月',amount:310000},{month:'12月',amount:425000},{month:'1月',amount:388000},{month:'2月',amount:452000},{month:'3月',amount:445000},{month:'4月',amount:482000,current:true}];
+const RECENT_ORDERS=[{id:'ORD-2026-012',customer:'ひかる商店',date:'2026/4/7',status:'新規受注',total:36720},{id:'ORD-2026-011',customer:'サンエイ札幌',date:'2026/4/6',status:'処理中',total:88704},{id:'ORD-2026-010',customer:'ひかる商店',date:'2026/4/5',status:'新規受注',total:52800},{id:'ORD-2026-009',customer:'北海道商事',date:'2026/4/4',status:'出荷済み',total:124080},{id:'ORD-2026-008',customer:'サンエイ札幌',date:'2026/4/2',status:'出荷済み',total:66000}];
+function renderChart(){
+  const max=Math.max(...MONTHLY_SALES.map(d=>d.amount));
+  document.getElementById('chart').innerHTML=MONTHLY_SALES.map(d=>{
+    const h=Math.round((d.amount/max)*160);
+    return`<div class="chart-bar-wrap"><div class="chart-amount">¥${(d.amount/10000).toFixed(0)}万</div><div class="chart-bar ${d.current?'current':'past'}" style="height:${h}px" title="¥${d.amount.toLocaleString()}"></div><div class="chart-label">${d.month}</div></div>`;
   }).join('');
 }
-
-// ===== 直近受注テーブル =====
-function renderRecentOrders() {
-  const tbl = document.getElementById('recentOrders');
-  const badgeMap = { '新規受注': 'badge-new', '処理中': 'badge-processing', '出荷済み': 'badge-shipped' };
-  tbl.innerHTML = `
-    <thead><tr>
-      <th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th><th>税込合計</th>
-    </tr></thead>
-    <tbody>
-      ${RECENT_ORDERS.map(o => `
-        <tr>
-          <td style="font-family:monospace;color:#e8630a;font-size:12px">${o.id}</td>
-          <td>${o.customer}</td>
-          <td style="color:#888;font-size:12px">${o.date}</td>
-          <td><span class="badge ${badgeMap[o.status]}">${o.status}</span></td>
-          <td style="font-weight:600">¥${o.total.toLocaleString()}</td>
-        </tr>`).join('')}
-    </tbody>`;
+function renderRecentOrders(){
+  const bm={'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+  document.getElementById('recentOrders').innerHTML=`<thead><tr><th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th><th style="text-align:right">税込合計</th></tr></thead><tbody>${RECENT_ORDERS.map(o=>`<tr><td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${o.id}</td><td style="font-weight:500">${o.customer}</td><td style="color:var(--text-muted);font-size:12px">${o.date}</td><td><span class="badge ${bm[o.status]}">${o.status}</span></td><td style="font-weight:700;text-align:right;font-family:'Space Grotesk',sans-serif">¥${o.total.toLocaleString()}</td></tr>`).join('')}</tbody>`;
 }
-
-renderChart();
-renderRecentOrders();
+renderChart();renderRecentOrders();
 </script>
 </body>
 </html>
