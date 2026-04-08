@@ -4,165 +4,172 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>請求書管理 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f9f7f4;display:flex;min-height:100vh;color:#1a1a1a}
-.sidebar{width:200px;background:#1a1a1a;color:#fff;position:fixed;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 16px;font-size:17px;font-weight:700;color:#e8630a;border-bottom:1px solid #2a2a2a}
-.sidebar-logo span{color:#fff;font-weight:400}
-.sidebar-section{padding:16px 16px 4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px}
-.sidebar-nav{list-style:none}
-.sidebar-nav li a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#aaa;text-decoration:none;font-size:13.5px;transition:all 0.15s}
-.sidebar-nav li a:hover{background:#242424;color:#fff}
-.sidebar-nav li a.active{background:#e8630a;color:#fff;font-weight:500}
-.sidebar-nav li a .icon{font-size:15px;width:18px;text-align:center}
-.main{margin-left:200px;flex:1;padding:28px 32px}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.page-title{font-size:24px;font-weight:700}
-.card{background:#fff;border-radius:12px;border:0.5px solid #e8e4df;overflow:hidden}
-.filter-tabs{display:flex;gap:2px;padding:16px 16px 0;border-bottom:1px solid #f0ede8}
-.tab{padding:8px 20px;border:none;background:none;cursor:pointer;font-size:13.5px;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;transition:all 0.15s}
-.tab.active{color:#e8630a;border-bottom-color:#e8630a;font-weight:600}
-.tab:hover{color:#333}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+  --green:#1e6641;--green-pale:#e8f5ee;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.06)}
+.nav-item.active{background:var(--orange);color:#fff}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:700}
+.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.content{padding:28px 32px;flex:1}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.filter-tabs{display:flex;gap:2px;padding:16px 20px 0;border-bottom:1px solid var(--border)}
+.tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans JP',sans-serif;font-weight:500;transition:all 0.15s}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
+.tab:hover{color:var(--text)}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-th{background:#f8f6f3;padding:10px 14px;text-align:left;font-size:12px;color:#666;font-weight:600;border-bottom:1px solid #ece8e2;white-space:nowrap}
-td{padding:11px 14px;font-size:13.5px;color:#333;border-bottom:1px solid #f5f2ee;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#fdfcfa}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity 0.15s}
-.btn:hover{opacity:0.85}
-.btn-primary{background:#e8630a;color:#fff}
-.btn-sm{padding:5px 12px;font-size:12px}
-.btn-green{background:#1e6641;color:#fff}
+thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+tbody tr{background:var(--bg);border-bottom:1px solid var(--border);transition:background 0.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .num-right{text-align:right}
-.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:12px;font-weight:500}
-.badge-issued{background:#e6f4ec;color:#1e6641;border:1px solid rgba(30,102,65,0.3)}
-.invoice-num{font-family:monospace;font-size:12px;color:#666}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+.btn:hover{opacity:0.85}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.badge-issued{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
+.invoice-num{font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)}
 </style>
 </head>
 <body>
-<nav class="sidebar">
-  <div class="sidebar-logo">MeguRee<span>·</span></div>
-  <div class="sidebar-section">メニュー</div>
-  <ul class="sidebar-nav">
-    <li><a href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a></li>
-    <li><a href="orders.html"><span class="icon">📋</span>受注一覧</a></li>
-    <li><a href="invoice-list.html" class="active"><span class="icon">🧾</span>請求書管理</a></li>
-  </ul>
-  <div class="sidebar-section">マスタ管理</div>
-  <ul class="sidebar-nav">
-    <li><a href="customer.html"><span class="icon">🏢</span>取引先マスタ</a></li>
-    <li><a href="products.html"><span class="icon">📦</span>商品マスタ</a></li>
-    <li><a href="pricing.html"><span class="icon">💴</span>掛け率管理</a></li>
-  </ul>
-  <div class="sidebar-section">その他</div>
-  <ul class="sidebar-nav">
-    <li><a href="login.html"><span class="icon">⚙️</span>設定</a></li>
-  </ul>
-</nav>
-<main class="main">
-  <div class="page-header">
-    <div class="page-title">請求書管理</div>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
   </div>
-  <div class="card">
-    <div class="filter-tabs">
-      <button class="tab active" data-tab="pending">未発行</button>
-      <button class="tab" data-tab="issued">発行済み</button>
-    </div>
-    <div id="pendingView">
-      <div class="table-wrapper">
-        <table>
-          <thead><tr>
-            <th>取引先名</th><th>締め日</th><th>対象期間</th><th class="num-right">受注件数</th>
-            <th class="num-right">税抜合計</th><th class="num-right">消費税</th>
-            <th class="num-right">税込合計</th><th></th>
-          </tr></thead>
-          <tbody id="pendingTbody"></tbody>
-        </table>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item active" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="login.html"><span class="icon">⚙️</span>設定</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">請求書管理</div>
+    <div class="page-sub">締め請求の発行・管理を行います</div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="filter-tabs">
+        <button class="tab active" data-tab="pending">未発行</button>
+        <button class="tab" data-tab="issued">発行済み</button>
       </div>
-    </div>
-    <div id="issuedView" style="display:none">
-      <div class="table-wrapper">
-        <table>
-          <thead><tr>
-            <th>請求書番号</th><th>取引先名</th><th>対象期間</th><th>発行日</th>
-            <th class="num-right">税抜合計</th><th class="num-right">消費税</th>
-            <th class="num-right">税込合計</th><th></th>
-          </tr></thead>
-          <tbody id="issuedTbody"></tbody>
-        </table>
+      <div id="pendingView">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>取引先名</th><th>締め日</th><th>対象期間</th>
+              <th class="num-right">受注件数</th><th class="num-right">税抜合計</th>
+              <th class="num-right">消費税</th><th class="num-right">税込合計</th><th></th>
+            </tr></thead>
+            <tbody id="pendingTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="issuedView" style="display:none">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>請求書番号</th><th>取引先名</th><th>対象期間</th><th>発行日</th>
+              <th class="num-right">税抜合計</th><th class="num-right">消費税</th>
+              <th class="num-right">税込合計</th><th></th>
+            </tr></thead>
+            <tbody id="issuedTbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </main>
 <script>
-const PENDING = [
-  { customer: 'ひかる商店',   closingDay: 31, period: '2026/4/1〜4/30', orders: 4, excl: 182000, tax: 14680, incl: 196680 },
-  { customer: 'サンエイ札幌', closingDay: 15, period: '2026/3/16〜4/15', orders: 3, excl: 156480, tax: 12518, incl: 168998 },
-  { customer: '北海道商事',   closingDay: 20, period: '2026/3/21〜4/20', orders: 2, excl: 87040,  tax: 6963,  incl: 94003  },
+const PENDING=[
+  {customer:'ひかる商店',  closingDay:31,period:'2026/4/1〜4/30',orders:4,excl:182000,tax:14680,incl:196680},
+  {customer:'サンエイ札幌',closingDay:15,period:'2026/3/16〜4/15',orders:3,excl:156480,tax:12518,incl:168998},
+  {customer:'北海道商事',  closingDay:20,period:'2026/3/21〜4/20',orders:2,excl:87040, tax:6963, incl:94003},
 ];
-const ISSUED = [
-  { num: 'INV-202603-001', customer: 'ひかる商店',   period: '2026/3/1〜3/31', issued: '2026/4/1',  excl: 168000, tax: 13440, incl: 181440 },
-  { num: 'INV-202603-002', customer: 'サンエイ札幌', period: '2026/2/16〜3/15', issued: '2026/3/16', excl: 142560, tax: 11405, incl: 153965 },
-  { num: 'INV-202602-001', customer: '北海道商事',   period: '2026/2/21〜3/20', issued: '2026/3/21', excl: 76400,  tax: 6112,  incl: 82512  },
-  { num: 'INV-202602-002', customer: '旭川フーズ',   period: '2026/2/1〜2/28',  issued: '2026/3/1',  excl: 95200,  tax: 7616,  incl: 102816 },
+const ISSUED=[
+  {num:'INV-202603-001',customer:'ひかる商店',  period:'2026/3/1〜3/31', issued:'2026/4/1', excl:168000,tax:13440,incl:181440},
+  {num:'INV-202603-002',customer:'サンエイ札幌',period:'2026/2/16〜3/15',issued:'2026/3/16',excl:142560,tax:11405,incl:153965},
+  {num:'INV-202602-001',customer:'北海道商事',  period:'2026/2/21〜3/20',issued:'2026/3/21',excl:76400, tax:6112, incl:82512},
+  {num:'INV-202602-002',customer:'日本フーズ',  period:'2026/2/1〜2/28', issued:'2026/3/1', excl:95200, tax:7616, incl:102816},
 ];
-
-let issueSeq = ISSUED.length + 1;
-
-function renderPending() {
-  document.getElementById('pendingTbody').innerHTML = PENDING.map((r, i) => `
+let issueSeq=ISSUED.length+1;
+function renderPending(){
+  document.getElementById('pendingTbody').innerHTML=PENDING.map((r,i)=>`
     <tr>
       <td style="font-weight:600">${r.customer}</td>
       <td>${r.closingDay}日締め</td>
-      <td style="font-size:12px;color:#888">${r.period}</td>
-      <td class="num-right">${r.orders}件</td>
-      <td class="num-right">¥${r.excl.toLocaleString()}</td>
-      <td class="num-right" style="color:#888">¥${r.tax.toLocaleString()}</td>
-      <td class="num-right" style="font-weight:700">¥${r.incl.toLocaleString()}</td>
-      <td><button class="btn btn-sm btn-primary" onclick="issueInvoice(${i})">発行</button></td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.period}</td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">${r.orders}件</td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${r.excl.toLocaleString()}</td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${r.tax.toLocaleString()}</td>
+      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${r.incl.toLocaleString()}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="issueInvoice(${i})">発行</button></td>
     </tr>`).join('');
 }
-
-function renderIssued() {
-  document.getElementById('issuedTbody').innerHTML = ISSUED.map(r => `
+function renderIssued(){
+  document.getElementById('issuedTbody').innerHTML=ISSUED.map(r=>`
     <tr>
       <td><span class="invoice-num">${r.num}</span></td>
       <td style="font-weight:600">${r.customer}</td>
-      <td style="font-size:12px;color:#888">${r.period}</td>
-      <td style="font-size:12px;color:#888">${r.issued}</td>
-      <td class="num-right">¥${r.excl.toLocaleString()}</td>
-      <td class="num-right" style="color:#888">¥${r.tax.toLocaleString()}</td>
-      <td class="num-right" style="font-weight:700">¥${r.incl.toLocaleString()}</td>
-      <td><button class="btn btn-sm btn-green" onclick="alert('PDF をダウンロードしました')">PDF</button></td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.period}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.issued}</td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${r.excl.toLocaleString()}</td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${r.tax.toLocaleString()}</td>
+      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${r.incl.toLocaleString()}</td>
+      <td><button class="btn btn-green btn-sm" onclick="alert('PDFをダウンロードします')">PDF</button></td>
     </tr>`).join('');
 }
-
-function issueInvoice(i) {
-  const r = PENDING[i];
-  const now = new Date();
-  const mon = String(now.getMonth()+1).padStart(2,'0');
-  const num = `INV-${now.getFullYear()}${mon}-${String(issueSeq++).padStart(3,'0')}`;
-  const issued = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
-  ISSUED.unshift({ num, customer: r.customer, period: r.period, issued, excl: r.excl, tax: r.tax, incl: r.incl });
-  PENDING.splice(i, 1);
+function issueInvoice(i){
+  const r=PENDING[i];
+  const now=new Date();
+  const mon=String(now.getMonth()+1).padStart(2,'0');
+  const num=`INV-${now.getFullYear()}${mon}-${String(issueSeq++).padStart(3,'0')}`;
+  const issued=`${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  ISSUED.unshift({num,customer:r.customer,period:r.period,issued,excl:r.excl,tax:r.tax,incl:r.incl});
+  PENDING.splice(i,1);
   alert(`請求書を発行しました\n請求書番号: ${num}`);
-  renderPending();
-  renderIssued();
+  renderPending();renderIssued();
 }
-
-document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
-    document.getElementById('pendingView').style.display = t.dataset.tab === 'pending' ? '' : 'none';
-    document.getElementById('issuedView').style.display  = t.dataset.tab === 'issued'  ? '' : 'none';
+    document.getElementById('pendingView').style.display=t.dataset.tab==='pending'?'':'none';
+    document.getElementById('issuedView').style.display=t.dataset.tab==='issued'?'':'none';
   });
 });
-
-renderPending();
-renderIssued();
+renderPending();renderIssued();
 </script>
 </body>
 </html>
