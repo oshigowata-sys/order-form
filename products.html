@@ -200,6 +200,10 @@
     font-size: 13px; color: var(--green); font-weight: 600;
   }
   .save-success.show { display: flex; }
+
+.sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
+.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+.logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
 </style>
 </head>
 <body>
@@ -238,6 +242,9 @@
       </div>
     </div>
     <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+  <div class="sidebar-footer">
+    <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
   </div>
 </aside>
 
