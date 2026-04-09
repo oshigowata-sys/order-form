@@ -58,7 +58,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 /* モーダル */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:20px;width:820px;max-width:95vw;margin-bottom:40px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+.modal{background:var(--surface);border-radius:20px;width:860px;max-width:95vw;margin-bottom:40px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:22px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
 .modal-title{font-size:17px;font-weight:700}
 .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.2s}
@@ -67,6 +67,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .info-item label{font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
 .info-item span{font-size:14px;font-weight:600}
+.items-section-title{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
 .badge-food{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
 .badge-regular{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
 .modal-footer{padding:16px 28px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
@@ -134,7 +135,10 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     </div>
     <div class="modal-body">
       <div class="info-grid" id="modalInfo"></div>
-      <table id="modalItems"></table>
+      <div class="items-section-title">注文商品</div>
+      <div class="table-wrapper">
+        <table id="modalItems"></table>
+      </div>
     </div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
@@ -146,7 +150,12 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 <script>
-const PRODUCTS={'rec101':{code:'000021',name:'1,100円丸ごと玉ねぎスープ',basePrice:700,isFood:true},'rec102':{code:'000139',name:'700円北海道帆立スープ12入',basePrice:700,isFood:true},'rec103':{code:'000268',name:'648円ホタテだし塩65g',basePrice:385,isFood:false},'rec104':{code:'000312',name:'北海道バターうはない',basePrice:480,isFood:true}};
+const PRODUCTS={
+  'rec101':{code:'000021',name:'1,100円丸ごと玉ねぎスープ',basePrice:700,isFood:true},
+  'rec102':{code:'000139',name:'700円北海道帆立スープ12入',basePrice:700,isFood:true},
+  'rec103':{code:'000268',name:'648円ホタテだし塩65g',basePrice:385,isFood:false},
+  'rec104':{code:'000312',name:'北海道バターうはない',basePrice:480,isFood:true}
+};
 const CUSTOMERS={'rec001':'ひかる商店','rec002':'サンエイ札幌','rec003':'北海道商事'};
 const ORDERS=[
   {id:'ORD-2026-012',customerId:'rec001',date:'2026/4/7',status:'新規受注',items:[{pid:'rec101',qty:20,unitPrice:595,costPrice:420},{pid:'rec103',qty:15,unitPrice:327,costPrice:230}]},
@@ -156,23 +165,35 @@ const ORDERS=[
   {id:'ORD-2026-008',customerId:'rec002',date:'2026/4/2',status:'出荷済み',items:[{pid:'rec102',qty:60,unitPrice:504,costPrice:390}]},
   {id:'ORD-2026-007',customerId:'rec001',date:'2026/3/28',status:'出荷済み',items:[{pid:'rec103',qty:100,unitPrice:327,costPrice:230},{pid:'rec104',qty:50,unitPrice:408,costPrice:290}]},
 ];
-function calcOrder(o){let excl=0,tax=0,cost=0;o.items.forEach(it=>{const p=PRODUCTS[it.pid];const sub=it.unitPrice*it.qty;const taxAmt=Math.round(sub*(p.isFood?0.08:0.10));excl+=sub;tax+=taxAmt;cost+=it.costPrice*it.qty;});return{excl,tax,incl:excl+tax,profit:excl-cost};}
+function calcOrder(o){
+  let excl=0,tax=0,cost=0;
+  o.items.forEach(it=>{
+    const p=PRODUCTS[it.pid];
+    const sub=it.unitPrice*it.qty;
+    const taxAmt=Math.round(sub*(p.isFood?0.08:0.10));
+    excl+=sub;tax+=taxAmt;cost+=it.costPrice*it.qty;
+  });
+  return{excl,tax,incl:excl+tax,profit:excl-cost};
+}
 const BADGE={'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
 let currentFilter='all';
 function renderOrders(){
   const tbody=document.getElementById('ordersTbody');
   const list=currentFilter==='all'?ORDERS:ORDERS.filter(o=>o.status===currentFilter);
-  tbody.innerHTML=list.map(o=>{const c=calcOrder(o);return`<tr>
-    <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${o.id}</td>
-    <td style="font-weight:500">${CUSTOMERS[o.customerId]}</td>
-    <td style="color:var(--text-muted);font-size:12px">${o.date}</td>
-    <td><span class="badge ${BADGE[o.status]}">${o.status}</span></td>
-    <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${c.excl.toLocaleString()}</td>
-    <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${c.tax.toLocaleString()}</td>
-    <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${c.incl.toLocaleString()}</td>
-    <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${c.profit.toLocaleString()}</td>
-    <td><button class="btn btn-primary btn-sm" onclick="openDetail('${o.id}')">詳細 →</button></td>
-  </tr>`;}).join('');
+  tbody.innerHTML=list.map(o=>{
+    const c=calcOrder(o);
+    return`<tr>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${o.id}</td>
+      <td style="font-weight:500">${CUSTOMERS[o.customerId]}</td>
+      <td style="color:var(--text-muted);font-size:12px">${o.date}</td>
+      <td><span class="badge ${BADGE[o.status]}">${o.status}</span></td>
+      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${c.excl.toLocaleString()}</td>
+      <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${c.tax.toLocaleString()}</td>
+      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${c.incl.toLocaleString()}</td>
+      <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${c.profit.toLocaleString()}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="openDetail('${o.id}')">詳細 →</button></td>
+    </tr>`;
+  }).join('');
 }
 function openDetail(orderId){
   const o=ORDERS.find(x=>x.id===orderId);if(!o)return;
@@ -185,11 +206,12 @@ function openDetail(orderId){
     {label:'ステータス',val:`<span class="badge ${BADGE[o.status]}">${o.status}</span>`},
   ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
   const items=o.items.map(it=>{
-    const p=PRODUCTS[it.pid];const sub=it.unitPrice*it.qty;
+    const p=PRODUCTS[it.pid];
+    const sub=it.unitPrice*it.qty;
     const taxBadge=p.isFood?'<span class="badge-food">軽8%</span>':'<span class="badge-regular">10%</span>';
     return`<tr>
       <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${p.code}</td>
-      <td style="font-weight:500">${p.name}</td>
+      <td style="font-weight:500;white-space:normal">${p.name}</td>
       <td class="num-right">${it.qty}</td>
       <td class="num-right">¥${p.basePrice.toLocaleString()}</td>
       <td class="num-right">¥${it.unitPrice.toLocaleString()}</td>
@@ -198,7 +220,7 @@ function openDetail(orderId){
       <td>${taxBadge}</td>
     </tr>`;
   }).join('');
-  document.getElementById('modalItems').innerHTML<`<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">定価</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead><tbody>${items}</tbody>`;
+  document.getElementById('modalItems').innerHTML=`<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">定価</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead><tbody>${items}</tbody>`;
   document.getElementById('modalTotals').innerHTML=`
     <div class="totals-item"><label>利益合計</label><span class="green">¥${c.profit.toLocaleString()}</span></div>
     <div class="totals-item"><label>税抜合計</label><span>¥${c.excl.toLocaleString()}</span></div>
@@ -207,7 +229,14 @@ function openDetail(orderId){
   document.getElementById('detailOverlay').classList.add('open');
 }
 function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');}
-document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentFilter=t.dataset.filter;renderOrders();});});
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    currentFilter=t.dataset.filter;
+    renderOrders();
+  });
+});
 renderOrders();
 </script>
 </body>
