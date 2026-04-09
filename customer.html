@@ -1,72 +1,72 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>取引先マスタ | MeguRee</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
-  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
-  --green:#1e6641;--green-pale:#e8f5ee;
-  --yellow:#d97706;--yellow-pale:#fffbeb;
-  --text:#1a1208;--text-muted:#7a6a55;
-  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
-}
-body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
-.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
-.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
-.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
-.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
-.sidebar-nav{padding:16px 12px;flex:1}
-.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
-.nav-label:first-child{margin-top:0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
-.nav-item:hover{background:rgba(255,255,255,0.06)}
-.nav-item.active{background:var(--orange);color:#fff}
-.nav-item .icon{font-size:16px;width:20px;text-align:center}
-.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
-.page-title{font-size:18px;font-weight:700}
-.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
-.content{padding:28px 32px;flex:1}
-.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
-.card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
-.card-title{font-size:14px;font-weight:700}
-table{width:100%;border-collapse:collapse}
-thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
-th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
-tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
-tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:var(--bg)}
-td{padding:13px 16px;font-size:13px;vertical-align:middle}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
-.btn:hover{opacity:0.85}
-.btn-primary{background:var(--orange);color:#fff}
-.btn-outline{background:var(--surface);border:1.5px solid var(--orange);color:var(--orange)}
-.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:20px;width:500px;max-width:95vw;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border)}
-.modal-title{font-size:16px;font-weight:700}
-.modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.2s}
-.modal-close:hover{background:var(--bg)}
-.modal-body{padding:24px}
-.form-group{margin-bottom:16px}
-.label{display:block;font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
-.input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);transition:border-color 0.2s}
-form-input:focus{outline:none;border-color:var(--orange)}
-.input:focus{outline:none;border-color:var(--orange)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
-
-.sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
-.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
-.logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>取引先マスタ | MeguRee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+      --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+      --green:#1e6641;--green-pale:#e8f5ee;
+      --text:#1a1208;--text-muted:#7a6a55;
+      --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+    }
+    body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+    .sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+    .sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    .sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+    .sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+    .sidebar-nav{padding:16px 12px;flex:1}
+    .nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+    .nav-label:first-child{margin-top:0}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+    .nav-item:hover{background:rgba(255,255,255,0.06)}
+    .nav-item.active{background:var(--orange);color:#fff}
+    .nav-item .icon{font-size:16px;width:20px;text-align:center}
+    .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .page-title{font-size:18px;font-weight:700}
+    .page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .content{padding:28px 32px;flex:1}
+    .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+    .card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
+    .card-title{font-size:14px;font-weight:700}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+    th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+    tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:var(--bg)}
+    td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+    .btn:hover{opacity:0.85}
+    .btn-primary{background:var(--orange);color:#fff}
+    .btn-outline{background:var(--surface);border:1.5px solid var(--orange);color:var(--orange)}
+    .btn-danger-sm{display:inline-flex;align-items:center;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;margin-left:4px}
+    .btn-danger-sm:hover{background:#fee2e2}
+    .btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .overlay.open{display:flex}
+    .modal{background:var(--surface);border-radius:20px;width:520px;max-width:95vw;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18)}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border)}
+    .modal-title{font-size:16px;font-weight:700}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.2s}
+    .modal-close:hover{background:var(--bg)}
+    .modal-body{padding:24px}
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+    .form-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);transition:border-color 0.2s;outline:none}
+    .form-input:focus{border-color:var(--orange)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+    .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
+    .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+    .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
+    .empty-row td{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
+  </style>
 </head>
 <body>
 <aside class="sidebar">
@@ -90,87 +90,166 @@ form-input:focus{outline:none;border-color:var(--orange)}
     <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
   </div>
 </aside>
+
 <main class="main">
   <div class="topbar">
     <div>
       <div class="page-title">取引先マスタ</div>
-      <div class="page-sub">取引先の悧を許用します</div>
+      <div class="page-sub">取引先の登録・編集・削除を管理します</div>
     </div>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ 新規取引先</button>
   </div>
   <div class="content">
     <div class="card">
       <div class="card-header">
         <div class="card-title">取引先一覧</div>
-        <button class="btn btn-primary" onclick="openModal()">• 新訓先身</button>
       </div>
       <table>
         <thead><tr>
-          <th>会先</th><th>控引者</th><th>�T询</th><th>メール</th><th>約り�_</th><th></th>
+          <th>会社名</th>
+          <th>担当者</th>
+          <th>電話番号</th>
+          <th>メール</th>
+          <th>締め日</th>
+          <th></th>
         </tr></thead>
         <tbody id="customerTbody"></tbody>
       </table>
     </div>
   </div>
 </main>
+
 <div class="overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modalTitle">取引先一覧</div>
+      <div class="modal-title" id="modalTitle">新規取引先を追加</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group">
-          <label class="label">会先</label>
-          <input class="input" id="fCompany" type="text" placeholder="标内标率名">
+          <label class="form-label">会社名 <span style="color:#dc2626">*</span></label>
+          <input class="form-input" id="fCompany" type="text" placeholder="例：ひかる商店">
         </div>
         <div class="form-group">
-          <label class="label">掤引先者</label>
-          <input class="input" id="fContact" type="text" placeholder="強傗 人町">
+          <label class="form-label">担当者名</label>
+          <input class="form-input" id="fContact" type="text" placeholder="例：田中 太郎">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="label">�T诡</label>
-          <input class="input" id="fPhone" type="tel" placeholder="03-0000-0000">
+          <label class="form-label">電話番号</label>
+          <input class="form-input" id="fPhone" type="tel" placeholder="例：03-1234-5678">
         </div>
         <div class="form-group">
-          <label class="label">メール</label>
-          <input class="input" id="fEmail" type="email" placeholder="info@example.com">
+          <label class="form-label">メールアドレス</label>
+          <input class="form-input" id="fEmail" type="email" placeholder="例：info@example.com">
         </div>
       </div>
       <div class="form-group">
-        <label class="label">約り�_</label>
-        <input class="input" id="fClosing" type="text" placeholder="二木明">
+        <label class="form-label">締め日</label>
+        <input class="form-input" id="fClosing" type="text" placeholder="例：月末、20日">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">スーンセ</button>
-      <button class="btn btn-primary" onclick="saveCustomer()">保帘</button>
+      <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">保存する</button>
     </div>
   </div>
 </div>
+
 <script>
-let customers=[
-  {id:1,company:'ひかる商店',contact:'哦木大奲',zone:'48月00日',email:'sawada@sawada.jp',closing:'木明 20日'},
-  {id:2,company:'サンエイ札幌',contact:'田番釒',zone:'  8月00日',email:'sanou@sanoe.jp',closing:'该月 6日'},
-  {id:3,company:'北海道商事',contact:'匾年名',zone:'  5月00日',email:'yamada@ysupply.jp',closing:'当 35日'}
-];
-let editId=null;
-function render(){document.getElementById('customerTbody').innerHTML=customers.map(c=>`<tr>
-    <td style="font-weight:600">${c.company}</td>
-    <td>${c.contact}</td>
-    <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:12px">${c.zone}</td>
-    <td style="color:var(--text-muted);font-size:12px">${c.email}</td>
-    <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-weight:600;font-size:12px">${c.closing}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="openEdit(${c.id})">�"雅</button></td>
-  </tr>`).join('');}
-function openModal(){editId=null;document.getElementById('modalTitle').textContent='新裄取引先名';['fCompany','fContact','fPhone','fEmail','fClosing'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('modalOverlay').classList.add('open');}
-function openEdit(id){const c=customers.find(x=>x.id===id);if(!c)return;editId=id;document.getElementById('modalTitle').textContent='取引先情報';document.getElementById('fCompany').value=c.company;document.getElementById('fContact').value=c.contact;document.getElementById('fPhone').value=c.zone;document.getElementById('fEmail').value=c.email;document.getElementById('fClosing').value=c.closing;document.getElementById('modalOverlay').classList.add('open');}
-function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
-function saveCustomer(){const company=document.getElementById('fCompany').value.trim();if(!company){alert('会先名を先力してください');return;]}
-if(editId){const idx=customers.findIndex(x=>x.id===editId);customers[idx]={...customers[idx],company,contact:document.getElementById('fContact').value,zone:document.getElementById('fPhone').value,email:document.getElementById('fEmail').value,closing:document.getElementById('fClosing').value};}else{customers.push({id:Date.now(),company,contact:document.getElementById('fContact').value,zone:document.getElementById('fPhone').value,email:document.getElementById('fEmail').value,closing:document.getElementById('fClosing').value});}render();closeModal();}
-render();
+  let customers = [
+    {id:1, company:'ひかる商店',  contact:'', phone:'', email:'sawada@sawada.jp', closing:''},
+    {id:2, company:'サンエイ札幌', contact:'', phone:'', email:'sanou@sanoe.jp',  closing:''},
+    {id:3, company:'北海道商事',  contact:'', phone:'', email:'yamada@ysupply.jp', closing:''}
+  ];
+  let editId = null;
+
+  function render() {
+    const tbody = document.getElementById('customerTbody');
+    if (customers.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">取引先が登録されていません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = customers.map(c => `<tr>
+      <td style="font-weight:600">${esc(c.company)}</td>
+      <td style="color:var(--text-muted)">${esc(c.contact)}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:12px">${esc(c.phone)}</td>
+      <td style="color:var(--text-muted);font-size:12px">${esc(c.email)}</td>
+      <td style="font-weight:600;color:var(--orange);font-size:12px">${esc(c.closing)}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openEditModal(${c.id})">編集</button>
+        <button class="btn-danger-sm" onclick="deleteCustomer(${c.id})">削除</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function openAddModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = '新規取引先を追加';
+    ['fCompany','fContact','fPhone','fEmail','fClosing'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('fCompany').focus(), 100);
+  }
+
+  function openEditModal(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    editId = id;
+    document.getElementById('modalTitle').textContent = '取引先を編集';
+    document.getElementById('fCompany').value  = c.company;
+    document.getElementById('fContact').value  = c.contact;
+    document.getElementById('fPhone').value    = c.phone;
+    document.getElementById('fEmail').value    = c.email;
+    document.getElementById('fClosing').value  = c.closing;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function saveCustomer() {
+    const company = document.getElementById('fCompany').value.trim();
+    if (!company) {
+      alert('会社名は必須です');
+      document.getElementById('fCompany').focus();
+      return;
+    }
+    const data = {
+      company,
+      contact: document.getElementById('fContact').value.trim(),
+      phone:   document.getElementById('fPhone').value.trim(),
+      email:   document.getElementById('fEmail').value.trim(),
+      closing: document.getElementById('fClosing').value.trim(),
+    };
+    if (editId !== null) {
+      const idx = customers.findIndex(x => x.id === editId);
+      if (idx !== -1) customers[idx] = { ...customers[idx], ...data };
+    } else {
+      customers.push({ id: Date.now(), ...data });
+    }
+    render();
+    closeModal();
+  }
+
+  function deleteCustomer(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    if (!confirm(`「${c.company}」を削除してよろしいですか？`)) return;
+    customers = customers.filter(x => x.id !== id);
+    render();
+  }
+
+  render();
 </script>
 </body>
 </html>
