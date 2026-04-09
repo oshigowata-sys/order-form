@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設定 | MeguRee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+      --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+      --green:#1e6641;--green-pale:#e8f5ee;
+      --text:#1a1208;--text-muted:#7a6a55;
+      --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+    }
+    body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+    .sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+    .sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    .sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+    .sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase}
+    .sidebar-nav{padding:16px 12px;flex:1}
+    .nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
+    .nav-label:first-child{margin-top:0}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+    .nav-item:hover{background:rgba(255,255,255,0.06)}
+    .nav-item.active{background:var(--orange);color:#fff}
+    .nav-item .icon{font-size:16px;width:20px;text-align:center}
+    .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
+    .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+    .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
+    .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .page-title{font-size:18px;font-weight:700}
+    .page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .content{padding:28px 32px;flex:1}
+    .settings-grid{display:flex;flex-direction:column;gap:20px;max-width:720px}
+    .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .settings-card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .settings-card-icon{font-size:18px}
+    .settings-card-title{font-size:14px;font-weight:700}
+    .settings-card-body{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-label{font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:0.5px}
+    .form-label span{color:#dc2626;margin-left:2px}
+    .form-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
+    .form-input:focus{border-color:var(--orange);background:white}
+    .form-input::placeholder{color:#bbb}
+    textarea.form-input{resize:vertical;min-height:72px}
+    .settings-card-footer{padding:14px 24px;border-top:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:flex-end;gap:12px}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:white;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:background 0.2s;font-family:'Noto Sans JP',sans-serif}
+    .btn-primary:hover{background:var(--orange-light)}
+    .save-msg{font-size:13px;font-weight:600;color:var(--green);display:none;align-items:center;gap:6px}
+    .save-msg.show{display:flex}
+    .divider{height:1px;background:var(--border);margin:4px 0}
+    .preview-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .preview-card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .preview-card-body{padding:20px 24px}
+    .preview-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px;font-size:13px;line-height:1.9}
+    .preview-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+    .preview-name{font-size:16px;font-weight:700;margin-bottom:2px}
+    .preview-address{color:var(--text-muted);font-size:12px;margin-bottom:12px}
+    .preview-bank-title{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+    .preview-bank{font-size:13px;line-height:1.8}
+  </style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item active" href="settings.html"><span class="icon">⚙️</span>設定</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
+  </div>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">設定</div>
+      <div class="page-sub">請求書・納品書に印刷される会社情報・振込先を管理します</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="settings-grid">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <span class="settings-card-icon">🏢</span>
+          <div class="settings-card-title">会社情報</div>
+        </div>
+        <div class="settings-card-body">
+          <div class="form-group">
+            <label class="form-label">会社名<span>*</span></label>
+            <input type="text" class="form-input" id="companyName" placeholder="例：株式会社 MeguRee" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">郵便番号</label>
+            <input type="text" class="form-input" id="companyZip" placeholder="例：060-0001" style="max-width:180px" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">住所</label>
+            <textarea class="form-input" id="companyAddress" placeholder="例：北海道札幌市中央区北1条西2丁目"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">電話番号</label>
+              <input type="text" class="form-input" id="companyTel" placeholder="例：011-123-4567" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">メールアドレス</label>
+              <input type="text" class="form-input" id="companyEmail" placeholder="例：info@example.com" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">登録番号（インボイス）</label>
+            <input type="text" class="form-input" id="companyInvoiceNo" placeholder="例：T1234567890123" style="max-width:260px" />
+          </div>
+        </div>
+        <div class="settings-card-footer">
+          <div class="save-msg" id="saveMsgCompany">✓ 保存しました</div>
+          <button class="btn-primary" onclick="saveCompany()">保存する</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <span class="settings-card-icon">🏦</span>
+          <div class="settings-card-title">振込先情報</div>
+        </div>
+        <div class="settings-card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">銀行名</label>
+              <input type="text" class="form-input" id="bankName" placeholder="例：北洋銀行" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">支店名</label>
+              <input type="text" class="form-input" id="bankBranch" placeholder="例：札幌駅前支店" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">口座種別</label>
+              <select class="form-input" id="bankType">
+                <option value="普通">普通</option>
+                <option value="当座">当座</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">口座番号</label>
+              <input type="text" class="form-input" id="bankNumber" placeholder="例：1234567" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">口座名義（カタカナ）</label>
+            <input type="text" class="form-input" id="bankHolder" placeholder="例：カ）メグリー" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">備考（振込手数料など）</label>
+            <input type="text" class="form-input" id="bankNote" placeholder="例：振込手数料はご負担ください" />
+          </div>
+        </div>
+        <div class="settings-card-footer">
+          <div class="save-msg" id="saveMsgBank">✓ 保存しました</div>
+          <button class="btn-primary" onclick="saveBank()">保存する</button>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="preview-card-header">
+          <span class="settings-card-icon">👁️</span>
+          <div class="settings-card-title">請求書・納品書 印刷プレビュー</div>
+        </div>
+        <div class="preview-card-body">
+          <div class="preview-label">表示イメージ</div>
+          <div class="preview-box">
+            <div class="preview-name" id="previewName">—</div>
+            <div class="preview-address" id="previewAddress">—</div>
+            <div class="divider"></div>
+            <div class="preview-bank-title">お振込先</div>
+            <div class="preview-bank" id="previewBank">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+  const STORAGE_KEY_COMPANY = 'meguree_settings_company';
+  const STORAGE_KEY_BANK    = 'meguree_settings_bank';
+  function loadAll() {
+    const company = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPANY) || '{}');
+    document.getElementById('companyName').value      = company.name      || '';
+    document.getElementById('companyZip').value       = company.zip       || '';
+    document.getElementById('companyAddress').value   = company.address   || '';
+    document.getElementById('companyTel').value       = company.tel       || '';
+    document.getElementById('companyEmail').value     = company.email     || '';
+    document.getElementById('companyInvoiceNo').value = company.invoiceNo || '';
+    const bank = JSON.parse(localStorage.getItem(STORAGE_KEY_BANK) || '{}');
+    document.getElementById('bankName').value  = bank.name   || '';
+    document.getElementById('bankBranch').value= bank.branch || '';
+    document.getElementById('bankType').value  = bank.type   || '普通';
+    document.getElementById('bankNumber').value= bank.number || '';
+    document.getElementById('bankHolder').value= bank.holder || '';
+    document.getElementById('bankNote').value  = bank.note   || '';
+    updatePreview();
+  }
+  function saveCompany() {
+    const data = {
+      name:      document.getElementById('companyName').value.trim(),
+      zip:       document.getElementById('companyZip').value.trim(),
+      address:   document.getElementById('companyAddress').value.trim(),
+      tel:       document.getElementById('companyTel').value.trim(),
+      email:     document.getElementById('companyEmail').value.trim(),
+      invoiceNo: document.getElementById('companyInvoiceNo').value.trim(),
+    };
+    localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(data));
+    flashSave('saveMsgCompany');
+    updatePreview();
+  }
+  function saveBank() {
+    const data = {
+      name:   document.getElementById('bankName').value.trim(),
+      branch: document.getElementById('bankBranch').value.trim(),
+      type:   document.getElementById('bankType').value,
+      number: document.getElementById('bankNumber').value.trim(),
+      holder: document.getElementById('bankHolder').value.trim(),
+      note:   document.getElementById('bankNote').value.trim(),
+    };
+    localStorage.setItem(STORAGE_KEY_BANK, JSON.stringify(data));
+    flashSave('saveMsgBank');
+    updatePreview();
+  }
+  function flashSave(id) {
+    const el = document.getElementById(id);
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+  function updatePreview() {
+    const company = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPANY) || '{}');
+    const bank    = JSON.parse(localStorage.getItem(STORAGE_KEY_BANK)    || '{}');
+    const nameEl = document.getElementById('previewName');
+    const addrEl = document.getElementById('previewAddress');
+    nameEl.textContent = company.name || '（会社名未設定）';
+    const addrParts = [];
+    if (company.zip)     addrParts.push('〒' + company.zip);
+    if (company.address) addrParts.push(company.address);
+    if (company.tel)     addrParts.push('TEL: ' + company.tel);
+    if (company.email)   addrParts.push(company.email);
+    if (company.invoiceNo) addrParts.push('登録番号: ' + company.invoiceNo);
+    addrEl.textContent = addrParts.join('  ') || '（住所・連絡先未設定）';
+    const bankEl = document.getElementById('previewBank');
+    if (!bank.name && !bank.number) {
+      bankEl.textContent = '（振込先未設定）';
+    } else {
+      const lines = [];
+      if (bank.name || bank.branch) lines.push([bank.name, bank.branch].filter(Boolean).join(' '));
+      if (bank.type || bank.number) lines.push(bank.type + '  ' + bank.number);
+      if (bank.holder) lines.push('口座名義: ' + bank.holder);
+      if (bank.note)   lines.push(bank.note);
+      bankEl.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
+    }
+  }
+  ['companyName','companyZip','companyAddress','companyTel','companyEmail','companyInvoiceNo',
+   'bankName','bankBranch','bankType','bankNumber','bankHolder','bankNote'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updatePreview);
+  });
+  loadAll();
+</script>
+</body>
+</html>
