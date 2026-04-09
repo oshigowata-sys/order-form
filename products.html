@@ -211,38 +211,21 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
-    <div style="font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;text-transform:uppercase;">受注管理システム</div>
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">受注管理システム</div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">メニュー</div>
-    <a class="nav-item" href="dashboard.html">
-      <span class="icon">📋</span> 受注一覧
-    </a>
-    <a class="nav-item" href="customer.html">
-      <span class="icon">🏪</span> 取引先マスタ
-    </a>
-    <a class="nav-item active" href="products.html">
-      <span class="icon">📦</span> 商品マスタ
-    </a>
-    <a class="nav-item" href="pricing.html">
-      <span class="icon">💹</span> 掛け率管理
-    </a>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item active" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
     <div class="nav-label">その他</div>
-    <a class="nav-item" href="dashboard.html" onclick="sessionStorage.setItem('openPage','settings')">
-      <span class="icon">⚙️</span> 設定
-    </a>
+    <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
   </nav>
-  <div class="sidebar-footer">
-    <div class="user-card">
-      <div class="user-avatar" id="userInitial">U</div>
-      <div>
-        <div class="user-name" id="userName">ユーザー</div>
-        <div class="user-role">管理者</div>
-      </div>
-    </div>
-    <button class="logout-btn" onclick="logout()">ログアウト</button>
-  </div>
   <div class="sidebar-footer">
     <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
   </div>
@@ -335,102 +318,8 @@
     return fetch(secureUrl, { ...options, headers });
   }
 
-  // ===== 認証チェック =====
-  window.onload = () => {
-    const user = sessionStorage.getItem('user');
-    if (!user) { window.location.href = 'login.html'; return; }
-    const userData = JSON.parse(user);
-    document.getElementById('userName').textContent = userData.name || 'ユーザー';
-    document.getElementById('userInitial').textContent = (userData.name || 'U')[0];
-    loadProducts();
-  };
+  loadProducts();
 
-  function logout() {
-    sessionStorage.removeItem('user');
-    window.location.href = 'login.html';
-  }
-
-  // ===== 商品データ =====
-  let allProducts = [];
-
-  async function loadProducts() {
-    try {
-      if (sessionCache.products) {
-        allProducts = sessionCache.products;
-      } else {
-        const res = await secureFetch(PRODUCT_LIST_WEBHOOK);
-        const text = await res.text();
-        const cleaned = text.trim().replace(/^"|"$/g, '');
-        const data = JSON.parse('[' + cleaned + ']');
-        allProducts = (Array.isArray(data) ? data : [data]).map(r => ({
-          id: r.id,
-          productId: r.fields?.['商品ID'] || '',
-          name: r.fields?.['商品名'] || '',
-          price: r.fields?.['価格'] || r.fields?.['基本単価'] || 0,
-        }));
-        sessionCache.products = allProducts;
-      }
-      renderProducts();
-    } catch(e) {
-      console.error(e);
-      document.getElementById('productTableBody').innerHTML =
-        '<tr class="loading-row"><td colspan="4">⚠️ データの読み込みに失敗しました</td></tr>';
-    }
-  }
-
-  function renderProducts() {
-    const tbody = document.getElementById('productTableBody');
-    if (allProducts.length === 0) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="4"><div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">商品データがありません</div></div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = allProducts.map(p => `
-      <tr>
-        <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted);">${esc(p.productId)}</td>
-        <td><span class="product-name">${esc(p.name)}</span></td>
-        <td><span class="amount">¥${Number(p.price).toLocaleString()}</span></td>
-        <td>
-          <button class="btn-secondary" onclick="openEditModal('${esc(p.id)}')">編集</button>
-          <button class="btn-danger" onclick="deleteProduct('${esc(p.id)}', '${esc(p.name)}')">削除</button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  // ===== モーダル =====
-  function openAddModal() {
-    document.getElementById('modalTitle').textContent = '商品を追加';
-    document.getElementById('editRecordId').value = '';
-    document.getElementById('formProductName').value = '';
-    document.getElementById('formPrice').value = '';
-    document.getElementById('saveSuccess').classList.remove('show');
-    document.getElementById('modalOverlay').classList.add('show');
-  }
-
-  function openEditModal(recordId) {
-    const p = allProducts.find(x => x.id === recordId);
-    if (!p) return;
-    document.getElementById('modalTitle').textContent = '商品を編集';
-    document.getElementById('editRecordId').value = recordId;
-    document.getElementById('formProductName').value = p.name;
-    document.getElementById('formPrice').value = p.price || '';
-    document.getElementById('saveSuccess').classList.remove('show');
-    document.getElementById('modalOverlay').classList.add('show');
-  }
-
-  function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('show');
-  }
-
-  async function deleteProduct(recordId, productName) {
-    if (!confirm(`「${productName}」を削除してよろしいですか？`)) return;
-    try {
-      await secureFetch(PRODUCT_SAVE_WEBHOOK, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'delete_product', record_id: recordId }),
-      });
-      delete sessionCache.products;
-      loadProducts();
     } catch(e) {
       alert('削除に失敗しました。もう一度お試しください。');
     }
