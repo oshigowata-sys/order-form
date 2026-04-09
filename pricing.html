@@ -150,7 +150,7 @@ function renderPricing(){
       <td style="font-size:12px;color:var(--text-muted)">${pr?.name||p.productId}</td>
       <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${(p.rate*100).toFixed(0)}%</span></td>
       <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">¥${applied.toLocaleString()}</td>
-      <td><button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing(${i})">編集</button></td>
+      <td style="white-space:nowrap"><button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing(${i})">編集</button><button class="btn btn-sm" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;margin-left:4px" onclick="deletePricing(${i})">削除</button></td>
     </tr>`;
   }).join('');
 }
@@ -193,6 +193,13 @@ function savePricing(){
   if(data.rate<=0||data.rate>1){alert('掛け率は0より大きく1以下にしてください');return;}
   if(key!==''){PRICING[parseInt(key)]=data;}else{PRICING.push(data);}
   resetForm();renderPricing();
+}
+function deletePricing(i){
+  if(!confirm('この掛け率を削除してよろしいですか？'))return;
+  const key=document.getElementById('editKey').value;
+  if(key!==''&&parseInt(key)>=i)resetForm();
+  PRICING.splice(i,1);
+  renderPricing();
 }
 init();renderPricing();
 </script>
