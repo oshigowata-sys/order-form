@@ -159,13 +159,35 @@
 </div>
 
 <script>
-  let customers = [
+  const CUSTOMERS_KEY = 'meguree_customers';
+
+  const DEFAULT_CUSTOMERS = [
     {id:1, company:'ひかる商店',  contact:'', phone:'', email:'sawada@sawada.jp', closing:''},
     {id:2, company:'サンエイ札幌', contact:'', phone:'', email:'sanou@sanoe.jp',  closing:''},
     {id:3, company:'北海道商事',  contact:'', phone:'', email:'yamada@ysupply.jp', closing:''}
   ];
+
+  function loadCustomers() {
+    try {
+      const saved = localStorage.getItem(CUSTOMERS_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_CUSTOMERS;
+    } catch(e) { return DEFAULT_CUSTOMERS; }
+  }
+
+  function saveCustomers() {
+    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+  }
+
+  let customers = loadCustomers();
   let editId = null;
 
+
+  function formatClosing(val) {
+    if (!val) return '';
+    const trimmed = val.trim();
+    if (/^\d+$/.test(trimmed)) return trimmed + '\u65e5'; // 日
+    return trimmed;
+  }
   function render() {
     const tbody = document.getElementById('customerTbody');
     if (customers.length === 0) {
@@ -177,7 +199,7 @@
       <td style="color:var(--text-muted)">${esc(c.contact)}</td>
       <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:12px">${esc(c.phone)}</td>
       <td style="color:var(--text-muted);font-size:12px">${esc(c.email)}</td>
-      <td style="font-weight:600;color:var(--orange);font-size:12px">${esc(c.closing)}</td>
+      <td style="font-weight:600;color:var(--orange);font-size:12px">${formatClosing(c.closing)}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openEditModal(${c.id})">編集</button>
         <button class="btn-danger-sm" onclick="deleteCustomer(${c.id})">削除</button>
@@ -237,6 +259,7 @@
     } else {
       customers.push({ id: Date.now(), ...data });
     }
+    saveCustomers();
     render();
     closeModal();
   }
@@ -246,6 +269,7 @@
     if (!c) return;
     if (!confirm(`「${c.company}」を削除してよろしいですか？`)) return;
     customers = customers.filter(x => x.id !== id);
+    saveCustomers();
     render();
   }
 
