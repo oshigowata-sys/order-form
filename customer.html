@@ -280,7 +280,7 @@
     saveBtn.textContent = '保存中...';
     try {
       if (editRecordId) {
-        await callWebhook({ action: 'update_customer', recordId: editRecordId, ...data });
+        await callWebhook({ action: 'update_customer', record_id: editRecordId, ...data });
       } else {
         await callWebhook({ action: 'create_customer', ...data });
       }
@@ -299,7 +299,7 @@
     if (!c) return;
     if (!confirm(`「${c.company}」を削除してよろしいですか？`)) return;
     try {
-      await callWebhook({ action: 'delete_customer', recordId });
+      await callWebhook({ action: 'delete_customer', record_id: recordId });
       await loadCustomers();
     } catch(e) {
       alert('削除に失敗しました。');
