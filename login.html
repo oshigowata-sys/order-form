@@ -223,9 +223,7 @@
 
 <script>
   // ===== Webhook認証 =====
-  // ===== Webhook認証（URLパラメータ方式：CORSでヘッダー方式は不可） =====
-  const API_SECRET = 'meguree-secret-2026';
-  const LOGIN_WEBHOOK = 'https://hook.eu1.make.com/jdttyyi7sma5afeosu24t57h9y2btw94?secret=' + encodeURIComponent(API_SECRET);
+  const LOGIN_WEBHOOK = 'https://hook.eu1.make.com/jdttyyi7sma5afeosu24t57h9y2btw94';
 
   async function login() {
     const loginId  = document.getElementById('loginId').value.trim();
@@ -247,20 +245,20 @@
     try {
       const res = await fetch(LOGIN_WEBHOOK, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': 'meguree-secret-2026' },
         body: JSON.stringify({ loginId, password }),
       });
 
       const data = await res.json();
 
       if (data.success && data.name) {
-        // APIトークンと顧客レコードIDをsessionStorageに保存
+        // ② APIトークンをsessionStorageに保存（Make側から発行されたトークン）
         sessionStorage.setItem('user', JSON.stringify({
           name: data.name,
           id: loginId,
           role: data.role,
-          token: data.token,        // Makeが返すセッショントークン
-          recordId: data.recordId   // 顧客レコードID（Make側で返却が必要）
+          token: data.token,
+          customerId: data.customerId   // 顧客テーブルのレコードID
         }));
         window.location.href = 'dashboard.html';
       } else {
