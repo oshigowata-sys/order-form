@@ -159,35 +159,64 @@
 </div>
 
 <script>
-  const CUSTOMERS_KEY = 'meguree_customers';
+  const WEBHOOK_CUSTOMERS = 'https://hook.eu1.make.com/xqufuv4ps5e7pch684fmp2wnpti61v2e';
 
-  const DEFAULT_CUSTOMERS = [
-    {id:1, company:'ひかる商店',  contact:'', phone:'', email:'sawada@sawada.jp', closing:''},
-    {id:2, company:'サンエイ札幌', contact:'', phone:'', email:'sanou@sanoe.jp',  closing:''},
-    {id:3, company:'北海道商事',  contact:'', phone:'', email:'yamada@ysupply.jp', closing:''}
-  ];
+  let customers = [];
+  let editRecordId = null;
 
-  function loadCustomers() {
-    try {
-      const saved = localStorage.getItem(CUSTOMERS_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_CUSTOMERS;
-    } catch(e) { return DEFAULT_CUSTOMERS; }
+  function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-
-  function saveCustomers() {
-    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
-  }
-
-  let customers = loadCustomers();
-  let editId = null;
-
 
   function formatClosing(val) {
     if (!val) return '';
-    const trimmed = val.trim();
-    if (/^\d+$/.test(trimmed)) return trimmed + '\u65e5'; // 日
+    const trimmed = String(val).trim();
+    if (/^\d+$/.test(trimmed)) return trimmed + '日';
     return trimmed;
   }
+
+  async function callWebhook(payload) {
+    const res = await fetch(WEBHOOK_CUSTOMERS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { return text; }
+  }
+
+  async function loadCustomers() {
+    const tbody = document.getElementById('customerTbody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+    try {
+      const text = await (await fetch(WEBHOOK_CUSTOMERS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_customers' })
+      })).text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) parsed = [parsed];
+      } catch(e) {
+        parsed = JSON.parse('[' + text + ']');
+      }
+      customers = parsed.map(r => ({
+        recordId: r.id || r.recordId || '',
+        company:  r['会社名'] || '',
+        contact:  r['担当者名'] || '',
+        phone:    r['電話番号'] || '',
+        email:    r['メール'] || '',
+        closing:  r['締め日'] != null ? String(r['締め日']) : '',
+      }));
+      render();
+    } catch(e) {
+      console.error('顧客データ取得失敗:', e);
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
+    }
+  }
+
   function render() {
     const tbody = document.getElementById('customerTbody');
     if (customers.length === 0) {
@@ -201,19 +230,14 @@
       <td style="color:var(--text-muted);font-size:12px">${esc(c.email)}</td>
       <td style="font-weight:600;color:var(--orange);font-size:12px">${formatClosing(c.closing)}</td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick="openEditModal(${c.id})">編集</button>
-        <button class="btn-danger-sm" onclick="deleteCustomer(${c.id})">削除</button>
+        <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(c.recordId)}')">編集</button>
+        <button class="btn-danger-sm" onclick="deleteCustomer('${esc(c.recordId)}')">削除</button>
       </td>
     </tr>`).join('');
   }
 
-  function esc(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
   function openAddModal() {
-    editId = null;
+    editRecordId = null;
     document.getElementById('modalTitle').textContent = '新規取引先を追加';
     ['fCompany','fContact','fPhone','fEmail','fClosing'].forEach(id => {
       document.getElementById(id).value = '';
@@ -222,10 +246,10 @@
     setTimeout(() => document.getElementById('fCompany').focus(), 100);
   }
 
-  function openEditModal(id) {
-    const c = customers.find(x => x.id === id);
+  function openEditModal(recordId) {
+    const c = customers.find(x => x.recordId === recordId);
     if (!c) return;
-    editId = id;
+    editRecordId = recordId;
     document.getElementById('modalTitle').textContent = '取引先を編集';
     document.getElementById('fCompany').value  = c.company;
     document.getElementById('fContact').value  = c.contact;
@@ -239,7 +263,7 @@
     document.getElementById('modalOverlay').classList.remove('open');
   }
 
-  function saveCustomer() {
+  async function saveCustomer() {
     const company = document.getElementById('fCompany').value.trim();
     if (!company) {
       alert('会社名は必須です');
@@ -247,33 +271,44 @@
       return;
     }
     const data = {
-      company,
-      contact: document.getElementById('fContact').value.trim(),
-      phone:   document.getElementById('fPhone').value.trim(),
-      email:   document.getElementById('fEmail').value.trim(),
-      closing: document.getElementById('fClosing').value.trim(),
+      会社名:   company,
+      担当者名: document.getElementById('fContact').value.trim(),
+      電話番号: document.getElementById('fPhone').value.trim(),
+      メール:   document.getElementById('fEmail').value.trim(),
+      締め日:   Number(document.getElementById('fClosing').value.trim()) || null,
     };
-    if (editId !== null) {
-      const idx = customers.findIndex(x => x.id === editId);
-      if (idx !== -1) customers[idx] = { ...customers[idx], ...data };
-    } else {
-      customers.push({ id: Date.now(), ...data });
+    const saveBtn = document.querySelector('#modalOverlay .btn-primary');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+    try {
+      if (editRecordId) {
+        await callWebhook({ action: 'update_customer', recordId: editRecordId, ...data });
+      } else {
+        await callWebhook({ action: 'create_customer', ...data });
+      }
+      closeModal();
+      await loadCustomers();
+    } catch(e) {
+      alert('保存に失敗しました。もう一度お試しください。');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存する';
     }
-    saveCustomers();
-    render();
-    closeModal();
   }
 
-  function deleteCustomer(id) {
-    const c = customers.find(x => x.id === id);
+  async function deleteCustomer(recordId) {
+    const c = customers.find(x => x.recordId === recordId);
     if (!c) return;
     if (!confirm(`「${c.company}」を削除してよろしいですか？`)) return;
-    customers = customers.filter(x => x.id !== id);
-    saveCustomers();
-    render();
+    try {
+      await callWebhook({ action: 'delete_customer', recordId });
+      await loadCustomers();
+    } catch(e) {
+      alert('削除に失敗しました。');
+    }
   }
 
-  render();
+  loadCustomers();
 </script>
 </body>
 </html>
