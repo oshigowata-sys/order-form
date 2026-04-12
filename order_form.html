@@ -330,7 +330,7 @@
     let customerRecordId = '';
     try {
       const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-      customerRecordId = user.recordId || '';
+      customerRecordId = user.customerId || '';
     } catch(e) {}
 
     const payload = {
