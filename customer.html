@@ -195,21 +195,19 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'list_customers' })
       })).text();
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) parsed = [parsed];
-      } catch(e) {
-        parsed = JSON.parse('[' + text + ']');
-      }
-      customers = parsed.map(r => ({
-        recordId: r.id || r.recordId || '',
-        company:  r['会社名'] || '',
-        contact:  r['担当者名'] || '',
-        phone:    r['電話番号'] || '',
-        email:    r['メール'] || '',
-        closing:  r['締め日'] != null ? String(r['締め日']) : '',
-      }));
+      const parsed = JSON.parse(text);
+      const records = parsed.records || (Array.isArray(parsed) ? parsed : [parsed]);
+      customers = records.map(r => {
+        const f = r.fields || r;
+        return {
+          recordId: r.id || '',
+          company:  f['会社名']  || '',
+          contact:  f['担当者名'] || '',
+          phone:    f['電話番号'] || '',
+          email:    f['メール']   || '',
+          closing:  f['締め日'] != null ? String(f['締め日']) : '',
+        };
+      });
       render();
     } catch(e) {
       console.error('顧客データ取得失敗:', e);
