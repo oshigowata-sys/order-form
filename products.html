@@ -251,9 +251,10 @@
       <table>
         <thead>
           <tr>
-            <th>商品ID</th>
+            <th>商品コード</th>
             <th>商品名</th>
             <th>基本単価</th>
+            <th>税率</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -291,86 +292,118 @@
 </div>
 
 <script>
-  // ===== セッションキャッシュ =====
-  const sessionCache = {};
-
-  // ===== セキュリティ・共通 =====
-  const API_SECRET = 'meguree-secret-2026';
-
-  function esc(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
-  }
-
-  // ===== Webhook URLs =====
   const PRODUCT_LIST_WEBHOOK = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
   const PRODUCT_SAVE_WEBHOOK = 'https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu';
 
-  async function secureFetch(url, options = {}) {
-    const sep = url.includes('?') ? '&' : '?';
-    const secureUrl = url + sep + 'secret=' + encodeURIComponent(API_SECRET);
-    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-    return fetch(secureUrl, { ...options, headers });
+  let products = [];
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  loadProducts();
-
+  async function loadProducts() {
+    const tbody = document.getElementById('productTableBody');
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><span class="spinner"></span>読み込み中...</td></tr>';
+    try {
+      const res = await fetch(PRODUCT_LIST_WEBHOOK);
+      const data = await res.json();
+      const records = data.records || (Array.isArray(data) ? data : [data]);
+      products = records.map(r => {
+        const f = r.fields || r;
+        return {
+          recordId:  r.id || '',
+          code:      f['商品コード'] || f['商品ID'] || '',
+          name:      f['商品名'] || '',
+          price:     Number(f['価格']) || 0,
+          isFood:    !!f['食品フラグ'],
+        };
+      });
+      renderProducts();
     } catch(e) {
-      alert('削除に失敗しました。もう一度お試しください。');
+      console.error('商品データ取得失敗:', e);
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
     }
+  }
+
+  function renderProducts() {
+    const tbody = document.getElementById('productTableBody');
+    if (products.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">商品が登録されていません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = products.map(p => `<tr>
+      <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${esc(p.code)}</td>
+      <td style="font-weight:500">${esc(p.name)}</td>
+      <td style="font-family:'Space Grotesk',sans-serif">¥${p.price.toLocaleString()}</td>
+      <td>${p.isFood
+        ? '<span style="background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500">軽減8%</span>'
+        : '<span style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500">標準10%</span>'
+      }</td>
+      <td>
+        <button class="btn-sm btn-outline" onclick="openEditModal('${esc(p.recordId)}')">編集</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  function openAddModal() {
+    document.getElementById('editRecordId').value = '';
+    document.getElementById('modalTitle').textContent = '商品を追加';
+    document.getElementById('formProductName').value = '';
+    document.getElementById('formPrice').value = '';
+    document.getElementById('saveSuccess').classList.remove('show');
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('formProductName').focus(), 100);
+  }
+
+  function openEditModal(recordId) {
+    const p = products.find(x => x.recordId === recordId);
+    if (!p) return;
+    document.getElementById('editRecordId').value = recordId;
+    document.getElementById('modalTitle').textContent = '商品を編集';
+    document.getElementById('formProductName').value = p.name;
+    document.getElementById('formPrice').value = p.price;
+    document.getElementById('saveSuccess').classList.remove('show');
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
   }
 
   async function saveProduct() {
-    const name = document.getElementById('formProductName').value.trim();
+    const name  = document.getElementById('formProductName').value.trim();
     const price = document.getElementById('formPrice').value;
-    if (!name) {
-      alert('商品名は必須です');
-      document.getElementById('formProductName').focus();
-      return;
-    }
-    if (!price && price !== 0) {
-      alert('基本単価は必須です');
-      document.getElementById('formPrice').focus();
-      return;
-    }
+    if (!name) { alert('商品名は必須です'); document.getElementById('formProductName').focus(); return; }
+    if (price === '') { alert('基本単価は必須です'); document.getElementById('formPrice').focus(); return; }
 
     const recordId = document.getElementById('editRecordId').value;
     const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    btn.textContent = '保存中...';
+    btn.disabled = true; btn.textContent = '保存中...';
 
     const payload = {
-      action: recordId ? 'update_product' : 'create_product',
-      record_id: recordId || undefined,
+      action:       recordId ? 'update_product' : 'create_product',
+      record_id:    recordId || undefined,
       product_name: name,
-      price: Number(price),
+      price:        Number(price),
     };
 
     try {
-      await secureFetch(PRODUCT_SAVE_WEBHOOK, {
+      await fetch(PRODUCT_SAVE_WEBHOOK, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      delete sessionCache.products;
-      const successEl = document.getElementById('saveSuccess');
-      successEl.classList.add('show');
-      setTimeout(() => {
-        closeModal();
-        loadProducts();
-      }, 800);
+      document.getElementById('saveSuccess').classList.add('show');
+      setTimeout(() => { closeModal(); loadProducts(); }, 800);
     } catch(e) {
       alert('保存に失敗しました。もう一度お試しください。');
     } finally {
-      btn.disabled = false;
-      btn.textContent = '保存する';
+      btn.disabled = false; btn.textContent = '保存する';
     }
   }
+
+  loadProducts();
 </script>
 </body>
 </html>
