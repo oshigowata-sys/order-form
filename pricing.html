@@ -198,17 +198,14 @@ async function loadAll() {
     const pricingRecords = pricingData.records || (Array.isArray(pricingData) ? pricingData : (pricingData ? [pricingData] : []));
     PRICING = pricingRecords.map(r => {
       const f = r.fields || r;
-      /* リンクフィールドは配列で返ることがある */
-      const custId = Array.isArray(f['取引先']) ? f['取引先'][0] : (f['取引先'] || f.customer_id || '');
-      const prodId = Array.isArray(f['商品'])   ? f['商品'][0]   : (f['商品']   || f.product_id  || '');
+      /* Make Text Aggregatorは取引先名/商品名というキーにレコードIDを入れて返す */
+      const custId = f['取引先名'] || f['取引先'] || f.customer_id || '';
+      const prodId = f['商品名']   || f['商品']   || f.product_id  || '';
       return {
-        record_id:     r.id || f.record_id || '',
-        customer_id:   custId,
-        customer_name: f['取引先名'] || f.customer_name || '',
-        product_id:    prodId,
-        product_name:  f['商品名']  || f.product_name  || '',
-        base_price:    Number(f['価格'] || f.base_price || 0),
-        rate:          Number(f['掛け率'] || f.rate || 0)
+        record_id:  r.id || f.record_id || '',
+        customer_id: custId,
+        product_id:  prodId,
+        rate:        Number(f['掛け率'] || f.rate || 0)
       };
     }).filter(p => p.record_id);
 
