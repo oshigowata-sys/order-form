@@ -131,77 +131,221 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
   </div>
 </main>
 <script>
-const CUSTOMERS=[{id:'rec001',name:'ひかる商店'},{id:'rec002',name:'サンエイ札幌'},{id:'rec003',name:'北海道商事'},{id:'rec004',name:'日本フーズ'}];
-const PRODUCTS=[{id:'rec101',name:'1,100円丸ごと玉ねぎスープ',basePrice:700},{id:'rec102',name:'700円北海道帆立スープ12入',basePrice:700},{id:'rec103',name:'648円ホタテだし塩65g',basePrice:385},{id:'rec104',name:'北海道バターうはない',basePrice:480},{id:'rec105',name:'南瓜だしたし梅500ml',basePrice:320}];
-let PRICING=[{customerId:'rec001',productId:'rec101',rate:0.85},{customerId:'rec001',productId:'rec102',rate:0.80},{customerId:'rec001',productId:'rec103',rate:0.85},{customerId:'rec002',productId:'rec101',rate:0.90},{customerId:'rec002',productId:'rec102',rate:0.80},{customerId:'rec003',productId:'rec103',rate:0.75},{customerId:'rec003',productId:'rec104',rate:0.85}];
-function init(){
-  const cs=document.getElementById('fCustomer');
-  const ps=document.getElementById('fProduct');
-  CUSTOMERS.forEach(c=>cs.innerHTML+=`<option value="${c.id}">${c.name}</option>`);
-  PRODUCTS.forEach(p=>ps.innerHTML+=`<option value="${p.id}">${p.name}</option>`);
+const WEBHOOK_PRICING   = 'https://hook.eu1.make.com/ekr8tpaxagq3pxrwdwe13e9k7k1527sy';
+const WEBHOOK_CUSTOMERS = 'https://hook.eu1.make.com/xqufuv4ps5e7pch684fmp2wnpti61v2e';
+const WEBHOOK_PRODUCTS  = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
+
+let CUSTOMERS = [];
+let PRODUCTS  = [];
+let PRICING   = [];
+let editRecordId = '';
+
+/* ── ユーティリティ ── */
+function parseFlexible(text) {
+  try { return JSON.parse(text); } catch(e) {}
+  try { return JSON.parse('[' + text + ']'); } catch(e) {}
+  return [];
 }
-function renderPricing(){
-  document.getElementById('pricingTbody').innerHTML=PRICING.map((p,i)=>{
-    const c=CUSTOMERS.find(x=>x.id===p.customerId);
-    const pr=PRODUCTS.find(x=>x.id===p.productId);
-    const applied=Math.round(pr.basePrice*p.rate);
-    return`<tr>
-      <td style="font-weight:600">${c?.name||p.customerId}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${pr?.name||p.productId}</td>
-      <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${(p.rate*100).toFixed(0)}%</span></td>
-      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">¥${applied.toLocaleString()}</td>
-      <td style="white-space:nowrap"><button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing(${i})">編集</button><button class="btn btn-sm" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;margin-left:4px" onclick="deletePricing(${i})">削除</button></td>
+async function callPricing(payload) {
+  const res = await fetch(WEBHOOK_PRICING, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res;
+}
+
+/* ── 初期ロード ── */
+async function loadAll() {
+  setTableLoading(true);
+  try {
+    const [custRes, prodRes, pricingRes] = await Promise.all([
+      fetch(WEBHOOK_CUSTOMERS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_customers' })
+      }),
+      fetch(WEBHOOK_PRODUCTS),
+      callPricing({ action: 'list_pricing' })
+    ]);
+
+    /* 取引先 */
+    const custText = await custRes.text();
+    const custData = parseFlexible(custText);
+    const custRecords = custData.records || (Array.isArray(custData) ? custData : [custData]);
+    CUSTOMERS = custRecords.map(r => {
+      const f = r.fields || r;
+      return { id: r.id || f.record_id, name: f['会社名'] || f.name || '' };
+    }).filter(c => c.id && c.name);
+
+    /* 商品 */
+    const prodText = await prodRes.text();
+    const prodData = parseFlexible(prodText);
+    const prodRecords = prodData.records || (Array.isArray(prodData) ? prodData : [prodData]);
+    PRODUCTS = prodRecords.map(r => {
+      const f = r.fields || r;
+      return {
+        id: r.id || f.record_id,
+        name: f['商品名'] || f.name || '',
+        basePrice: Number(f['価格'] || f.price || 0)
+      };
+    }).filter(p => p.id && p.name);
+
+    /* 掛け率 */
+    const pricingText = await pricingRes.text();
+    console.log('[pricing] raw response:', pricingText);
+    const pricingData = parseFlexible(pricingText);
+    const pricingRecords = pricingData.records || (Array.isArray(pricingData) ? pricingData : (pricingData ? [pricingData] : []));
+    PRICING = pricingRecords.map(r => {
+      const f = r.fields || r;
+      /* リンクフィールドは配列で返ることがある */
+      const custId = Array.isArray(f['取引先']) ? f['取引先'][0] : (f['取引先'] || f.customer_id || '');
+      const prodId = Array.isArray(f['商品'])   ? f['商品'][0]   : (f['商品']   || f.product_id  || '');
+      return {
+        record_id:     r.id || f.record_id || '',
+        customer_id:   custId,
+        customer_name: f['取引先名'] || f.customer_name || '',
+        product_id:    prodId,
+        product_name:  f['商品名']  || f.product_name  || '',
+        base_price:    Number(f['価格'] || f.base_price || 0),
+        rate:          Number(f['掛け率'] || f.rate || 0)
+      };
+    }).filter(p => p.record_id);
+
+    populateSelects();
+    renderPricing();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('pricingTbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:20px;color:#dc2626">データ読み込みエラー。コンソールを確認してください。</td></tr>';
+  } finally {
+    setTableLoading(false);
+  }
+}
+
+function setTableLoading(on) {
+  if (on) {
+    document.getElementById('pricingTbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+  }
+}
+
+/* ── ドロップダウン生成 ── */
+function populateSelects() {
+  const cs = document.getElementById('fCustomer');
+  const ps = document.getElementById('fProduct');
+  cs.innerHTML = '<option value="">選択してください</option>';
+  ps.innerHTML = '<option value="">選択してください</option>';
+  CUSTOMERS.forEach(c => cs.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+  PRODUCTS.forEach(p  => ps.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+}
+
+/* ── 一覧描画 ── */
+function renderPricing() {
+  if (PRICING.length === 0) {
+    document.getElementById('pricingTbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">掛け率の登録がありません</td></tr>';
+    return;
+  }
+  document.getElementById('pricingTbody').innerHTML = PRICING.map(p => {
+    /* customer_name / product_name はMakeが返す場合もあるが、なければローカルで解決 */
+    const custName = p.customer_name || CUSTOMERS.find(c => c.id === p.customer_id)?.name || p.customer_id;
+    const prod     = PRODUCTS.find(x => x.id === p.product_id);
+    const prodName = p.product_name || prod?.name || p.product_id;
+    const basePrice= p.base_price  || prod?.basePrice || 0;
+    const applied  = basePrice > 0 && p.rate > 0 ? Math.round(basePrice * p.rate) : null;
+    return `<tr>
+      <td style="font-weight:600">${custName}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${prodName}</td>
+      <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${p.rate > 0 ? (p.rate*100).toFixed(0)+'%' : '—'}</span></td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${applied !== null ? '¥'+applied.toLocaleString() : '—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing('${p.record_id}')">編集</button>
+      </td>
     </tr>`;
   }).join('');
 }
-function updatePreview(){
-  const pid=document.getElementById('fProduct').value;
-  const rate=parseFloat(document.getElementById('fRate').value);
-  const box=document.getElementById('previewBox');
-  if(pid&&rate>0){
-    const p=PRODUCTS.find(x=>x.id===pid);
-    const applied=Math.round(p.basePrice*rate);
-    document.getElementById('previewVal').textContent='¥'+applied.toLocaleString();
-    document.getElementById('previewSub').textContent=`基本単価 ¥${p.basePrice.toLocaleString()} × ${(rate*100).toFixed(0)}%`;
-    box.style.display='block';
-  }else{box.style.display='none';}
+
+/* ── プレビュー ── */
+function updatePreview() {
+  const pid  = document.getElementById('fProduct').value;
+  const rate = parseFloat(document.getElementById('fRate').value);
+  const box  = document.getElementById('previewBox');
+  if (pid && rate > 0) {
+    const prod = PRODUCTS.find(x => x.id === pid);
+    if (prod && prod.basePrice > 0) {
+      const applied = Math.round(prod.basePrice * rate);
+      document.getElementById('previewVal').textContent = '¥' + applied.toLocaleString();
+      document.getElementById('previewSub').textContent = `基本単価 ¥${prod.basePrice.toLocaleString()} × ${(rate*100).toFixed(0)}%`;
+      box.style.display = 'block';
+    } else {
+      box.style.display = 'none';
+    }
+  } else {
+    box.style.display = 'none';
+  }
 }
-function editPricing(i){
-  const p=PRICING[i];
-  document.getElementById('editKey').value=i;
-  document.getElementById('fCustomer').value=p.customerId;
-  document.getElementById('fProduct').value=p.productId;
-  document.getElementById('fRate').value=p.rate;
-  document.getElementById('formTitle').textContent='掛け率を編集';
-  document.getElementById('cancelBtn').style.display='';
+
+/* ── 編集開始 ── */
+function editPricing(recordId) {
+  const p = PRICING.find(x => x.record_id === recordId);
+  if (!p) return;
+  editRecordId = recordId;
+  document.getElementById('editKey').value      = recordId;
+  document.getElementById('fCustomer').value    = p.customer_id;
+  document.getElementById('fProduct').value     = p.product_id;
+  document.getElementById('fRate').value        = p.rate;
+  document.getElementById('formTitle').textContent = '掛け率を編集';
+  document.getElementById('cancelBtn').style.display = '';
   updatePreview();
-  document.querySelector('.card:last-child').scrollIntoView({behavior:'smooth',block:'nearest'});
+  document.querySelector('.card:last-child').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-function resetForm(){
-  document.getElementById('editKey').value='';
-  document.getElementById('fCustomer').value='';
-  document.getElementById('fProduct').value='';
-  document.getElementById('fRate').value='';
-  document.getElementById('formTitle').textContent='新規登録';
-  document.getElementById('cancelBtn').style.display='none';
-  document.getElementById('previewBox').style.display='none';
+
+/* ── フォームリセット ── */
+function resetForm() {
+  editRecordId = '';
+  document.getElementById('editKey').value      = '';
+  document.getElementById('fCustomer').value    = '';
+  document.getElementById('fProduct').value     = '';
+  document.getElementById('fRate').value        = '';
+  document.getElementById('formTitle').textContent = '新規登録';
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('previewBox').style.display = 'none';
 }
-function savePricing(){
-  const key=document.getElementById('editKey').value;
-  const data={customerId:document.getElementById('fCustomer').value,productId:document.getElementById('fProduct').value,rate:parseFloat(document.getElementById('fRate').value)};
-  if(!data.customerId||!data.productId||isNaN(data.rate)){alert('すべての項目を入力してください');return;}
-  if(data.rate<=0||data.rate>1){alert('掛け率は0より大きく1以下にしてください');return;}
-  if(key!==''){PRICING[parseInt(key)]=data;}else{PRICING.push(data);}
-  resetForm();renderPricing();
+
+/* ── 保存（新規 or 更新） ── */
+async function savePricing() {
+  const recordId   = document.getElementById('editKey').value;
+  const customerId = document.getElementById('fCustomer').value;
+  const productId  = document.getElementById('fProduct').value;
+  const rate       = parseFloat(document.getElementById('fRate').value);
+  if (!customerId || !productId || isNaN(rate)) { alert('すべての項目を入力してください'); return; }
+  if (rate <= 0 || rate > 1) { alert('掛け率は0より大きく1以下にしてください'); return; }
+
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+  try {
+    let payload;
+    if (recordId) {
+      payload = { action: 'update_pricing', record_id: recordId, customer_id: customerId, product_id: productId, rate };
+    } else {
+      payload = { action: 'create_pricing', customer_id: customerId, product_id: productId, rate };
+    }
+    const res = await callPricing(payload);
+    console.log('[pricing] save response status:', res.status);
+    resetForm();
+    await loadAll();
+  } catch(e) {
+    console.error(e);
+    alert('保存に失敗しました');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存する';
+  }
 }
-function deletePricing(i){
-  if(!confirm('この掛け率を削除してよろしいですか？'))return;
-  const key=document.getElementById('editKey').value;
-  if(key!==''&&parseInt(key)>=i)resetForm();
-  PRICING.splice(i,1);
-  renderPricing();
-}
-init();renderPricing();
+
+loadAll();
 </script>
 </body>
 </html>
