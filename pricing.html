@@ -150,7 +150,7 @@ async function callPricing(payload) {
   const res = await fetch(WEBHOOK_PRICING, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ secret: 'maguree-secret-2026', ...payload })
   });
   return res;
 }
