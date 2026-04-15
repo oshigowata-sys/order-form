@@ -119,64 +119,184 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
   </div>
 </main>
 <script>
-const PENDING=[
-  {customer:'ひかる商店',  closingDay:31,period:'2026/4/1〜4/30',orders:4,excl:182000,tax:14680,incl:196680},
-  {customer:'サンエイ札幌',closingDay:15,period:'2026/3/16〜4/15',orders:3,excl:156480,tax:12518,incl:168998},
-  {customer:'北海道商事',  closingDay:20,period:'2026/3/21〜4/20',orders:2,excl:87040, tax:6963, incl:94003},
-];
-const ISSUED=[
-  {num:'INV-202603-001',customer:'ひかる商店',  period:'2026/3/1〜3/31', issued:'2026/4/1', excl:168000,tax:13440,incl:181440},
-  {num:'INV-202603-002',customer:'サンエイ札幌',period:'2026/2/16〜3/15',issued:'2026/3/16',excl:142560,tax:11405,incl:153965},
-  {num:'INV-202602-001',customer:'北海道商事',  period:'2026/2/21〜3/20',issued:'2026/3/21',excl:76400, tax:6112, incl:82512},
-  {num:'INV-202602-002',customer:'日本フーズ',  period:'2026/2/1〜2/28', issued:'2026/3/1', excl:95200, tax:7616, incl:102816},
-];
-let issueSeq=ISSUED.length+1;
-function renderPending(){
-  document.getElementById('pendingTbody').innerHTML=PENDING.map((r,i)=>`
-    <tr>
-      <td style="font-weight:600">${r.customer}</td>
-      <td>${r.closingDay}日締め</td>
-      <td style="font-size:12px;color:var(--text-muted)">${r.period}</td>
-      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">${r.orders}件</td>
-      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${r.excl.toLocaleString()}</td>
-      <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${r.tax.toLocaleString()}</td>
-      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${r.incl.toLocaleString()}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="issueInvoice(${i})">発行</button></td>
-    </tr>`).join('');
+const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+function sbFetch(path, options = {}) {
+  return fetch(SB_URL + path, {
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
 }
-function renderIssued(){
-  document.getElementById('issuedTbody').innerHTML=ISSUED.map(r=>`
-    <tr>
-      <td><span class="invoice-num">${r.num}</span></td>
-      <td style="font-weight:600">${r.customer}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${r.period}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${r.issued}</td>
-      <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${r.excl.toLocaleString()}</td>
-      <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${r.tax.toLocaleString()}</td>
-      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${r.incl.toLocaleString()}</td>
-      <td><button class="btn btn-green btn-sm" onclick="alert('PDFをダウンロードします')">PDF</button></td>
-    </tr>`).join('');
+
+/* ── 未発行：受注を取引先ごとに集計 ── */
+async function loadPending() {
+  document.getElementById('pendingTbody').innerHTML =
+    '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+  try {
+    /* invoices に含まれていない orders を全取得 */
+    const res = await sbFetch(
+      '/rest/v1/orders?select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc'
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const orders = await res.json();
+
+    /* 発行済み請求書の customer_id を取得してフィルタ */
+    const invRes = await sbFetch('/rest/v1/invoices?select=customer_id');
+    const invoiced = new Set((await invRes.json()).map(i => i.customer_id));
+
+    /* 取引先ごとに集計（発行済みは除外） */
+    const map = {};
+    orders.forEach(o => {
+      const cid = o.customers?.id;
+      if (!cid || invoiced.has(cid)) return;
+      if (!map[cid]) {
+        const cd = o.customers.closing_day || 31;
+        const today = new Date('2026-04-15');
+        const startD = new Date(today.getFullYear(), today.getMonth() - 1, cd + 1);
+        const endD   = new Date(today.getFullYear(), today.getMonth(), cd);
+        map[cid] = {
+          customerId: cid,
+          customer:   o.customers.company_name,
+          closingDay: cd,
+          periodStart: startD.toISOString().slice(0,10),
+          periodEnd:   endD.toISOString().slice(0,10),
+          orders: 0, excl: 0, tax: 0
+        };
+      }
+      const items = o.order_items || [];
+      items.forEach(it => {
+        const sub  = (it.quantity || 0) * (it.unit_price || 0);
+        const rate = it.products?.is_food ? 0.08 : 0.10;
+        map[cid].excl += sub;
+        map[cid].tax  += Math.round(sub * rate);
+      });
+      map[cid].orders++;
+    });
+
+    const pending = Object.values(map).filter(r => r.orders > 0);
+    if (pending.length === 0) {
+      document.getElementById('pendingTbody').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">未発行の請求書はありません</td></tr>';
+      return;
+    }
+    document.getElementById('pendingTbody').innerHTML = pending.map((r, i) => {
+      const incl = r.excl + r.tax;
+      const period = `${r.periodStart.replace(/-/g,'/')}〜${r.periodEnd.replace(/-/g,'/')}`;
+      return `<tr>
+        <td style="font-weight:600">${r.customer}</td>
+        <td>${r.closingDay}日締め</td>
+        <td style="font-size:12px;color:var(--text-muted)">${period}</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif">${r.orders}件</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${r.excl.toLocaleString()}</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${r.tax.toLocaleString()}</td>
+        <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${incl.toLocaleString()}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="issueInvoice(${JSON.stringify(r).replace(/"/g,'&quot;')}, this)">発行</button></td>
+      </tr>`;
+    }).join('');
+
+    /* データをグローバルに保持（発行ボタン用） */
+    window._pending = pending;
+    document.getElementById('pendingTbody').querySelectorAll('button').forEach((btn, i) => {
+      btn.onclick = () => issueInvoice(pending[i], btn);
+    });
+  } catch(e) {
+    console.error(e);
+    document.getElementById('pendingTbody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">データ取得に失敗しました</td></tr>';
+  }
 }
-function issueInvoice(i){
-  const r=PENDING[i];
-  const now=new Date();
-  const mon=String(now.getMonth()+1).padStart(2,'0');
-  const num=`INV-${now.getFullYear()}${mon}-${String(issueSeq++).padStart(3,'0')}`;
-  const issued=`${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
-  ISSUED.unshift({num,customer:r.customer,period:r.period,issued,excl:r.excl,tax:r.tax,incl:r.incl});
-  PENDING.splice(i,1);
-  alert(`請求書を発行しました\n請求書番号: ${num}`);
-  renderPending();renderIssued();
+
+/* ── 発行済み一覧 ── */
+async function loadIssued() {
+  document.getElementById('issuedTbody').innerHTML =
+    '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+  try {
+    const res = await sbFetch(
+      '/rest/v1/invoices?select=invoice_number,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,customers(company_name)&order=issued_date.desc'
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const invoices = await res.json();
+    if (invoices.length === 0) {
+      document.getElementById('issuedTbody').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">発行済みの請求書はありません</td></tr>';
+      return;
+    }
+    document.getElementById('issuedTbody').innerHTML = invoices.map(r => {
+      const period = `${(r.period_start||'').replace(/-/g,'/')}〜${(r.period_end||'').replace(/-/g,'/')}`;
+      return `<tr>
+        <td><span class="invoice-num">${r.invoice_number || ''}</span></td>
+        <td style="font-weight:600">${r.customers?.company_name || ''}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${period}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${(r.issued_date||'').replace(/-/g,'/')}</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${(r.total_excl_tax||0).toLocaleString()}</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">¥${(r.tax_amount||0).toLocaleString()}</td>
+        <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${(r.total_incl_tax||0).toLocaleString()}</td>
+        <td><button class="btn btn-green btn-sm" onclick="alert('PDF機能は準備中です')">PDF</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('issuedTbody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">データ取得に失敗しました</td></tr>';
+  }
 }
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+
+/* ── 請求書発行 ── */
+async function issueInvoice(r, btn) {
+  if (!confirm(`「${r.customer}」の請求書を発行しますか？\n税込合計：¥${(r.excl+r.tax).toLocaleString()}`)) return;
+  btn.disabled = true; btn.textContent = '発行中...';
+  try {
+    /* 請求書番号を採番 */
+    const today = new Date('2026-04-15');
+    const ym = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
+    const cntRes = await sbFetch(`/rest/v1/invoices?select=id&order=created_at.desc&limit=1`);
+    const cnt = (await cntRes.json()).length + 1;
+    const seq = String(cnt).padStart(3, '0');
+    const num = `INV-${ym}-${seq}`;
+    const incl = r.excl + r.tax;
+
+    const res = await sbFetch('/rest/v1/invoices', {
+      method: 'POST',
+      body: JSON.stringify({
+        invoice_number:  num,
+        customer_id:     r.customerId,
+        period_start:    r.periodStart,
+        period_end:      r.periodEnd,
+        issued_date:     today.toISOString().slice(0,10),
+        total_excl_tax:  r.excl,
+        tax_amount:      r.tax,
+        total_incl_tax:  incl,
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    alert(`請求書を発行しました\n請求書番号: ${num}`);
+    await Promise.all([loadPending(), loadIssued()]);
+  } catch(e) {
+    console.error(e);
+    alert('発行に失敗しました。もう一度お試しください。');
+    btn.disabled = false; btn.textContent = '発行';
+  }
+}
+
+/* ── タブ切り替え ── */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
-    document.getElementById('pendingView').style.display=t.dataset.tab==='pending'?'':'none';
-    document.getElementById('issuedView').style.display=t.dataset.tab==='issued'?'':'none';
+    document.getElementById('pendingView').style.display = t.dataset.tab === 'pending' ? '' : 'none';
+    document.getElementById('issuedView').style.display  = t.dataset.tab === 'issued'  ? '' : 'none';
   });
 });
-renderPending();renderIssued();
+
+loadPending();
+loadIssued();
 </script>
 </body>
 </html>

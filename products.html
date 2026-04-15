@@ -294,8 +294,21 @@
 </div>
 
 <script>
-  const PRODUCT_LIST_WEBHOOK = 'https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292';
-  const PRODUCT_SAVE_WEBHOOK = 'https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu';
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  function sbFetch(path, options = {}) {
+    return fetch(SB_URL + path, {
+      ...options,
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {})
+      }
+    });
+  }
 
   let products = [];
 
@@ -308,19 +321,16 @@
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><span class="spinner"></span>読み込み中...</td></tr>';
     try {
-      const res = await fetch(PRODUCT_LIST_WEBHOOK);
+      const res = await sbFetch('/rest/v1/products?select=*&order=product_name');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const records = data.records || (Array.isArray(data) ? data : [data]);
-      products = records.map(r => {
-        const f = r.fields || r;
-        return {
-          recordId:  r.id || '',
-          code:      f['商品コード'] || f['商品ID'] || '',
-          name:      f['商品名'] || '',
-          price:     Number(f['価格']) || 0,
-          isFood:    !!f['食品フラグ'],
-        };
-      });
+      products = data.map(r => ({
+        id:     r.id,
+        code:   r.product_code || '',
+        name:   r.product_name || '',
+        price:  Number(r.price) || 0,
+        isFood: !!r.is_food,
+      }));
       renderProducts();
     } catch(e) {
       console.error('商品データ取得失敗:', e);
@@ -343,7 +353,7 @@
         : '<span style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500">標準10%</span>'
       }</td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(p.recordId)}')">編集</button>
+        <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(p.id)}')">編集</button>
       </td>
     </tr>`).join('');
   }
@@ -359,10 +369,10 @@
     setTimeout(() => document.getElementById('formProductName').focus(), 100);
   }
 
-  function openEditModal(recordId) {
-    const p = products.find(x => x.recordId === recordId);
+  function openEditModal(id) {
+    const p = products.find(x => x.id === id);
     if (!p) return;
-    document.getElementById('editRecordId').value = recordId;
+    document.getElementById('editRecordId').value = id;
     document.getElementById('modalTitle').textContent = '商品を編集';
     document.getElementById('formProductName').value = p.name;
     document.getElementById('formPrice').value = p.price;
@@ -378,31 +388,31 @@
   async function saveProduct() {
     const name  = document.getElementById('formProductName').value.trim();
     const price = document.getElementById('formPrice').value;
-    if (!name) { alert('商品名は必須です'); document.getElementById('formProductName').focus(); return; }
-    if (price === '') { alert('基本単価は必須です'); document.getElementById('formPrice').focus(); return; }
+    if (!name)    { alert('商品名は必須です');   document.getElementById('formProductName').focus(); return; }
+    if (price==='') { alert('基本単価は必須です'); document.getElementById('formPrice').focus(); return; }
 
-    const recordId = document.getElementById('editRecordId').value;
+    const editId = document.getElementById('editRecordId').value;
     const btn = document.getElementById('saveBtn');
     btn.disabled = true; btn.textContent = '保存中...';
 
-    const isFood = document.getElementById('formIsFood').checked;
     const payload = {
-      action:       recordId ? 'update_product' : 'create_product',
-      record_id:    recordId || undefined,
       product_name: name,
       price:        Number(price),
-      is_food:      isFood,
+      is_food:      document.getElementById('formIsFood').checked,
     };
 
     try {
-      await fetch(PRODUCT_SAVE_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (editId) {
+        const res = await sbFetch('/rest/v1/products?id=eq.' + editId, { method: 'PATCH', body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } else {
+        const res = await sbFetch('/rest/v1/products', { method: 'POST', body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      }
       document.getElementById('saveSuccess').classList.add('show');
       setTimeout(() => { closeModal(); loadProducts(); }, 800);
     } catch(e) {
+      console.error(e);
       alert('保存に失敗しました。もう一度お試しください。');
     } finally {
       btn.disabled = false; btn.textContent = '保存する';

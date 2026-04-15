@@ -157,9 +157,21 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 <script>
-  const WEBHOOK_ORDERS = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji';
-  const WEBHOOK_DETAIL = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub';
-  const BADGE = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+  const BADGE  = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+
+  function sbFetch(path, options = {}) {
+    return fetch(SB_URL + path, {
+      ...options,
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+  }
 
   let allOrders = [];
   let currentFilter = 'all';
@@ -169,30 +181,30 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  /* 受注一覧：orders + customers(名前) + order_items(金額計算用) */
   async function loadOrders() {
+    document.getElementById('ordersTbody').innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
-      const res = await fetch(WEBHOOK_ORDERS);
-      const text = await res.text();
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) parsed = [parsed];
-      } catch(e) {
-        parsed = JSON.parse('[' + text + ']');
-      }
-      allOrders = parsed.map(r => ({
-        recordId: r.id || '',
-        id:       r['受注ID'] || r.id || '',
-        customer: r['取引先名'] || '',
-        contact:  r['担当者名'] || '',
-        date:     r['受注日'] || '',
-        status:   r['受注ステータス'] || '',
-        total:    Number(r['注文合計']) || 0,
-        cost:     Number(r['原価合計']) || 0,
-        note:     r['備考'] || '',
-      }));
-      // 受注日降順で並び替え
-      allOrders.sort((a,b) => b.date.localeCompare(a.date));
+      const res = await sbFetch(
+        '/rest/v1/orders?select=id,order_code,order_date,status,customers(company_name),order_items(quantity,unit_price,cost_price)&order=order_date.desc'
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      allOrders = data.map(r => {
+        const items    = r.order_items || [];
+        const excl     = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+        const cost     = items.reduce((s, i) => s + (i.quantity * i.cost_price), 0);
+        return {
+          id:       r.id,
+          code:     r.order_code || r.id.slice(0,8),
+          customer: r.customers?.company_name || '',
+          date:     r.order_date || '',
+          status:   r.status || '',
+          excl,
+          cost,
+        };
+      });
       renderOrders();
     } catch(e) {
       console.error('受注データ取得失敗:', e);
@@ -209,85 +221,80 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       return;
     }
     tbody.innerHTML = list.map(o => {
-      const profit = o.total - o.cost;
+      const profit = o.excl - o.cost;
       return `<tr>
-        <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${esc(o.id)}</td>
+        <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${esc(o.code)}</td>
         <td style="font-weight:500">${esc(o.customer)}</td>
         <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
         <td><span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span></td>
-        <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${o.total.toLocaleString()}</td>
+        <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${o.excl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
         <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">—</td>
         <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${profit.toLocaleString()}</td>
-        <td><button class="btn btn-primary btn-sm" onclick="openDetail('${esc(o.recordId)}')">詳細 →</button></td>
+        <td><button class="btn btn-primary btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
       </tr>`;
     }).join('');
   }
 
-  function openDetail(recordId) {
-    const o = allOrders.find(x => x.recordId === recordId);
+  function openDetail(orderId) {
+    const o = allOrders.find(x => x.id === orderId);
     if (!o) return;
-    document.getElementById('modalTitle').textContent = `受注詳細 — ${o.id}`;
+    document.getElementById('modalTitle').textContent = `受注詳細 — ${o.code}`;
     document.getElementById('modalInfo').innerHTML = [
-      {label:'受注ID',    val:`<span style="font-family:'Space Grotesk',sans-serif;color:var(--orange)">${esc(o.id)}</span>`},
+      {label:'受注ID',    val:`<span style="font-family:'Space Grotesk',sans-serif;color:var(--orange)">${esc(o.code)}</span>`},
       {label:'取引先名',  val:esc(o.customer)},
       {label:'受注日',    val:esc(o.date)},
       {label:'ステータス',val:`<span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span>`},
     ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
     document.getElementById('modalItems').innerHTML =
       `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead>
-      <tbody><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">注文明細を読み込んでいます...</td></tr></tbody>`;
-    document.getElementById('modalTotals').innerHTML = `
-      <div class="totals-item"><label>利益合計</label><span class="green">¥${(o.total - o.cost).toLocaleString()}</span></div>
-      <div class="totals-item"><label>税抜合計</label><span>¥${o.total.toLocaleString()}</span></div>
-      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">—</span></div>
-      <div class="totals-item"><label>税込合計</label><span class="highlight">—</span></div>`;
+      <tbody><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr></tbody>`;
     document.getElementById('detailOverlay').classList.add('open');
-    loadOrderDetail(recordId);
+    loadOrderDetail(orderId);
   }
 
-  async function loadOrderDetail(recordId) {
-    const o = allOrders.find(x => x.recordId === recordId);
+  async function loadOrderDetail(orderId) {
+    const o = allOrders.find(x => x.id === orderId);
     if (!o) return;
     try {
-      const res = await fetch(WEBHOOK_DETAIL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 受注ID: o.id })
-      });
-      const text = await res.text();
-      let items;
-      try {
-        items = JSON.parse(text);
-        if (!Array.isArray(items)) items = [items];
-      } catch(e) {
-        items = JSON.parse('[' + text + ']');
-      }
+      const res = await sbFetch(
+        `/rest/v1/order_items?select=quantity,unit_price,cost_price,products(product_code,product_name,is_food)&order_id=eq.${orderId}`
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const items = await res.json();
 
+      let excl = 0, tax = 0, cost = 0;
       const rows = items.map(it => {
-        const qty   = Number(it['数量']) || 0;
-        const price = Number(it['単価']) || 0;
-        const sub   = Number(it['小計']) || (qty * price);
+        const qty     = it.quantity || 0;
+        const price   = it.unit_price || 0;
+        const cprice  = it.cost_price || 0;
+        const isFood  = it.products?.is_food || false;
+        const taxRate = isFood ? 0.08 : 0.10;
+        const sub     = qty * price;
+        excl  += sub;
+        tax   += Math.round(sub * taxRate);
+        cost  += qty * cprice;
         return `<tr>
-          <td style="font-size:12px;color:var(--text-muted)">—</td>
-          <td style="font-weight:500;white-space:normal">${esc(it['商品名'])}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
+          <td style="font-weight:500;white-space:normal">${esc(it.products?.product_name || '—')}</td>
           <td class="num-right">${qty}</td>
           <td class="num-right">¥${price.toLocaleString()}</td>
           <td class="num-right" style="font-weight:600">¥${sub.toLocaleString()}</td>
-          <td class="num-right" style="color:var(--text-muted)">—</td>
-          <td>—</td>
+          <td class="num-right" style="color:var(--text-muted)">¥${(qty*cprice).toLocaleString()}</td>
+          <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減8%':'標準10%'}</span></td>
         </tr>`;
       }).join('');
 
-      const itemsTotal = items.reduce((s, it) => s + (Number(it['小計']) || 0), 0);
+      const incl = excl + tax;
+      const profit = excl - cost;
       document.getElementById('modalItems').innerHTML =
         `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
       document.getElementById('modalTotals').innerHTML = `
-        <div class="totals-item"><label>利益合計</label><span class="green">¥${(o.total - o.cost).toLocaleString()}</span></div>
-        <div class="totals-item"><label>税抜合計</label><span>¥${itemsTotal.toLocaleString()}</span></div>
-        <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">—</span></div>
-        <div class="totals-item"><label>税込合計</label><span class="highlight">—</span></div>`;
+        <div class="totals-item"><label>利益合計</label><span class="green">¥${profit.toLocaleString()}</span></div>
+        <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
+        <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
+        <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
     } catch(e) {
       console.error('注文明細取得失敗:', e);
       document.getElementById('modalItems').innerHTML =
