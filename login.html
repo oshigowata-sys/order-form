@@ -222,8 +222,9 @@
 </div>
 
 <script>
-  // ===== Webhook認証 =====
-  const LOGIN_WEBHOOK = 'https://hook.eu1.make.com/jdttyyi7sma5afeosu24t57h9y2btw94';
+  // ===== Supabase 認証 =====
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
   async function login() {
     const loginId  = document.getElementById('loginId').value.trim();
@@ -243,22 +244,26 @@
     errorMsg.classList.remove('show');
 
     try {
-      const res = await fetch(LOGIN_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': 'meguree-secret-2026' },
-        body: JSON.stringify({ loginId, password }),
-      });
+      const res = await fetch(
+        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&password=eq.${encodeURIComponent(password)}&select=id,name,role,customer_id&limit=1`,
+        {
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY
+          }
+        }
+      );
 
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
-      if (data.success && data.name) {
-        // ② APIトークンをsessionStorageに保存（Make側から発行されたトークン）
+      if (data.length > 0) {
+        const account = data[0];
         sessionStorage.setItem('user', JSON.stringify({
-          name: data.name,
+          name: account.name,
           id: loginId,
-          role: data.role,
-          token: data.token,
-          customerId: data.customerId   // 顧客テーブルのレコードID
+          role: account.role,
+          customerId: account.customer_id
         }));
         window.location.href = 'dashboard.html';
       } else {
