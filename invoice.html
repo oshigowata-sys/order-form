@@ -561,13 +561,22 @@
       .replace(/'/g, '&#x27;');
   }
 
-  const MAKE_ITEMS_WEBHOOK  = 'https://hook.eu1.make.com/ofslpdgqzdty9ot8wj5k7y1b8xib8sub?secret=' + encodeURIComponent(API_SECRET);
-  const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/vh035dgwi5h1mbmmpf6wi5x8sg6jkwji?secret=' + encodeURIComponent(API_SECRET);
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  function sbFetch(path) {
+    return fetch(SB_URL + path, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+  }
 
   // URLパラメータ取得
   const params = new URLSearchParams(location.search);
-  const targetOrderId = params.get('order_id'); // 受注ID (ORD-xxx)
-  const targetRecordId = params.get('record_id'); // AirtableレコードID
+  const targetOrderId   = params.get('order_id');    // 単一受注UUID
+  const targetCustomerId = params.get('customer_id'); // 期間請求書モード
+  const targetPeriodStart = params.get('period_start');
+  const targetPeriodEnd   = params.get('period_end');
+  const targetInvoiceNum  = params.get('invoice_num');
 
   // ===== 設定の保存・読込 =====
   const SETTINGS_KEY = 'meguree_issuer_settings';
@@ -759,53 +768,80 @@
     document.title = `請求書 - ${(f['取引先名'] || '取引先')} - ${invoiceNo}`;
   }
 
-  // ===== データ取得 =====
+  // ===== データ取得（Supabase）=====
   async function loadInvoiceData() {
     try {
-      // まず全受注から対象を探す
-      const res = await fetch(MAKE_ORDERS_WEBHOOK);
-      const text = await res.text();
-      let orders = [];
-      try { orders = JSON.parse(text); } catch(e) {
-        const m = text.match(/\[.*\]/s);
-        if (m) orders = JSON.parse(m[0]);
+      let orders;
+
+      if (targetCustomerId && targetPeriodStart && targetPeriodEnd) {
+        // ── 期間請求書モード（invoice-list.html の PDF ボタンから） ──
+        const res = await sbFetch(
+          '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
+          '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
+          '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_name,is_food))'
+        );
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        orders = await res.json();
+
+        if (!orders || orders.length === 0) {
+          document.getElementById('loadingState').innerHTML = '<div style="padding:80px;text-align:center;color:#999;">対象期間に受注データがありませんでした</div>';
+          return;
+        }
+
+        // 全受注の明細を結合
+        const firstOrder = orders[0];
+        const f = {
+          '受注ID':   targetInvoiceNum || '',
+          '取引先名': firstOrder.customers?.company_name || '',
+          '担当者名': firstOrder.customers?.contact_name || '',
+          '受注日':   targetPeriodEnd || '',
+        };
+        const allItems = orders.flatMap(o =>
+          (o.order_items || []).map(it => ({
+            '商品名': it.products?.product_name || '',
+            '数量':   it.quantity || 0,
+            '単価':   it.unit_price || 0,
+            '小計':   (it.quantity || 0) * (it.unit_price || 0),
+            isFood:   it.products?.is_food || false,
+          }))
+        );
+        renderInvoice({ fields: f }, allItems);
+
+      } else {
+        // ── 単一受注モード ──
+        let query;
+        if (targetOrderId) {
+          query = '/rest/v1/orders?id=eq.' + encodeURIComponent(targetOrderId);
+        } else {
+          query = '/rest/v1/orders?order=created_at.desc&limit=1';
+        }
+        query += '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_name,is_food))';
+
+        const res = await sbFetch(query);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        orders = await res.json();
+
+        if (!orders || orders.length === 0) {
+          document.getElementById('loadingState').innerHTML = '<div style="padding:80px;text-align:center;color:#999;">受注データが見つかりませんでした</div>';
+          return;
+        }
+
+        const order = orders[0];
+        const f = {
+          '受注ID':   order.order_code || order.id,
+          '取引先名': order.customers?.company_name || '',
+          '担当者名': order.customers?.contact_name || '',
+          '受注日':   order.order_date || '',
+        };
+        const items = (order.order_items || []).map(it => ({
+          '商品名': it.products?.product_name || '',
+          '数量':   it.quantity || 0,
+          '単価':   it.unit_price || 0,
+          '小計':   (it.quantity || 0) * (it.unit_price || 0),
+          isFood:   it.products?.is_food || false,
+        }));
+        renderInvoice({ fields: f }, items);
       }
-
-      let order = null;
-      if (targetOrderId) {
-        order = orders.find(o => (o.fields || o)['受注ID'] === targetOrderId);
-      } else if (targetRecordId) {
-        order = orders.find(o => o.id === targetRecordId);
-      }
-
-      if (!order && orders.length > 0) {
-        // パラメータなし → 最新の受注を表示（デモ用）
-        order = orders[orders.length - 1];
-      }
-
-      if (!order) {
-        document.getElementById('loadingState').innerHTML = '<div style="padding:80px;text-align:center;color:#999;">受注データが見つかりませんでした</div>';
-        return;
-      }
-
-      const f = order.fields || order;
-      const orderId = f['受注ID'];
-
-      // 明細取得
-      let items = [];
-      if (orderId) {
-        try {
-          const itemRes = await fetch(`${MAKE_ITEMS_WEBHOOK}&受注ID=${encodeURIComponent(orderId)}`);
-          const itemText = await itemRes.text();
-          try { items = JSON.parse(itemText); } catch(e) {
-            const m2 = itemText.match(/\[.*\]/s);
-            if (m2) items = JSON.parse(m2[0]);
-          }
-          if (!Array.isArray(items)) items = [];
-        } catch(e) { items = []; }
-      }
-
-      renderInvoice(order, items);
 
     } catch(e) {
       document.getElementById('loadingState').innerHTML = `<div style="padding:80px;text-align:center;color:#999;">データ取得エラー: ${esc(e.message)}</div>`;
