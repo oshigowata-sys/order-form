@@ -457,15 +457,34 @@
     font-family: 'Noto Sans JP', sans-serif;
   }
 
+  /* ===== 切り取り線 ===== */
+  .cut-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 32px;
+    background: var(--bg);
+    color: #aaa;
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 2px;
+  }
+  .cut-line::before, .cut-line::after {
+    content: '';
+    flex: 1;
+    border-top: 1px dashed #ccc;
+  }
+
   /* 印刷スタイル */
   @media print {
+    .cut-line { background: white; color: #999; }
     .action-bar, .settings-panel, .no-print { display: none !important; }
     body { background: white; }
     .main { padding: 0; max-width: 100%; }
     #invoice-wrap { box-shadow: none; border-radius: 0; }
     .invoice { padding: 32px 48px; }
     .invoice-table tbody tr:hover { background: transparent; }
-    @page { margin: 15mm; size: A4; }
+    @page { margin: 10mm; size: A4; }
   }
 </style>
 </head>
@@ -543,6 +562,8 @@
       <div class="spinner"></div>
       <div>受注データを取得中...</div>
     </div>
+    <div class="invoice" id="deliveryBody" style="display:none;"></div>
+    <div class="cut-line" id="cutLine" style="display:none;">✂ 切り取り線</div>
     <div class="invoice" id="invoiceBody" style="display:none;"></div>
   </div>
 
@@ -642,6 +663,84 @@
   // ===== 金額フォーマット =====
   function fmt(n) {
     return '¥' + Number(n || 0).toLocaleString('ja-JP');
+  }
+
+  // ===== 納品書HTML生成 =====
+  function renderDeliveryNote(f, items, s) {
+    const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    const subtotal = items.reduce((sum, it) => sum + Number(it['小計'] || 0), 0);
+    const tax8  = items.filter(i => i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||0) * 0.08), 0);
+    const tax10 = items.filter(i => !i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||0) * 0.10), 0);
+    const tax   = tax8 + tax10;
+    const total = subtotal + tax;
+
+    const itemRows = items.length > 0
+      ? items.map(it => {
+          const qty   = Number(it['数量'] || 0);
+          const price = Number(it['単価'] || 0);
+          const sub   = Number(it['小計'] || qty * price || 0);
+          const taxLabel = it.isFood ? '8%' : '10%';
+          return `<tr>
+            <td>${esc(it['商品名'] || '-')}</td>
+            <td style="text-align:right">${qty.toLocaleString()}</td>
+            <td style="text-align:right">${fmt(price)}</td>
+            <td style="text-align:right">${fmt(sub)}</td>
+            <td style="text-align:center;font-size:11px;color:var(--text-muted)">${taxLabel}</td>
+          </tr>`;
+        }).join('')
+      : `<tr><td colspan="5" style="text-align:center;color:#999;padding:24px;">明細データがありません</td></tr>`;
+
+    const fromBlock = s.name
+      ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
+         ${s.person ? `<div style="font-size:12px;margin-top:2px">${esc(s.person)}</div>` : ''}
+         ${s.tel ? `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}</div>` : ''}`
+      : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
+
+    document.getElementById('deliveryBody').innerHTML = `
+      <div class="invoice-header">
+        <div class="invoice-title-block">
+          <div class="invoice-title">納 品 書</div>
+          <div class="invoice-subtitle">DELIVERY NOTE</div>
+        </div>
+        <div class="invoice-meta">
+          <table>
+            <tr><td>納品日</td><td>${esc(today)}</td></tr>
+            ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
+          </table>
+        </div>
+      </div>
+      <div class="invoice-parties">
+        <div class="invoice-to">
+          <div class="party-label">納品先 / DELIVER TO</div>
+          <div class="party-name">${esc(f['取引先名'] || '取引先名')}<span class="party-name-suffix">御中</span></div>
+          ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">発行者 / ISSUED BY</div>
+          ${fromBlock}
+        </div>
+      </div>
+      <div class="invoice-table-wrap">
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>商品名</th>
+              <th style="text-align:right">数量</th>
+              <th style="text-align:right">単価</th>
+              <th style="text-align:right">金額</th>
+              <th style="text-align:center">税率</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+          <tfoot>
+            <tr><td>税抜合計</td><td colspan="4">${fmt(subtotal)}</td></tr>
+            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
+            <tr class="total-row"><td>合計（税込）</td><td colspan="4">${fmt(total)}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
   }
 
   // ===== 請求書HTML生成 =====
@@ -764,8 +863,11 @@
     `;
 
     document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('deliveryBody').style.display = 'block';
+    document.getElementById('cutLine').style.display = 'flex';
     document.getElementById('invoiceBody').style.display = 'block';
-    document.title = `請求書 - ${(f['取引先名'] || '取引先')} - ${invoiceNo}`;
+    document.title = `納品書兼請求書 - ${(f['取引先名'] || '取引先')} - ${invoiceNo}`;
+    renderDeliveryNote(f, items, s);
   }
 
   // ===== データ取得（Supabase）=====
