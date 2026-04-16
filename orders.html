@@ -150,8 +150,8 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
       <div class="modal-btns">
-        <button class="btn btn-outline" onclick="alert('納品書を発行しました')">📄 納品書発行</button>
-        <button class="btn btn-primary" onclick="alert('請求書を発行しました')">🧾 請求書発行</button>
+        <button class="btn btn-outline" onclick="alert('納品書機能は準備中です')">📄 納品書発行</button>
+        <button class="btn btn-primary" onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')">🧾 請求書発行</button>
       </div>
     </div>
   </div>
@@ -236,7 +236,9 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     }).join('');
   }
 
+  let currentDetailId = null;
   function openDetail(orderId) {
+    currentDetailId = orderId;
     const o = allOrders.find(x => x.id === orderId);
     if (!o) return;
     document.getElementById('modalTitle').textContent = `受注詳細 — ${o.code}`;
