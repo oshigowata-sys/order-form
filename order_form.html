@@ -380,7 +380,17 @@
     try {
       const user = JSON.parse(sessionStorage.getItem('user') || '{}');
       customerId = user.customerId || null;
-    } catch(e) {}
+      // customerId が取れない場合は古いセッションなので再ログインを促す
+      if (!customerId) {
+        alert('セッションが無効です。再度ログインしてください。');
+        window.location.href = 'login.html';
+        return;
+      }
+    } catch(e) {
+      alert('セッションエラーが発生しました。再度ログインしてください。');
+      window.location.href = 'login.html';
+      return;
+    }
 
     try {
       // 1. 各商品の掛け率を取得し unit_price を計算
@@ -404,7 +414,7 @@
           customer_id: customerId,
           order_code: orderCode,
           order_date: today,
-          status: 'pending'
+          status: '新規受注'
         })
       });
 
