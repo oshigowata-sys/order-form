@@ -375,21 +375,19 @@
     btn.textContent = '送信中...';
     hideError();
 
-    // sessionStorageからログイン済みユーザーのcustomerIdを取得
+    // フォームの会社名から customer_id を取得
     let customerId = null;
     try {
-      const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-      customerId = user.customerId || null;
-      // customerId が取れない場合は古いセッションなので再ログインを促す
-      if (!customerId) {
-        alert('セッションが無効です。再度ログインしてください。');
-        window.location.href = 'login.html';
-        return;
+      const companyName = document.getElementById('companyName').value.trim();
+      const custRes = await sbFetch(
+        '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + '&select=id&limit=1'
+      );
+      if (custRes.ok) {
+        const custData = await custRes.json();
+        if (custData.length > 0) customerId = custData[0].id;
       }
     } catch(e) {
-      alert('セッションエラーが発生しました。再度ログインしてください。');
-      window.location.href = 'login.html';
-      return;
+      console.warn('顧客検索エラー:', e);
     }
 
     try {
