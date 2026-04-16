@@ -246,13 +246,13 @@
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
-        const res = await sbFetch('/rest/v1/products?select=id,product_name,base_price&order=product_name');
+        const res = await sbFetch('/rest/v1/products?select=id,product_name,price&order=product_name');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
           id: p.id,
           name: p.product_name || '',
-          price: p.base_price || 0
+          price: p.price || 0
         }));
         sessionCache.products = products;
       }
@@ -369,16 +369,14 @@
     } catch(e) {}
 
     try {
-      // 1. 各商品の掛け率を取得し unit_price / subtotal を計算
+      // 1. 各商品の掛け率を取得し unit_price を計算
       const orderItemsPayload = await Promise.all(items.map(async item => {
         const rate = customerId ? await getRate(customerId, item.id) : 1.0;
-        const unit_price = Math.round(item.price * rate * 100) / 100;
-        const subtotal = unit_price * item.qty;
+        const unit_price = Math.round(item.price * rate);
         return {
           product_id: item.id,
           quantity: item.qty,
-          unit_price,
-          subtotal
+          unit_price
         };
       }));
 
@@ -390,8 +388,7 @@
         body: JSON.stringify({
           customer_id: customerId,
           order_date: today,
-          status: 'pending',
-          notes: document.getElementById('note').value.trim()
+          status: 'pending'
         })
       });
 
