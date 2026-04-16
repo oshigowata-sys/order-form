@@ -180,6 +180,7 @@
       </div>
     </div>
 
+    <div class="error-msg" id="submitError" style="margin-bottom:12px;font-size:14px;"></div>
     <button class="submit-btn" id="submitBtn" onclick="submitOrder()">注文を確定する</button>
 
   </div>
@@ -194,13 +195,23 @@
 
 <script>
   // =============================
-  // ★ 設定：ここだけ変更してください
+  // Supabase 接続設定
   // =============================
-  const API_SECRET = 'meguree-secret-2026';
-  const WEBHOOK_URL = "https://hook.eu1.make.com/61oezoiend9p23jsurxdp9d83dg2hlyu?secret=" + encodeURIComponent(API_SECRET);
-  const PRODUCT_WEBHOOK_URL = "https://hook.eu1.make.com/l14r4kzz3n994ilvy7yt1tockt93b292?secret=" + encodeURIComponent(API_SECRET);
-  const AIRTABLE_TABLE_NAME = "商品マスタ";
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   // =============================
+
+  function sbFetch(path, options = {}) {
+    return fetch(SB_URL + path, {
+      ...options,
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+  }
 
   // ===== セッションキャッシュ =====
   const sessionCache = {};
@@ -216,6 +227,16 @@
       .replace(/'/g, '&#x27;');
   }
 
+  function showError(message) {
+    const el = document.getElementById('submitError');
+    el.textContent = message;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('submitError').style.display = 'none';
+  }
+
   let items = [];
   let products = [];
 
@@ -225,13 +246,13 @@
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
-        const res = await fetch(PRODUCT_WEBHOOK_URL);
+        const res = await sbFetch('/rest/v1/products?select=id,product_name,base_price&order=product_name');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        products = data.records.map(r => ({
-          id: r.fields['商品ID'],
-          recordId: r.id,
-          name: r.fields['商品名'] || '',
-          price: r.fields['価格'] || 0
+        products = data.map(p => ({
+          id: p.id,
+          name: p.product_name || '',
+          price: p.base_price || 0
         }));
         sessionCache.products = products;
       }
@@ -302,6 +323,19 @@
     document.getElementById('totalAmount').textContent = '¥' + total.toLocaleString();
   }
 
+  async function getRate(customerId, productId) {
+    try {
+      const res = await sbFetch(
+        `/rest/v1/pricing?customer_id=eq.${customerId}&product_id=eq.${productId}&select=rate`
+      );
+      if (!res.ok) return 1.0;
+      const data = await res.json();
+      return (data.length > 0 && data[0].rate != null) ? Number(data[0].rate) : 1.0;
+    } catch(e) {
+      return 1.0;
+    }
+  }
+
   async function submitOrder() {
     let valid = true;
 
@@ -325,44 +359,71 @@
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = '送信中...';
+    hideError();
 
-    // sessionStorageから顧客レコードIDを取得（ログイン済みの場合）
-    let customerRecordId = '';
+    // sessionStorageからログイン済みユーザーのcustomerIdを取得
+    let customerId = null;
     try {
       const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-      customerRecordId = user.customerId || '';
+      customerId = user.customerId || null;
     } catch(e) {}
 
-    const payload = {
-      company_name: company,
-      person_name: document.getElementById('personName').value.trim(),
-      note: document.getElementById('note').value.trim(),
-      customer_record_id: customerRecordId,
-      items: items.map(i => ({
-        product_id: i.id,
-        product_record_id: i.recordId,
-        product_name: i.name,
-        price: i.price,
-        qty: i.qty,
-        subtotal: i.price * i.qty
-      })),
-      total: items.reduce((sum, i) => sum + i.price * i.qty, 0)
-    };
-
     try {
-      await fetch(WEBHOOK_URL, {
+      // 1. 各商品の掛け率を取得し unit_price / subtotal を計算
+      const orderItemsPayload = await Promise.all(items.map(async item => {
+        const rate = customerId ? await getRate(customerId, item.id) : 1.0;
+        const unit_price = Math.round(item.price * rate * 100) / 100;
+        const subtotal = unit_price * item.qty;
+        return {
+          product_id: item.id,
+          quantity: item.qty,
+          unit_price,
+          subtotal
+        };
+      }));
+
+      // 2. orders テーブルに INSERT
+      const today = new Date().toISOString().slice(0, 10);
+      const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          customer_id: customerId,
+          order_date: today,
+          status: 'pending',
+          notes: document.getElementById('note').value.trim()
+        })
       });
 
+      if (!orderRes.ok) {
+        const errText = await orderRes.text();
+        throw new Error('注文の登録に失敗しました: ' + errText);
+      }
+
+      const orderData = await orderRes.json();
+      const orderId = orderData[0].id;
+
+      // 3. order_items テーブルに一括 INSERT
+      const itemsRes = await sbFetch('/rest/v1/order_items', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(orderItemsPayload.map(i => ({ ...i, order_id: orderId })))
+      });
+
+      if (!itemsRes.ok) {
+        const errText = await itemsRes.text();
+        throw new Error('明細の登録に失敗しました: ' + errText);
+      }
+
+      // 4. 成功表示
       document.getElementById('formArea').style.display = 'none';
       document.getElementById('successArea').style.display = 'block';
 
     } catch(e) {
+      console.error(e);
       btn.disabled = false;
       btn.textContent = '注文を確定する';
-      alert('送信に失敗しました。もう一度お試しください。');
+      showError(e.message || '送信に失敗しました。もう一度お試しください。');
     }
   }
 
