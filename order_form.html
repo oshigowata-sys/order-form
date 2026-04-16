@@ -323,6 +323,20 @@
     document.getElementById('totalAmount').textContent = '¥' + total.toLocaleString();
   }
 
+  async function generateOrderCode() {
+    const today = new Date().toISOString().slice(0, 10);
+    const dateStr = today.replace(/-/g, '');
+    try {
+      const res = await sbFetch(`/rest/v1/orders?order_date=eq.${today}&select=id`);
+      if (!res.ok) return `ORD-${dateStr}-001`;
+      const data = await res.json();
+      const seq = String(data.length + 1).padStart(3, '0');
+      return `ORD-${dateStr}-${seq}`;
+    } catch(e) {
+      return `ORD-${dateStr}-001`;
+    }
+  }
+
   async function getRate(customerId, productId) {
     try {
       const res = await sbFetch(
@@ -382,11 +396,13 @@
 
       // 2. orders テーブルに INSERT
       const today = new Date().toISOString().slice(0, 10);
+      const orderCode = await generateOrderCode();
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify({
           customer_id: customerId,
+          order_code: orderCode,
           order_date: today,
           status: 'pending'
         })
