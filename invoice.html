@@ -498,63 +498,12 @@
   </div>
   <div class="action-bar-right">
     <a href="dashboard.html" class="btn btn-ghost">← ダッシュボードに戻る</a>
-    <button class="btn btn-secondary" onclick="toggleSettings()">⚙ 発行者設定</button>
+    <a href="settings.html" class="btn btn-secondary">⚙ 発行者設定</a>
     <button class="btn btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
   </div>
 </div>
 
 <div class="main">
-
-  <!-- 発行者設定パネル -->
-  <div class="settings-panel" id="settingsPanel" style="display:none;">
-    <div class="settings-title">⚙ 発行者情報の設定</div>
-    <div class="settings-grid">
-      <div class="form-group">
-        <label class="form-label">会社名・屋号</label>
-        <input class="form-input" id="s_name" placeholder="例：ひかる商店">
-      </div>
-      <div class="form-group">
-        <label class="form-label">担当者名</label>
-        <input class="form-input" id="s_person" placeholder="例：嶋田 洋">
-      </div>
-      <div class="form-group full">
-        <label class="form-label">住所</label>
-        <input class="form-input" id="s_address" placeholder="例：〒000-0000 ○○県○○市○○1-2-3">
-      </div>
-      <div class="form-group">
-        <label class="form-label">電話番号</label>
-        <input class="form-input" id="s_tel" placeholder="例：00-0000-0000">
-      </div>
-      <div class="form-group">
-        <label class="form-label">メールアドレス</label>
-        <input class="form-input" id="s_email" placeholder="例：info@example.com">
-      </div>
-      <div class="form-group">
-        <label class="form-label">銀行名・支店名</label>
-        <input class="form-input" id="s_bank_name" placeholder="例：○○銀行 ○○支店">
-      </div>
-      <div class="form-group">
-        <label class="form-label">口座種別・番号</label>
-        <input class="form-input" id="s_bank_num" placeholder="例：普通 1234567">
-      </div>
-      <div class="form-group full">
-        <label class="form-label">口座名義（カナ）</label>
-        <input class="form-input" id="s_bank_holder" placeholder="例：ヒカルショウテン">
-      </div>
-      <div class="form-group">
-        <label class="form-label">支払期限（受注日から何日後）</label>
-        <input class="form-input" id="s_payment_days" type="number" placeholder="例：30" value="30">
-      </div>
-      <div class="form-group">
-        <label class="form-label">インボイス登録番号（任意）</label>
-        <input class="form-input" id="s_invoice_num" placeholder="例：T1234567890123">
-      </div>
-    </div>
-    <div class="settings-save">
-      <span class="save-msg" id="saveMsg">✓ 保存しました</span>
-      <button class="btn-save" onclick="saveSettings()">保存する</button>
-    </div>
-  </div>
 
   <!-- 請求書本体 -->
   <div id="invoice-wrap">
@@ -599,48 +548,31 @@
   const targetPeriodEnd   = params.get('period_end');
   const targetInvoiceNum  = params.get('invoice_num');
 
-  // ===== 設定の保存・読込 =====
-  const SETTINGS_KEY = 'meguree_issuer_settings';
+  // ===== 設定の読込（Supabase） =====
+  let _settings = {};
 
-  function loadSettings() {
-    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-    document.getElementById('s_name').value = s.name || '';
-    document.getElementById('s_person').value = s.person || '';
-    document.getElementById('s_address').value = s.address || '';
-    document.getElementById('s_tel').value = s.tel || '';
-    document.getElementById('s_email').value = s.email || '';
-    document.getElementById('s_bank_name').value = s.bank_name || '';
-    document.getElementById('s_bank_num').value = s.bank_num || '';
-    document.getElementById('s_bank_holder').value = s.bank_holder || '';
-    document.getElementById('s_payment_days').value = s.payment_days || 30;
-    document.getElementById('s_invoice_num').value = s.invoice_num || '';
-    return s;
-  }
-
-  function saveSettings() {
-    const s = {
-      name: document.getElementById('s_name').value,
-      person: document.getElementById('s_person').value,
-      address: document.getElementById('s_address').value,
-      tel: document.getElementById('s_tel').value,
-      email: document.getElementById('s_email').value,
-      bank_name: document.getElementById('s_bank_name').value,
-      bank_num: document.getElementById('s_bank_num').value,
-      bank_holder: document.getElementById('s_bank_holder').value,
-      payment_days: document.getElementById('s_payment_days').value,
-      invoice_num: document.getElementById('s_invoice_num').value,
-    };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-    const msg = document.getElementById('saveMsg');
-    msg.classList.add('show');
-    setTimeout(() => msg.classList.remove('show'), 2000);
-    // 設定保存後に請求書を再描画
-    if (window._orderData) renderInvoice(window._orderData.order, window._orderData.items);
-  }
-
-  function toggleSettings() {
-    const panel = document.getElementById('settingsPanel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  async function loadSettings() {
+    try {
+      const res = await sbFetch('/rest/v1/settings?id=eq.1&select=*&limit=1');
+      const data = await res.json();
+      const s = (data && data[0]) || {};
+      _settings = {
+        name:         s.company_name       || '',
+        person:       s.company_person     || '',
+        address:      (s.company_zip ? '〒' + s.company_zip + ' ' : '') + (s.company_address || ''),
+        tel:          s.company_tel        || '',
+        email:        s.company_email      || '',
+        invoice_num:  s.company_invoice_no || '',
+        bank_name:    [s.bank_name, s.bank_branch].filter(Boolean).join(' '),
+        bank_num:     [s.bank_type, s.bank_number].filter(Boolean).join('  '),
+        bank_holder:  s.bank_holder        || '',
+        bank_note:    s.bank_note          || '',
+        payment_days: s.payment_days       || 30,
+      };
+    } catch(e) {
+      console.error('設定読込エラー', e);
+    }
+    return _settings;
   }
 
   // ===== 請求書番号生成 =====
@@ -746,7 +678,7 @@
   // ===== 請求書HTML生成 =====
   function renderInvoice(order, items) {
     window._orderData = { order, items };
-    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    const s = _settings;
     const f = order.fields || order;
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
@@ -787,7 +719,7 @@
 
     // 振込先情報
     const bankBlock = s.bank_name
-      ? `${esc(s.bank_name)}<br>${esc(s.bank_num)}<br>口座名義: ${esc(s.bank_holder || '')}`
+      ? `${esc(s.bank_name)}<br>${esc(s.bank_num)}<br>口座名義: ${esc(s.bank_holder || '')}${s.bank_note ? '<br><span style="font-size:11px;color:var(--text-muted);">' + esc(s.bank_note) + '</span>' : ''}`
       : '（振込先情報を設定してください）';
 
     document.getElementById('invoiceBody').innerHTML = `
@@ -950,9 +882,8 @@
     }
   }
 
-  // 初期化
-  loadSettings();
-  loadInvoiceData();
+  // 初期化（設定を先に取得してから請求書を描画）
+  loadSettings().then(() => loadInvoiceData());
 </script>
 </body>
 </html>

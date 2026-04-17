@@ -128,6 +128,10 @@
             <label class="form-label">登録番号（インボイス）</label>
             <input type="text" class="form-input" id="companyInvoiceNo" placeholder="例：T1234567890123" style="max-width:260px" />
           </div>
+          <div class="form-group">
+            <label class="form-label">担当者名</label>
+            <input type="text" class="form-input" id="companyPerson" placeholder="例：嶋田 洋" style="max-width:260px" />
+          </div>
         </div>
         <div class="settings-card-footer">
           <div class="save-msg" id="saveMsgCompany">✓ 保存しました</div>
@@ -171,6 +175,10 @@
             <label class="form-label">備考（振込手数料など）</label>
             <input type="text" class="form-input" id="bankNote" placeholder="例：振込手数料はご負担ください" />
           </div>
+          <div class="form-group">
+            <label class="form-label">支払期限（受注日から何日後）</label>
+            <input type="number" class="form-input" id="paymentDays" placeholder="例：30" value="30" style="max-width:120px" />
+          </div>
         </div>
         <div class="settings-card-footer">
           <div class="save-msg" id="saveMsgBank">✓ 保存しました</div>
@@ -197,86 +205,141 @@
   </div>
 </main>
 <script>
-  const STORAGE_KEY_COMPANY = 'meguree_settings_company';
-  const STORAGE_KEY_BANK    = 'meguree_settings_bank';
-  function loadAll() {
-    const company = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPANY) || '{}');
-    document.getElementById('companyName').value      = company.name      || '';
-    document.getElementById('companyZip').value       = company.zip       || '';
-    document.getElementById('companyAddress').value   = company.address   || '';
-    document.getElementById('companyTel').value       = company.tel       || '';
-    document.getElementById('companyEmail').value     = company.email     || '';
-    document.getElementById('companyInvoiceNo').value = company.invoiceNo || '';
-    const bank = JSON.parse(localStorage.getItem(STORAGE_KEY_BANK) || '{}');
-    document.getElementById('bankName').value  = bank.name   || '';
-    document.getElementById('bankBranch').value= bank.branch || '';
-    document.getElementById('bankType').value  = bank.type   || '普通';
-    document.getElementById('bankNumber').value= bank.number || '';
-    document.getElementById('bankHolder').value= bank.holder || '';
-    document.getElementById('bankNote').value  = bank.note   || '';
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  function sbFetch(path, opts = {}) {
+    return fetch(SB_URL + path, {
+      ...opts,
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+        ...(opts.headers || {}),
+      },
+    });
+  }
+
+  async function loadAll() {
+    try {
+      const res = await sbFetch('/rest/v1/settings?id=eq.1&select=*&limit=1');
+      const data = await res.json();
+      const s = (data && data[0]) || {};
+      document.getElementById('companyName').value      = s.company_name       || '';
+      document.getElementById('companyZip').value       = s.company_zip        || '';
+      document.getElementById('companyAddress').value   = s.company_address    || '';
+      document.getElementById('companyTel').value       = s.company_tel        || '';
+      document.getElementById('companyEmail').value     = s.company_email      || '';
+      document.getElementById('companyInvoiceNo').value = s.company_invoice_no || '';
+      document.getElementById('companyPerson').value    = s.company_person     || '';
+      document.getElementById('bankName').value         = s.bank_name          || '';
+      document.getElementById('bankBranch').value       = s.bank_branch        || '';
+      document.getElementById('bankType').value         = s.bank_type          || '普通';
+      document.getElementById('bankNumber').value       = s.bank_number        || '';
+      document.getElementById('bankHolder').value       = s.bank_holder        || '';
+      document.getElementById('bankNote').value         = s.bank_note          || '';
+      document.getElementById('paymentDays').value      = s.payment_days       || 30;
+    } catch(e) {
+      console.error('設定読込エラー', e);
+    }
     updatePreview();
   }
-  function saveCompany() {
+
+  async function saveCompany() {
     const data = {
-      name:      document.getElementById('companyName').value.trim(),
-      zip:       document.getElementById('companyZip').value.trim(),
-      address:   document.getElementById('companyAddress').value.trim(),
-      tel:       document.getElementById('companyTel').value.trim(),
-      email:     document.getElementById('companyEmail').value.trim(),
-      invoiceNo: document.getElementById('companyInvoiceNo').value.trim(),
+      company_name:       document.getElementById('companyName').value.trim(),
+      company_zip:        document.getElementById('companyZip').value.trim(),
+      company_address:    document.getElementById('companyAddress').value.trim(),
+      company_tel:        document.getElementById('companyTel').value.trim(),
+      company_email:      document.getElementById('companyEmail').value.trim(),
+      company_invoice_no: document.getElementById('companyInvoiceNo').value.trim(),
+      company_person:     document.getElementById('companyPerson').value.trim(),
     };
-    localStorage.setItem(STORAGE_KEY_COMPANY, JSON.stringify(data));
-    flashSave('saveMsgCompany');
-    updatePreview();
+    try {
+      const res = await sbFetch('/rest/v1/settings?id=eq.1', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      flashSave('saveMsgCompany');
+      updatePreview();
+    } catch(e) {
+      alert('保存に失敗しました: ' + e.message);
+    }
   }
-  function saveBank() {
+
+  async function saveBank() {
     const data = {
-      name:   document.getElementById('bankName').value.trim(),
-      branch: document.getElementById('bankBranch').value.trim(),
-      type:   document.getElementById('bankType').value,
-      number: document.getElementById('bankNumber').value.trim(),
-      holder: document.getElementById('bankHolder').value.trim(),
-      note:   document.getElementById('bankNote').value.trim(),
+      bank_name:    document.getElementById('bankName').value.trim(),
+      bank_branch:  document.getElementById('bankBranch').value.trim(),
+      bank_type:    document.getElementById('bankType').value,
+      bank_number:  document.getElementById('bankNumber').value.trim(),
+      bank_holder:  document.getElementById('bankHolder').value.trim(),
+      bank_note:    document.getElementById('bankNote').value.trim(),
+      payment_days: parseInt(document.getElementById('paymentDays').value) || 30,
     };
-    localStorage.setItem(STORAGE_KEY_BANK, JSON.stringify(data));
-    flashSave('saveMsgBank');
-    updatePreview();
+    try {
+      const res = await sbFetch('/rest/v1/settings?id=eq.1', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      flashSave('saveMsgBank');
+      updatePreview();
+    } catch(e) {
+      alert('保存に失敗しました: ' + e.message);
+    }
   }
+
   function flashSave(id) {
     const el = document.getElementById(id);
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 2500);
   }
+
   function updatePreview() {
-    const company = JSON.parse(localStorage.getItem(STORAGE_KEY_COMPANY) || '{}');
-    const bank    = JSON.parse(localStorage.getItem(STORAGE_KEY_BANK)    || '{}');
+    const name      = document.getElementById('companyName').value;
+    const zip       = document.getElementById('companyZip').value;
+    const address   = document.getElementById('companyAddress').value;
+    const tel       = document.getElementById('companyTel').value;
+    const email     = document.getElementById('companyEmail').value;
+    const invoiceNo = document.getElementById('companyInvoiceNo').value;
     const nameEl = document.getElementById('previewName');
     const addrEl = document.getElementById('previewAddress');
-    nameEl.textContent = company.name || '（会社名未設定）';
+    nameEl.textContent = name || '（会社名未設定）';
     const addrParts = [];
-    if (company.zip)     addrParts.push('〒' + company.zip);
-    if (company.address) addrParts.push(company.address);
-    if (company.tel)     addrParts.push('TEL: ' + company.tel);
-    if (company.email)   addrParts.push(company.email);
-    if (company.invoiceNo) addrParts.push('登録番号: ' + company.invoiceNo);
+    if (zip)       addrParts.push('〒' + zip);
+    if (address)   addrParts.push(address);
+    if (tel)       addrParts.push('TEL: ' + tel);
+    if (email)     addrParts.push(email);
+    if (invoiceNo) addrParts.push('登録番号: ' + invoiceNo);
     addrEl.textContent = addrParts.join('  ') || '（住所・連絡先未設定）';
+    const bankName   = document.getElementById('bankName').value;
+    const bankBranch = document.getElementById('bankBranch').value;
+    const bankType   = document.getElementById('bankType').value;
+    const bankNumber = document.getElementById('bankNumber').value;
+    const bankHolder = document.getElementById('bankHolder').value;
+    const bankNote   = document.getElementById('bankNote').value;
     const bankEl = document.getElementById('previewBank');
-    if (!bank.name && !bank.number) {
+    if (!bankName && !bankNumber) {
       bankEl.textContent = '（振込先未設定）';
     } else {
       const lines = [];
-      if (bank.name || bank.branch) lines.push([bank.name, bank.branch].filter(Boolean).join(' '));
-      if (bank.type || bank.number) lines.push(bank.type + '  ' + bank.number);
-      if (bank.holder) lines.push('口座名義: ' + bank.holder);
-      if (bank.note)   lines.push(bank.note);
+      if (bankName || bankBranch) lines.push([bankName, bankBranch].filter(Boolean).join(' '));
+      if (bankType || bankNumber) lines.push(bankType + '  ' + bankNumber);
+      if (bankHolder) lines.push('口座名義: ' + bankHolder);
+      if (bankNote)   lines.push(bankNote);
       bankEl.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
     }
   }
-  ['companyName','companyZip','companyAddress','companyTel','companyEmail','companyInvoiceNo',
-   'bankName','bankBranch','bankType','bankNumber','bankHolder','bankNote'].forEach(id => {
+
+  ['companyName','companyZip','companyAddress','companyTel','companyEmail','companyInvoiceNo','companyPerson',
+   'bankName','bankBranch','bankType','bankNumber','bankHolder','bankNote','paymentDays'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updatePreview);
   });
+
   loadAll();
 </script>
 </body>
