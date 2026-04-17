@@ -131,6 +131,8 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
   </div>
 </main>
 <script>
+  // ===== ページガード =====
+  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
 const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
 const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 

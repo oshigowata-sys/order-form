@@ -294,6 +294,8 @@
 </div>
 
 <script>
+  // ===== ページガード =====
+  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 

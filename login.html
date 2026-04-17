@@ -226,6 +226,14 @@
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
+  // パスワードをSHA-256でハッシュ化
+  async function hashPassword(password) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   async function login() {
     const loginId  = document.getElementById('loginId').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -244,8 +252,9 @@
     errorMsg.classList.remove('show');
 
     try {
+      const hashedPw = await hashPassword(password);
       const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&password=eq.${encodeURIComponent(password)}&select=id,name,role,customer_id&limit=1`,
+        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&password=eq.${encodeURIComponent(hashedPw)}&select=id,name,role,customer_id&limit=1`,
         {
           headers: {
             'apikey': SB_KEY,
