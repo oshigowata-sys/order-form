@@ -185,6 +185,34 @@
           <button class="btn-primary" onclick="saveBank()">保存する</button>
         </div>
       </div>
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <span class="settings-card-icon">🔑</span>
+          <div class="settings-card-title">ログイン情報の変更</div>
+        </div>
+        <div class="settings-card-body">
+          <div class="form-group">
+            <label class="form-label">現在のパスワード<span>*</span></label>
+            <input type="password" class="form-input" id="currentPassword" placeholder="現在のパスワードを入力" style="max-width:320px" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">新しいログインID</label>
+            <input type="text" class="form-input" id="newLoginId" placeholder="変更する場合のみ入力" style="max-width:320px" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">新しいパスワード</label>
+            <input type="password" class="form-input" id="newPassword" placeholder="変更する場合のみ入力" style="max-width:320px" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">新しいパスワード（確認）</label>
+            <input type="password" class="form-input" id="newPasswordConfirm" placeholder="もう一度入力" style="max-width:320px" />
+          </div>
+        </div>
+        <div class="settings-card-footer">
+          <div class="save-msg" id="saveMsgLogin">✓ 変更しました</div>
+          <button class="btn-primary" onclick="saveLogin()">変更する</button>
+        </div>
+      </div>
       <div class="preview-card">
         <div class="preview-card-header">
           <span class="settings-card-icon">👁️</span>
@@ -209,6 +237,63 @@
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  async function hashPassword(pw) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function saveLogin() {
+    const currentPw      = document.getElementById('currentPassword').value;
+    const newLoginId     = document.getElementById('newLoginId').value.trim();
+    const newPw          = document.getElementById('newPassword').value;
+    const newPwConfirm   = document.getElementById('newPasswordConfirm').value;
+
+    if (!currentPw) { alert('現在のパスワードを入力してください'); return; }
+    if (newPw && newPw !== newPwConfirm) { alert('新しいパスワードが一致しません'); return; }
+    if (!newLoginId && !newPw) { alert('新しいログインIDまたはパスワードを入力してください'); return; }
+
+    try {
+      const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+      const currentHash = await hashPassword(currentPw);
+
+      // 現在のパスワードを確認
+      const checkRes = await sbFetch(
+        `/rest/v1/accounts?login_id=eq.${encodeURIComponent(user.id)}&password=eq.${encodeURIComponent(currentHash)}&select=id&limit=1`
+      );
+      const checkData = await checkRes.json();
+      if (!checkData || checkData.length === 0) {
+        alert('現在のパスワードが正しくありません');
+        return;
+      }
+
+      // 更新データを構築
+      const update = {};
+      if (newLoginId) update.login_id = newLoginId;
+      if (newPw)      update.password = await hashPassword(newPw);
+
+      const res = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(user.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(update),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      // sessionStorageのIDも更新
+      if (newLoginId) {
+        const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+        u.id = newLoginId;
+        sessionStorage.setItem('user', JSON.stringify(u));
+      }
+
+      flashSave('saveMsgLogin');
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newLoginId').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('newPasswordConfirm').value = '';
+    } catch(e) {
+      alert('変更に失敗しました: ' + e.message);
+    }
+  }
 
   function sbFetch(path, opts = {}) {
     return fetch(SB_URL + path, {

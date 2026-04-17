@@ -123,10 +123,10 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   </div>
   <div class="content">
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">¥482,000</div><div class="kpi-sub" id="kpiSalesSub">前月比 +8.3%</div></div>
-      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">¥96,400</div><div class="kpi-sub" id="kpiProfitSub">利益率 20.0%</div></div>
-      <div class="kpi-card"><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">12件</div><div class="kpi-sub" id="kpiOrdersSub">前月比 +2件</div></div>
-      <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">3件</div><div class="kpi-sub" id="kpiPendingSub">要対応</div></div>
+      <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
+      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
     </div>
     <div class="section-col">
       <div class="card">
@@ -216,6 +216,17 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     const sel = document.getElementById('periodSelect');
     if (months.length === 0) {
       sel.innerHTML = '<option value="">データなし</option>';
+      document.getElementById('kpiSales').textContent   = '¥0';
+      document.getElementById('kpiProfit').textContent  = '¥0';
+      document.getElementById('kpiOrders').textContent  = '0件';
+      document.getElementById('kpiPending').textContent = '0件';
+      document.getElementById('kpiSalesSub').textContent   = '—';
+      document.getElementById('kpiProfitSub').textContent  = '—';
+      document.getElementById('kpiOrdersSub').textContent  = '—';
+      document.getElementById('kpiPendingSub').textContent = '処理待ちなし';
+      document.getElementById('periodLabel').textContent   = '受注データがありません';
+      document.getElementById('chart').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">受注データがありません</div>';
+      document.getElementById('recentOrders').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#aaa;">受注データがありません</td></tr>';
       return;
     }
     sel.innerHTML = months.map(m => {
