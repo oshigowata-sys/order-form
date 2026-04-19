@@ -221,24 +221,17 @@
   <div class="footer">© 2026 MeguRee. All rights reserved.</div>
 </div>
 
+<!-- bcryptjs: ブラウザ対応の純JSbcrypt実装 -->
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 <script>
-  // ===== Supabase 認証 =====
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
-  // パスワードをSHA-256でハッシュ化
-  async function hashPassword(password) {
-    const msgBuffer = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
   async function login() {
-    const loginId  = document.getElementById('loginId').value.trim();
-    const password = document.getElementById('password').value.trim();
-    const btn      = document.getElementById('loginBtn');
-    const errorMsg = document.getElementById('errorMsg');
+    const loginId   = document.getElementById('loginId').value.trim();
+    const password  = document.getElementById('password').value;
+    const btn       = document.getElementById('loginBtn');
+    const errorMsg  = document.getElementById('errorMsg');
     const errorText = document.getElementById('errorText');
 
     if (!loginId || !password) {
@@ -252,28 +245,21 @@
     errorMsg.classList.remove('show');
 
     try {
-      const hashedPw = await hashPassword(password);
+      // login_id でアカウントを取得（パスワードはURLに含めない）
       const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&password=eq.${encodeURIComponent(hashedPw)}&select=id,name,role,customer_id&limit=1`,
-        {
-          headers: {
-            'apikey': SB_KEY,
-            'Authorization': 'Bearer ' + SB_KEY
-          }
-        }
+        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,password_hash&limit=1`,
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
       );
-
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
-      if (data.length > 0) {
-        const account = data[0];
-        sessionStorage.setItem('user', JSON.stringify({
-          name: account.name,
-          id: loginId,
-          role: account.role,
-          customerId: account.customer_id
-        }));
+      // bcrypt でパスワードを照合
+      const account = data[0];
+      const valid = account && await bcrypt.compare(password, account.password_hash);
+
+      if (valid) {
+        const user = { name: account.name, id: loginId, role: account.role, customerId: account.customer_id };
+        sessionStorage.setItem('user', JSON.stringify(user));
         window.location.href = 'dashboard.html';
       } else {
         throw new Error('invalid');
