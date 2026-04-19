@@ -85,18 +85,55 @@
   }
   .kpi-value { font-size: 20px !important; }
 
-  /* Tables: horizontal scroll */
-  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .card > table,
-  .settings-card > table {
+  /* ---- Table → Card layout ---- */
+  /* thead は非表示（ラベルは data-label で代替） */
+  table thead { display: none !important; }
+
+  /* tbody の各行をカード化 */
+  table tbody { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  table tbody tr {
     display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    min-width: 540px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e2d9ce);
+    border-radius: 12px;
+    overflow: hidden;
   }
-  /* Keep thead/tbody as table elements inside scrollable block */
-  .card > table thead,
-  .card > table tbody { display: table; width: 100%; }
+
+  /* 各セルを「ラベル ── 値」の横並びに */
+  table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border, #e2d9ce);
+    white-space: normal;
+    word-break: break-word;
+  }
+  table tbody td:last-child { border-bottom: none; }
+
+  /* data-label をラベルとして左に表示 */
+  table tbody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted, #7a6a55);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    min-width: 72px;
+  }
+  /* data-label が空（アクション列）はラベル非表示・右寄せ */
+  table tbody td[data-label=""]::before { display: none; }
+  table tbody td[data-label=""] {
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* table-wrapper の横スクロール解除 */
+  .table-wrapper { overflow-x: visible; }
 
   /* Page title */
   .page-title { font-size: 15px !important; }
@@ -133,11 +170,6 @@
 
   /* Super dashboard (no sidebar) */
   .content > .card { margin-bottom: 16px; }
-  .content > .card table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
 }
 
 /* =============================================

@@ -1,15 +1,19 @@
 document.addEventListener('DOMContentLoaded', function () {
+  initSidebar();
+  initTableCards();
+});
+
+/* ========== Sidebar ========== */
+function initSidebar() {
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
 
-  // Inject overlay
   const overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
   overlay.id = 'sidebarOverlay';
   overlay.addEventListener('click', closeSidebar);
   document.body.prepend(overlay);
 
-  // Inject hamburger into topbar
   const topbar = document.querySelector('.topbar');
   if (topbar) {
     const ham = document.createElement('button');
@@ -20,11 +24,10 @@ document.addEventListener('DOMContentLoaded', function () {
     topbar.prepend(ham);
   }
 
-  // Close sidebar on nav-item click (mobile transition)
   sidebar.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', closeSidebar);
   });
-});
+}
 
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -38,4 +41,32 @@ function closeSidebar() {
   document.querySelector('.sidebar')?.classList.remove('open');
   document.getElementById('sidebarOverlay')?.classList.remove('open');
   document.body.classList.remove('sidebar-open');
+}
+
+/* ========== Table → Card layout ========== */
+// For each table, watch tbody for new rows (Supabase loads data async)
+// and inject data-label from the corresponding <th>
+function initTableCards() {
+  document.querySelectorAll('table').forEach(table => {
+    applyLabels(table);
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const observer = new MutationObserver(() => applyLabels(table));
+    observer.observe(tbody, { childList: true, subtree: false });
+  });
+}
+
+function applyLabels(table) {
+  const headers = Array.from(table.querySelectorAll('thead th'))
+    .map(th => th.textContent.trim());
+  if (!headers.length) return;
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    row.querySelectorAll('td').forEach((td, i) => {
+      const label = headers[i] || '';
+      td.setAttribute('data-label', label);
+    });
+  });
 }
