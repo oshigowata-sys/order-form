@@ -433,7 +433,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 
   async function loadProductsForEntry() {
     if (allProducts.length) return;
-    const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price,cost_price&order=product_name`);
+    const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price&order=product_name`);
     allProducts = await res.json();
     const sel = document.getElementById('newItemProduct');
     sel.innerHTML = '<option value="">商品を選択してください</option>' +
@@ -467,7 +467,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     if (existing) {
       existing.qty += qty;
     } else {
-      newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: product.cost_price || 0 });
+      newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0 });
     }
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
