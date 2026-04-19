@@ -685,11 +685,13 @@
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
     const dueDate = calcDueDate(f['受注日'], s.payment_days).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // 明細から合計を再計算
+    // 明細から合計を再計算（8%/10% 自動判定）
     const subtotal = items.reduce((sum, it) => sum + (Number(it['小計'] || it['subtotal'] || 0)), 0);
-    const taxRate = 0.10;
-    const tax = Math.floor(subtotal * taxRate);
+    const tax8  = items.filter(i => i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||i['subtotal']||0) * 0.08), 0);
+    const tax10 = items.filter(i => !i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||i['subtotal']||0) * 0.10), 0);
+    const tax = tax8 + tax10;
     const total = subtotal + tax;
+    const taxLabel = tax8 > 0 && tax10 > 0 ? '消費税（8%/10%）込み' : tax8 > 0 ? '消費税（8%）込み' : '消費税（10%）込み';
 
     // 明細行
     const itemRows = items.length > 0
@@ -697,15 +699,17 @@
           const qty = Number(it['数量'] || 0);
           const price = Number(it['単価'] || 0);
           const sub = Number(it['小計'] || qty * price || 0);
+          const rate = it.isFood ? '8%' : '10%';
           return `
             <tr>
               <td>${esc(it['商品名'] || '-')}</td>
               <td>${qty.toLocaleString()}</td>
               <td>${fmt(price)}</td>
               <td>${fmt(sub)}</td>
+              <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
             </tr>`;
         }).join('')
-      : `<tr><td colspan="4" style="text-align:center;color:#999;padding:24px;">明細データがありません</td></tr>`;
+      : `<tr><td colspan="5" style="text-align:center;color:#999;padding:24px;">明細データがありません</td></tr>`;
 
     // 発行者情報
     const fromBlock = s.name
@@ -748,7 +752,7 @@
         <div class="invoice-amount-highlight">
           <div class="amount-label">ご請求金額</div>
           <div class="amount-value">${fmt(total)}</div>
-          <div class="amount-tax">消費税(10%)込み</div>
+          <div class="amount-tax">${taxLabel}</div>
         </div>
       </div>
 
@@ -760,21 +764,20 @@
               <th>数量</th>
               <th>単価</th>
               <th>金額</th>
+              <th>税率</th>
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
           <tfoot>
             <tr>
               <td>小計</td>
-              <td colspan="3">${fmt(subtotal)}</td>
+              <td colspan="4">${fmt(subtotal)}</td>
             </tr>
-            <tr>
-              <td>消費税（10%）</td>
-              <td colspan="3">${fmt(tax)}</td>
-            </tr>
+            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
             <tr class="total-row">
               <td>合計（税込）</td>
-              <td colspan="3">${fmt(total)}</td>
+              <td colspan="4">${fmt(total)}</td>
             </tr>
           </tfoot>
         </table>
