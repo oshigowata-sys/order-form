@@ -54,6 +54,10 @@
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
   .btn-cancel { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 20px; border-radius: 10px; font-size: 13px; font-family: inherit; cursor: pointer; }
   .empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .pw-form { padding: 24px; display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: flex-end; }
+  .pw-form .form-group { margin-bottom: 0; }
+  .alert-success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #4ade80; display: none; margin: 0 24px 16px; }
+  .alert-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #f87171; display: none; margin: 0 24px 16px; }
 </style>
 </head>
 <body>
@@ -85,6 +89,29 @@
       </tr></thead>
       <tbody id="tenantTbody"><tr><td colspan="6" class="empty">読み込み中...</td></tr></tbody>
     </table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">パスワード変更</div>
+    </div>
+    <div class="alert-success" id="pwSuccess">パスワードを変更しました</div>
+    <div class="alert-error" id="pwError"></div>
+    <div class="pw-form">
+      <div class="form-group">
+        <label>現在のパスワード</label>
+        <input type="password" id="pwCurrent" placeholder="現在のパスワード" />
+      </div>
+      <div class="form-group">
+        <label>新しいパスワード</label>
+        <input type="password" id="pwNew" placeholder="新しいパスワード（6文字以上）" />
+      </div>
+      <div class="form-group">
+        <label>新しいパスワード（確認）</label>
+        <input type="password" id="pwConfirm" placeholder="もう一度入力" />
+      </div>
+      <button class="btn-primary" id="pwBtn" onclick="changePassword()">変更する</button>
+    </div>
   </div>
 
   <div id="inviteResult" style="display:none">
@@ -218,6 +245,60 @@
   function copyUrl() {
     const url = document.getElementById('inviteUrlText').textContent;
     navigator.clipboard.writeText(url).then(() => alert('コピーしました'));
+  }
+
+  async function changePassword() {
+    const cur = document.getElementById('pwCurrent').value.trim();
+    const nw  = document.getElementById('pwNew').value.trim();
+    const cf  = document.getElementById('pwConfirm').value.trim();
+    const successEl = document.getElementById('pwSuccess');
+    const errorEl   = document.getElementById('pwError');
+    successEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    if (!cur || !nw || !cf) { errorEl.textContent = 'すべての項目を入力してください'; errorEl.style.display = 'block'; return; }
+    if (nw.length < 6) { errorEl.textContent = 'パスワードは6文字以上にしてください'; errorEl.style.display = 'block'; return; }
+    if (nw !== cf) { errorEl.textContent = 'パスワードが一致しません'; errorEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('pwBtn');
+    btn.disabled = true; btn.textContent = '変更中...';
+
+    try {
+      const res = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(superAdmin.id)}&role=eq.super_admin&select=id,password&limit=1`);
+      const data = await res.json();
+      const account = data[0];
+      if (!account) throw new Error('account not found');
+
+      const curHash = await sha256(cur);
+      if (curHash !== account.password) {
+        errorEl.textContent = '現在のパスワードが正しくありません';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const newHash = await sha256(nw);
+      const upd = await sbFetch(`/rest/v1/accounts?id=eq.${account.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: newHash, password_hash: null })
+      });
+      if (!upd.ok) throw new Error('update failed');
+
+      document.getElementById('pwCurrent').value = '';
+      document.getElementById('pwNew').value = '';
+      document.getElementById('pwConfirm').value = '';
+      successEl.style.display = 'block';
+    } catch(e) {
+      console.error(e);
+      errorEl.textContent = 'パスワード変更に失敗しました';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = '変更する';
+    }
+  }
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
   loadTenants();
