@@ -338,8 +338,8 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       {label:'ステータス',val:`<span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span>`},
     ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
     document.getElementById('modalItems').innerHTML =
-      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead>
-      <tbody><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr></tbody>`;
+      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th>税率</th></tr></thead>
+      <tbody><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr></tbody>`;
     document.getElementById('detailOverlay').classList.add('open');
     loadOrderDetail(orderId);
   }
@@ -349,40 +349,35 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     if (!o) return;
     try {
       const res = await sbFetch(
-        `/rest/v1/order_items?select=quantity,unit_price,cost_price,products(product_code,product_name,is_food)&order_id=eq.${orderId}`
+        `/rest/v1/order_items?select=quantity,unit_price,products(product_code,product_name,is_food)&order_id=eq.${orderId}`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const items = await res.json();
 
-      let excl = 0, tax = 0, cost = 0;
+      let excl = 0, tax = 0;
       const rows = items.map(it => {
         const qty     = it.quantity || 0;
         const price   = it.unit_price || 0;
-        const cprice  = it.cost_price || 0;
         const isFood  = it.products?.is_food || false;
         const taxRate = isFood ? 0.08 : 0.10;
         const sub     = qty * price;
         excl  += sub;
         tax   += Math.round(sub * taxRate);
-        cost  += qty * cprice;
         return `<tr>
           <td style="font-size:12px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
           <td style="font-weight:500;white-space:normal">${esc(it.products?.product_name || '—')}</td>
           <td class="num-right">${qty}</td>
           <td class="num-right">¥${price.toLocaleString()}</td>
           <td class="num-right" style="font-weight:600">¥${sub.toLocaleString()}</td>
-          <td class="num-right" style="color:var(--text-muted)">¥${(qty*cprice).toLocaleString()}</td>
           <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減8%':'標準10%'}</span></td>
         </tr>`;
       }).join('');
 
       const incl = excl + tax;
-      const profit = excl - cost;
       document.getElementById('modalItems').innerHTML =
-        `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th class="num-right">原価</th><th>税率</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
+        `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th>税率</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
       document.getElementById('modalTotals').innerHTML = `
-        <div class="totals-item"><label>利益合計</label><span class="green">¥${profit.toLocaleString()}</span></div>
         <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
         <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
         <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
