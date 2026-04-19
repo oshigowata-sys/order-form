@@ -270,14 +270,18 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
       const res = await sbFetch(
-        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(quantity,unit_price,cost_price)&order=order_date.desc`
+        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       allOrders = data.map(r => {
-        const items    = r.order_items || [];
-        const excl     = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
-        const cost     = items.reduce((s, i) => s + (i.quantity * i.cost_price), 0);
+        const items = r.order_items || [];
+        const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+        const tax   = items.reduce((s, i) => {
+          const rate = i.products?.is_food ? 0.08 : 0.10;
+          return s + Math.round(i.quantity * i.unit_price * rate);
+        }, 0);
+        const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         return {
           id:       r.id,
           code:     r.order_code || r.id.slice(0,8),
@@ -285,6 +289,8 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
           date:     r.order_date || '',
           status:   r.status || '',
           excl,
+          tax,
+          incl: excl + tax,
           cost,
         };
       });
@@ -311,8 +317,8 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
         <td><span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span></td>
         <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${o.excl.toLocaleString()}</td>
-        <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
-        <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">—</td>
+        <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${o.tax.toLocaleString()}</td>
+        <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${o.incl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${profit.toLocaleString()}</td>
         <td><button class="btn btn-primary btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
       </tr>`;
