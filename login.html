@@ -221,6 +221,7 @@
   <div class="footer">© 2026 MeguRee. All rights reserved.</div>
 </div>
 
+<script src="auth.js"></script>
 <script>
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
@@ -243,6 +244,7 @@
     errorMsg.classList.remove('show');
 
     try {
+      // Step 1: Verify credentials via bcrypt RPC
       const res = await fetch(`${SB_URL}/rest/v1/rpc/verify_login`, {
         method: 'POST',
         headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
@@ -253,6 +255,24 @@
       const account = data[0];
       if (!account) throw new Error('invalid');
       if (account.role === 'super_admin') throw new Error('invalid');
+
+      // Step 2: Get Supabase Auth JWT (for RLS)
+      const email = account.login_id + '@meguree.internal';
+      let session = await sbSignIn(email, password);
+      if (!session?.access_token) {
+        // First login: create Supabase Auth account with metadata for RLS
+        await sbSignUp(email, password, {
+          login_id: account.login_id,
+          name: account.name,
+          role: account.role,
+          tenant_id: account.tenant_id,
+          customer_id: account.customer_id
+        });
+        session = await sbSignIn(email, password);
+      }
+      if (session?.access_token) {
+        sessionStorage.setItem('_sb_jwt', session.access_token);
+      }
 
       const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id };
       sessionStorage.setItem('user', JSON.stringify(user));

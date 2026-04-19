@@ -179,6 +179,7 @@
   </div>
 </div>
 
+<script src="auth.js"></script>
 <script>
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
@@ -189,14 +190,13 @@
   document.getElementById('adminName').textContent = superAdmin?.name || '';
 
   function logout() {
-    sessionStorage.removeItem('superAdmin');
-    location.replace('super-login.html');
+    signOut('super-login.html');
   }
 
   function sbFetch(path, opts = {}) {
     return fetch(SB_URL + path, {
       ...opts,
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers || {}) }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers || {}) }
     });
   }
 
@@ -298,7 +298,7 @@
     try {
       const res2 = await fetch(`${SB_URL}/rest/v1/rpc/change_password`, {
         method: 'POST',
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_login_id: superAdmin.id, p_current_password: cur, p_new_password: nw })
       });
       const ok = await res2.json();
@@ -307,6 +307,9 @@
         errorEl.style.display = 'block';
         return;
       }
+
+      // Supabase Auth パスワードも同期
+      await sbUpdatePassword(nw);
 
       document.getElementById('pwCurrent').value = '';
       document.getElementById('pwNew').value = '';
