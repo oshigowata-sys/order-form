@@ -140,38 +140,85 @@ function sbFetch(path, options = {}) {
   });
 }
 
+/* ── 締め日から直近完了期間を算出 ── */
+function calcBillingPeriod(closingDay, today = new Date()) {
+  const cd = closingDay || 31;
+  const todayDay   = today.getDate();
+  const todayMonth = today.getMonth();
+  const todayYear  = today.getFullYear();
+
+  // 今日が締め日以前 → 前月が最終締め日、それ以降 → 今月が最終締め日
+  let endYear, endMonth;
+  if (todayDay <= cd) {
+    endMonth = todayMonth - 1;
+    endYear  = todayYear;
+    if (endMonth < 0) { endMonth = 11; endYear = todayYear - 1; }
+  } else {
+    endMonth = todayMonth;
+    endYear  = todayYear;
+  }
+
+  // 末日を超えないよう調整（例: 31日締めで2月 → 28/29日）
+  const daysInEnd = new Date(endYear, endMonth + 1, 0).getDate();
+  const endDay    = Math.min(cd, daysInEnd);
+  const endD      = new Date(endYear, endMonth, endDay);
+
+  // 開始日 = 前々締め日の翌日
+  let prevMonth = endMonth - 1, prevYear = endYear;
+  if (prevMonth < 0) { prevMonth = 11; prevYear = endYear - 1; }
+  const daysInPrev  = new Date(prevYear, prevMonth + 1, 0).getDate();
+  const prevCloseDay = Math.min(cd, daysInPrev);
+  const startD = new Date(prevYear, prevMonth, prevCloseDay + 1);
+
+  return {
+    periodStart: startD.toISOString().slice(0, 10),
+    periodEnd:   endD.toISOString().slice(0, 10),
+  };
+}
+
 /* ── 未発行：受注を取引先ごとに集計 ── */
 async function loadPending() {
   document.getElementById('pendingTbody').innerHTML =
     '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
   try {
-    /* invoices に含まれていない orders を全取得 */
+    const today = new Date();
+
+    /* 全受注を取得 */
     const res = await sbFetch(
       `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const orders = await res.json();
 
-    /* 発行済み請求書の customer_id を取得してフィルタ */
-    const invRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&select=customer_id`);
-    const invoiced = new Set((await invRes.json()).map(i => i.customer_id));
+    /* 発行済み請求書を period_end 単位で管理
+       key: "customer_id:period_end" で既発行かどうかチェック */
+    const invRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&select=customer_id,period_end`);
+    const invoiced = new Set((await invRes.json()).map(i => `${i.customer_id}:${i.period_end}`));
 
-    /* 取引先ごとに集計（発行済みは除外） */
+    /* 取引先ごとに集計
+       - 今期の締め期間に含まれる受注のみ対象
+       - 同期間の請求書が既に発行済みなら除外 */
     const map = {};
     orders.forEach(o => {
       const cid = o.customers?.id;
-      if (!cid || invoiced.has(cid)) return;
+      if (!cid) return;
+
+      const cd = o.customers.closing_day || 31;
+      const { periodStart, periodEnd } = calcBillingPeriod(cd, today);
+
+      // 受注日が今期の締め期間外なら無視
+      if (o.order_date < periodStart || o.order_date > periodEnd) return;
+
+      // 同期間がすでに発行済みなら無視
+      if (invoiced.has(`${cid}:${periodEnd}`)) return;
+
       if (!map[cid]) {
-        const cd = o.customers.closing_day || 31;
-        const today = new Date('2026-04-15');
-        const startD = new Date(today.getFullYear(), today.getMonth() - 1, cd + 1);
-        const endD   = new Date(today.getFullYear(), today.getMonth(), cd);
         map[cid] = {
-          customerId: cid,
-          customer:   o.customers.company_name,
-          closingDay: cd,
-          periodStart: startD.toISOString().slice(0,10),
-          periodEnd:   endD.toISOString().slice(0,10),
+          customerId:  cid,
+          customer:    o.customers.company_name,
+          closingDay:  cd,
+          periodStart,
+          periodEnd,
           orders: 0, excl: 0, tax: 0
         };
       }
@@ -258,10 +305,10 @@ async function issueInvoice(r, btn) {
   if (!confirm(`「${r.customer}」の請求書を発行しますか？\n税込合計：¥${(r.excl+r.tax).toLocaleString()}`)) return;
   btn.disabled = true; btn.textContent = '発行中...';
   try {
-    /* 請求書番号を採番 */
-    const today = new Date('2026-04-15');
+    /* 請求書番号を採番（当月の発行済み件数 + 1） */
+    const today = new Date();
     const ym = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
-    const cntRes = await sbFetch(`/rest/v1/invoices?select=id&order=created_at.desc&limit=1`);
+    const cntRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=id`);
     const cnt = (await cntRes.json()).length + 1;
     const seq = String(cnt).padStart(3, '0');
     const num = `INV-${ym}-${seq}`;
