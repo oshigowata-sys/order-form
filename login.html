@@ -227,9 +227,14 @@
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   async function login() {
     const loginId   = document.getElementById('loginId').value.trim();
-    const password  = document.getElementById('password').value;
+    const password  = document.getElementById('password').value.trim();
     const btn       = document.getElementById('loginBtn');
     const errorMsg  = document.getElementById('errorMsg');
     const errorText = document.getElementById('errorText');
@@ -245,17 +250,22 @@
     errorMsg.classList.remove('show');
 
     try {
-      // login_id でアカウントを取得（パスワードはURLに含めない）
       const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,password_hash&limit=1`,
+        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,password,password_hash&limit=1`,
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-
-      // bcrypt でパスワードを照合
       const account = data[0];
-      const valid = account && await bcrypt.compare(password, account.password_hash);
+      if (!account) throw new Error('invalid');
+
+      let valid = false;
+      if (account.password_hash) {
+        valid = await bcrypt.compare(password, account.password_hash);
+      }
+      if (!valid && account.password) {
+        valid = (await sha256(password)) === account.password;
+      }
 
       if (valid) {
         const user = { name: account.name, id: loginId, role: account.role, customerId: account.customer_id };
