@@ -59,11 +59,6 @@
 
   if (sessionStorage.getItem('superAdmin')) location.replace('super-dashboard.html');
 
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-
   async function login() {
     const loginId  = document.getElementById('loginId').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -76,24 +71,18 @@
     errEl.classList.remove('show');
 
     try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&role=eq.super_admin&select=id,name,password,password_hash&limit=1`,
-        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
-      );
+      const res = await fetch(`${SB_URL}/rest/v1/rpc/verify_login`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login_id: loginId, p_password: password })
+      });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const account = data[0];
-      if (!account) throw new Error('invalid');
+      if (!account || account.role !== 'super_admin') throw new Error('invalid');
 
-      let valid = false;
-      if (account.password) valid = (await sha256(password)) === account.password;
-
-      if (valid) {
-        sessionStorage.setItem('superAdmin', JSON.stringify({ name: account.name, id: loginId }));
-        location.replace('super-dashboard.html');
-      } else {
-        throw new Error('invalid');
-      }
+      sessionStorage.setItem('superAdmin', JSON.stringify({ name: account.name, id: account.login_id }));
+      location.replace('super-dashboard.html');
     } catch(e) {
       errEl.classList.add('show');
       btn.disabled = false;
