@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お問い合わせ | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fdf6ee; --surface: #ffffff; --border: #e8d5bc;
+    --orange: #e8630a; --green: #1e6641;
+    --text: #1c1409; --text-muted: #8c7355; --danger: #dc2626;
+  }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: #fff; border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+  .header img { width: 140px; }
+  .header-sub { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+  .hero { background: linear-gradient(135deg, #1c1409 0%, #3a2510 100%); color: #fff; padding: 56px 32px; text-align: center; }
+  .hero-title { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+  .hero-sub { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.8; }
+  .hero-orange { color: var(--orange); }
+  .content { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 24px; padding: 40px; box-shadow: 0 8px 40px rgba(232,99,10,0.08); }
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; letter-spacing: 1px; text-transform: uppercase; }
+  .required { color: var(--orange); margin-left: 4px; }
+  input, select, textarea { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: 'Noto Sans JP', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--orange); background: #fff; }
+  textarea { resize: vertical; min-height: 120px; }
+  .radio-group { display: flex; gap: 16px; }
+  .radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 10px; flex: 1; transition: border-color 0.2s, background 0.2s; }
+  .radio-label:has(input:checked) { border-color: var(--orange); background: #fff4ec; }
+  .radio-label input { width: auto; padding: 0; background: none; border: none; cursor: pointer; }
+  .btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
+  .error.show { display: block; }
+  .success-screen { display: none; text-align: center; padding: 40px 0; }
+  .success-screen.show { display: block; }
+  .success-icon { font-size: 56px; margin-bottom: 20px; }
+  .success-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: var(--green); }
+  .success-sub { font-size: 14px; color: var(--text-muted); line-height: 1.8; }
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .card { padding: 24px; }
+    .hero { padding: 40px 20px; }
+    .hero-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
+  <span class="header-sub">受注管理システム</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">導入のご相談・<span class="hero-orange">お問い合わせ</span></div>
+  <div class="hero-sub">MeguReeの導入に関するご質問・ご相談はこちらから。<br>担当者より2営業日以内にご連絡いたします。</div>
+</div>
+
+<div class="content">
+  <div class="card">
+    <div id="formArea">
+      <div class="card-title">お問い合わせフォーム</div>
+      <div class="error" id="errorMsg"></div>
+
+      <div class="form-group">
+        <label>事業形態<span class="required">*</span></label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="companyType" value="法人" checked /> 法人</label>
+          <label class="radio-label"><input type="radio" name="companyType" value="個人事業主" /> 個人事業主</label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>会社名・屋号<span class="required">*</span></label>
+          <input type="text" id="companyName" placeholder="例：株式会社ひかる商店" />
+        </div>
+        <div class="form-group">
+          <label>企業規模<span class="required">*</span></label>
+          <select id="companySize">
+            <option value="">選択してください</option>
+            <option value="1〜5名">1〜5名</option>
+            <option value="6〜20名">6〜20名</option>
+            <option value="21〜50名">21〜50名</option>
+            <option value="51名以上">51名以上</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>担当者名<span class="required">*</span></label>
+          <input type="text" id="contactName" placeholder="例：山田 太郎" />
+        </div>
+        <div class="form-group">
+          <label>電話番号</label>
+          <input type="tel" id="phone" placeholder="例：03-1234-5678" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>メールアドレス<span class="required">*</span></label>
+        <input type="email" id="email" placeholder="例：info@example.com" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>業種<span class="required">*</span></label>
+          <select id="industry">
+            <option value="">選択してください</option>
+            <option value="観光卸">観光卸</option>
+            <option value="花き卸">花き卸</option>
+            <option value="酒類卸">酒類卸</option>
+            <option value="農協（JA）関連">農協（JA）関連</option>
+            <option value="食品卸">食品卸</option>
+            <option value="その他卸売">その他卸売</option>
+            <option value="特になし・その他">特になし・その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>現在の受注管理方法<span class="required">*</span></label>
+          <select id="orderMethod">
+            <option value="">選択してください</option>
+            <option value="FAX">FAX</option>
+            <option value="電話">電話</option>
+            <option value="Excel・スプレッドシート">Excel・スプレッドシート</option>
+            <option value="既存システム">既存システム</option>
+            <option value="特になし・その他">特になし・その他</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>月間受注件数（目安）</label>
+          <select id="monthlyOrders">
+            <option value="">選択してください（任意）</option>
+            <option value="50件未満">50件未満</option>
+            <option value="50〜200件">50〜200件</option>
+            <option value="200〜500件">200〜500件</option>
+            <option value="500件以上">500件以上</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>導入希望時期</label>
+          <select id="desiredStart">
+            <option value="">選択してください（任意）</option>
+            <option value="1ヶ月以内">1ヶ月以内</option>
+            <option value="3ヶ月以内">3ヶ月以内</option>
+            <option value="半年以内">半年以内</option>
+            <option value="未定">未定</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>お問い合わせ内容<span class="required">*</span></label>
+        <textarea id="message" placeholder="ご質問・ご要望などをご記入ください"></textarea>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="submit()">送信する</button>
+    </div>
+
+    <div class="success-screen" id="successScreen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">お問い合わせを受け付けました</div>
+      <div class="success-sub">ご入力いただいたメールアドレス宛に確認メールをお送りします。<br>担当者より2営業日以内にご連絡いたします。<br><br>引き続きMeguReeをよろしくお願いいたします。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  async function submit() {
+    const errEl = document.getElementById('errorMsg');
+    errEl.classList.remove('show');
+
+    const companyType  = document.querySelector('input[name="companyType"]:checked')?.value;
+    const companyName  = document.getElementById('companyName').value.trim();
+    const companySize  = document.getElementById('companySize').value;
+    const contactName  = document.getElementById('contactName').value.trim();
+    const email        = document.getElementById('email').value.trim();
+    const phone        = document.getElementById('phone').value.trim() || null;
+    const industry     = document.getElementById('industry').value;
+    const orderMethod  = document.getElementById('orderMethod').value;
+    const monthlyOrders = document.getElementById('monthlyOrders').value || null;
+    const desiredStart = document.getElementById('desiredStart').value || null;
+    const message      = document.getElementById('message').value.trim();
+
+    if (!companyName || !companySize || !contactName || !email || !industry || !orderMethod || !message) {
+      errEl.textContent = '必須項目をすべて入力してください';
+      errEl.classList.add('show');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'メールアドレスの形式が正しくありません';
+      errEl.classList.add('show');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '送信中...';
+
+    try {
+      const res = await fetch(SB_URL + '/rest/v1/inquiries', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ company_type: companyType, company_name: companyName, company_size: companySize, contact_name: contactName, email, phone, industry, order_method: orderMethod, monthly_orders: monthlyOrders, desired_start: desiredStart, message })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      document.getElementById('formArea').style.display = 'none';
+      document.getElementById('successScreen').classList.add('show');
+    } catch(e) {
+      console.error(e);
+      errEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
+      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = '送信する';
+    }
+  }
+</script>
+</body>
+</html>

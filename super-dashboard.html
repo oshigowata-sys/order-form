@@ -58,6 +58,12 @@
   .pw-form .form-group { margin-bottom: 0; }
   .alert-success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #4ade80; display: none; margin: 0 24px 16px; }
   .alert-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #f87171; display: none; margin: 0 24px 16px; }
+  .status-new { display: inline-block; background: var(--orange-pale); color: var(--orange); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .status-contacted { display: inline-block; background: rgba(96,165,250,0.15); color: #60a5fa; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .status-closed { display: inline-block; background: rgba(139,143,168,0.15); color: var(--text-muted); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .inq-detail { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  select.status-select { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-family: inherit; padding: 4px 8px; cursor: pointer; width: auto; }
+  .count-badge { background: var(--orange); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -112,6 +118,32 @@
       </div>
       <button class="btn-primary" id="pwBtn" onclick="changePassword()">変更する</button>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">問い合わせ一覧 <span class="count-badge" id="inqCount">0</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="inqFilter" onchange="loadInquiries()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:inherit;padding:6px 12px;cursor:pointer">
+          <option value="">すべて</option>
+          <option value="new">新規のみ</option>
+          <option value="contacted">対応済のみ</option>
+          <option value="closed">クローズのみ</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>会社名</th>
+        <th>担当者</th>
+        <th>業種 / 受注管理</th>
+        <th>規模</th>
+        <th>連絡先</th>
+        <th>受信日</th>
+        <th>ステータス</th>
+      </tr></thead>
+      <tbody id="inqTbody"><tr><td colspan="7" class="empty">読み込み中...</td></tr></tbody>
+    </table>
   </div>
 
   <div id="inviteResult" style="display:none">
@@ -301,7 +333,53 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
+  async function loadInquiries() {
+    const filter = document.getElementById('inqFilter').value;
+    let url = '/rest/v1/inquiries?select=*&order=created_at.desc';
+    if (filter) url += `&status=eq.${filter}`;
+    const res = await sbFetch(url);
+    const rows = await res.json();
+    const tbody = document.getElementById('inqTbody');
+    const allRes = await sbFetch('/rest/v1/inquiries?select=id&status=eq.new');
+    const newCount = (await allRes.json()).length;
+    document.getElementById('inqCount').textContent = newCount > 0 ? newCount + ' 件未対応' : rows.length + ' 件';
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">問い合わせはありません</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>
+        <div style="font-weight:600">${esc(r.company_name)}</div>
+        <div class="inq-detail">${esc(r.company_type)} / ${esc(r.company_size)}</div>
+      </td>
+      <td>${esc(r.contact_name)}</td>
+      <td>
+        <div>${esc(r.industry)}</div>
+        <div class="inq-detail">${esc(r.order_method)}</div>
+      </td>
+      <td style="font-size:12px;color:var(--text-muted)">${esc(r.monthly_orders) || '—'}</td>
+      <td>
+        <div style="font-size:12px">${esc(r.email)}</div>
+        <div class="inq-detail">${esc(r.phone) || '—'}</div>
+      </td>
+      <td style="color:var(--text-muted);font-size:12px">${(r.created_at||'').slice(0,10)}</td>
+      <td>
+        <select class="status-select" onchange="updateInqStatus('${esc(r.id)}', this.value)">
+          <option value="new" ${r.status==='new'?'selected':''}>🆕 新規</option>
+          <option value="contacted" ${r.status==='contacted'?'selected':''}>✅ 対応済</option>
+          <option value="closed" ${r.status==='closed'?'selected':''}>🔒 クローズ</option>
+        </select>
+      </td>
+    </tr>`).join('');
+  }
+
+  async function updateInqStatus(id, status) {
+    await sbFetch(`/rest/v1/inquiries?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    await loadInquiries();
+  }
+
   loadTenants();
+  loadInquiries();
 </script>
 </body>
 </html>
