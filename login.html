@@ -251,7 +251,7 @@
 
     try {
       const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,password,password_hash&limit=1`,
+        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,tenant_id,password,password_hash&limit=1`,
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -268,7 +268,7 @@
       }
 
       if (valid) {
-        const user = { name: account.name, id: loginId, role: account.role, customerId: account.customer_id };
+        const user = { name: account.name, id: loginId, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id };
         sessionStorage.setItem('user', JSON.stringify(user));
         window.location.href = 'dashboard.html';
       } else {

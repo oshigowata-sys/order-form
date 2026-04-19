@@ -298,6 +298,7 @@
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   function sbFetch(path, options = {}) {
     return fetch(SB_URL + path, {
@@ -323,7 +324,7 @@
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><span class="spinner"></span>読み込み中...</td></tr>';
     try {
-      const res = await sbFetch('/rest/v1/products?select=*&order=product_name');
+      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=*&order=product_name`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       products = data.map(r => ({
@@ -401,6 +402,7 @@
       product_name: name,
       price:        Number(price),
       is_food:      document.getElementById('formIsFood').checked,
+      tenant_id:    tenantId,
     };
 
     try {

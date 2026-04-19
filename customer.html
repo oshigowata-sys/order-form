@@ -163,6 +163,7 @@
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   function sbFetch(path, options = {}) {
     return fetch(SB_URL + path, {
@@ -196,7 +197,7 @@
     const tbody = document.getElementById('customerTbody');
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
-      const res = await sbFetch('/rest/v1/customers?select=*&order=company_name');
+      const res = await sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=*&order=company_name`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       customers = data.map(r => ({
@@ -269,6 +270,7 @@
       phone:        document.getElementById('fPhone').value.trim()   || null,
       email:        document.getElementById('fEmail').value.trim()   || null,
       closing_day:  Number(document.getElementById('fClosing').value.trim()) || null,
+      tenant_id:    tenantId,
     };
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');
     saveBtn.disabled = true; saveBtn.textContent = '保存中...';

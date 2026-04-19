@@ -135,6 +135,7 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
 const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
 const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
 
 function sbFetch(path, options = {}) {
   return fetch(SB_URL + path, {
@@ -159,9 +160,9 @@ async function loadAll() {
   setTableLoading(true);
   try {
     const [custRes, prodRes, pricingRes] = await Promise.all([
-      sbFetch('/rest/v1/customers?select=id,company_name&order=company_name'),
-      sbFetch('/rest/v1/products?select=id,product_name,price&order=product_name'),
-      sbFetch('/rest/v1/pricing?select=id,rate,customer_id,product_id,customers(company_name),products(product_name,price)&order=created_at')
+      sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name&order=company_name`),
+      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price&order=product_name`),
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=id,rate,customer_id,product_id,customers(company_name),products(product_name,price)&order=created_at`)
     ]);
     if (!custRes.ok || !prodRes.ok || !pricingRes.ok) throw new Error('データ取得失敗');
 
@@ -295,7 +296,7 @@ async function savePricing() {
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '保存中...';
   try {
-    const payload = { customer_id: customerId, product_id: productId, rate };
+    const payload = { customer_id: customerId, product_id: productId, rate, tenant_id: tenantId };
     if (id) {
       const res = await sbFetch('/rest/v1/pricing?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(payload) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
