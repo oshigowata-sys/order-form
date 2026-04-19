@@ -261,7 +261,7 @@
 
       let valid = false;
       if (account.password_hash) {
-        valid = await bcrypt.compare(password, account.password_hash);
+        try { valid = await bcrypt.compare(password, account.password_hash); } catch(_) {}
       }
       if (!valid && account.password) {
         valid = (await sha256(password)) === account.password;
