@@ -225,10 +225,30 @@
   }
 
   // テナントIDをURLパラメータから取得（必須）
-  const TENANT_ID = new URLSearchParams(location.search).get('tenant') || null;
+  const _params    = new URLSearchParams(location.search);
+  const TENANT_ID  = _params.get('tenant')   || null;
+  const CUSTOMER_ID = _params.get('customer') || null;
   if (!TENANT_ID) {
     document.getElementById('formArea').style.display = 'none';
     document.getElementById('invalidScreen').classList.add('show');
+  }
+  // customer パラメータがある場合は会社名を自動セット・読み取り専用にする
+  if (CUSTOMER_ID) {
+    (async () => {
+      try {
+        const res = await sbFetch(`/rest/v1/customers?id=eq.${CUSTOMER_ID}&select=company_name&limit=1`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) {
+            const input = document.getElementById('companyName');
+            input.value = data[0].company_name;
+            input.readOnly = true;
+            input.style.background = '#f0ede8';
+            input.style.color = 'var(--text-muted)';
+          }
+        }
+      } catch(e) { console.warn('顧客名取得エラー:', e); }
+    })();
   }
 
   // ===== セッションキャッシュ =====
@@ -394,20 +414,22 @@
     btn.textContent = '送信中...';
     hideError();
 
-    // フォームの会社名から customer_id を取得
-    let customerId = null;
-    try {
-      const companyName = document.getElementById('companyName').value.trim();
-      const tenantFilter = TENANT_ID ? `&tenant_id=eq.${TENANT_ID}` : '';
-      const custRes = await sbFetch(
-        '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + tenantFilter + '&select=id&limit=1'
-      );
-      if (custRes.ok) {
-        const custData = await custRes.json();
-        if (custData.length > 0) customerId = custData[0].id;
+    // customer_id を取得（URLパラメータ優先、なければ会社名で検索）
+    let customerId = CUSTOMER_ID || null;
+    if (!customerId) {
+      try {
+        const companyName = document.getElementById('companyName').value.trim();
+        const tenantFilter = TENANT_ID ? `&tenant_id=eq.${TENANT_ID}` : '';
+        const custRes = await sbFetch(
+          '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + tenantFilter + '&select=id&limit=1'
+        );
+        if (custRes.ok) {
+          const custData = await custRes.json();
+          if (custData.length > 0) customerId = custData[0].id;
+        }
+      } catch(e) {
+        console.warn('顧客検索エラー:', e);
       }
-    } catch(e) {
-      console.warn('顧客検索エラー:', e);
     }
 
     try {
