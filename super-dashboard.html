@@ -296,24 +296,17 @@
     btn.disabled = true; btn.textContent = '変更中...';
 
     try {
-      const res = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(superAdmin.id)}&role=eq.super_admin&select=id,password&limit=1`);
-      const data = await res.json();
-      const account = data[0];
-      if (!account) throw new Error('account not found');
-
-      const curHash = await sha256(cur);
-      if (curHash !== account.password) {
+      const res2 = await fetch(`${SB_URL}/rest/v1/rpc/change_password`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login_id: superAdmin.id, p_current_password: cur, p_new_password: nw })
+      });
+      const ok = await res2.json();
+      if (!ok) {
         errorEl.textContent = '現在のパスワードが正しくありません';
         errorEl.style.display = 'block';
         return;
       }
-
-      const newHash = await sha256(nw);
-      const upd = await sbFetch(`/rest/v1/accounts?id=eq.${account.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ password: newHash, password_hash: null })
-      });
-      if (!upd.ok) throw new Error('update failed');
 
       document.getElementById('pwCurrent').value = '';
       document.getElementById('pwNew').value = '';
@@ -326,11 +319,6 @@
     } finally {
       btn.disabled = false; btn.textContent = '変更する';
     }
-  }
-
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
   async function loadInquiries() {

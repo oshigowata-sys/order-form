@@ -221,16 +221,9 @@
   <div class="footer">© 2026 MeguRee. All rights reserved.</div>
 </div>
 
-<!-- bcryptjs: ブラウザ対応の純JSbcrypt実装 -->
-<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 <script>
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
-
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
 
   async function login() {
     const loginId   = document.getElementById('loginId').value.trim();
@@ -250,30 +243,20 @@
     errorMsg.classList.remove('show');
 
     try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id,name,role,customer_id,tenant_id,password,password_hash&limit=1`,
-        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
-      );
+      const res = await fetch(`${SB_URL}/rest/v1/rpc/verify_login`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login_id: loginId, p_password: password })
+      });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const account = data[0];
       if (!account) throw new Error('invalid');
+      if (account.role === 'super_admin') throw new Error('invalid');
 
-      let valid = false;
-      if (account.password_hash) {
-        try { valid = await bcrypt.compare(password, account.password_hash); } catch(_) {}
-      }
-      if (!valid && account.password) {
-        valid = (await sha256(password)) === account.password;
-      }
-
-      if (valid) {
-        const user = { name: account.name, id: loginId, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id };
-        sessionStorage.setItem('user', JSON.stringify(user));
-        window.location.href = 'dashboard.html';
-      } else {
-        throw new Error('invalid');
-      }
+      const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id };
+      sessionStorage.setItem('user', JSON.stringify(user));
+      window.location.href = 'dashboard.html';
     } catch(e) {
       errorText.textContent = 'IDまたはパスワードが正しくありません';
       errorMsg.classList.add('show');
