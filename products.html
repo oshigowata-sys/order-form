@@ -224,7 +224,7 @@
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
   </nav>
   <div class="sidebar-footer">
-    <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
+    <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
   </div>
 </aside>
 
@@ -293,6 +293,7 @@
   </div>
 </div>
 
+<script src="auth.js"></script>
 <script>
   // ===== ページガード =====
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
@@ -305,7 +306,7 @@
       ...options,
       headers: {
         'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
         ...(options.headers || {})

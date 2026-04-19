@@ -77,7 +77,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
   </nav>
   <div class="sidebar-footer">
-    <a class="logout-item" href="login.html"><span class="icon">🚪</span>ログアウト</a>
+    <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
   </div>
 </aside>
 <main class="main">
@@ -118,6 +118,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
     </div>
   </div>
 </main>
+<script src="auth.js"></script>
 <script>
   // ===== ページガード =====
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
@@ -130,7 +131,7 @@ function sbFetch(path, options = {}) {
     ...options,
     headers: {
       'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
+      'Authorization': 'Bearer ' + getAccessToken(),
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...(options.headers || {})

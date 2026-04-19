@@ -53,6 +53,7 @@
     <button class="btn" id="loginBtn" onclick="login()">ログインする</button>
   </div>
 </div>
+<script src="auth.js"></script>
 <script>
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
@@ -71,6 +72,7 @@
     errEl.classList.remove('show');
 
     try {
+      // Step 1: Verify credentials via bcrypt RPC
       const res = await fetch(`${SB_URL}/rest/v1/rpc/verify_login`, {
         method: 'POST',
         headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
@@ -80,6 +82,21 @@
       const data = await res.json();
       const account = data[0];
       if (!account || account.role !== 'super_admin') throw new Error('invalid');
+
+      // Step 2: Get Supabase Auth JWT (for RLS)
+      const email = account.login_id + '@meguree.internal';
+      let session = await sbSignIn(email, password);
+      if (!session?.access_token) {
+        await sbSignUp(email, password, {
+          login_id: account.login_id,
+          name: account.name,
+          role: account.role
+        });
+        session = await sbSignIn(email, password);
+      }
+      if (session?.access_token) {
+        sessionStorage.setItem('_sb_jwt', session.access_token);
+      }
 
       sessionStorage.setItem('superAdmin', JSON.stringify({ name: account.name, id: account.login_id }));
       location.replace('super-dashboard.html');
