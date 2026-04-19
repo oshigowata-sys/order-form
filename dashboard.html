@@ -149,6 +149,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const BADGE = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   let allOrders = [];
 
@@ -160,7 +161,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   async function loadDashboard() {
     try {
       const res = await fetch(
-        SB_URL + '/rest/v1/orders?select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity,cost_price)',
+        SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity,cost_price)`,
         {
           headers: {
             'apikey': SB_KEY,

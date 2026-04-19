@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeguRee - アカウント登録</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fdf6ee; --surface: #ffffff; --border: #e8d5bc;
+    --orange: #e8630a; --orange-pale: #fff4ec;
+    --green: #1e6641; --text: #1c1409; --text-muted: #8c7355;
+    --danger: #dc2626;
+  }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .wrapper { width: 100%; max-width: 480px; padding: 24px; }
+  .logo { text-align: center; margin-bottom: 32px; }
+  .logo img { width: 180px; }
+  .logo-sub { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; margin-top: 6px; }
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 24px; padding: 40px; box-shadow: 0 8px 40px rgba(232,99,10,0.08); }
+  .card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .card-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; letter-spacing: 1px; text-transform: uppercase; }
+  input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px; font-family: 'Noto Sans JP', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--orange); background: #fff; }
+  .btn { width: 100%; padding: 14px; background: var(--orange); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 8px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
+  .error.show { display: block; }
+  .success { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 20px; text-align: center; display: none; }
+  .success.show { display: block; }
+  .success-icon { font-size: 40px; margin-bottom: 12px; }
+  .success-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--green); }
+  .success-sub { font-size: 13px; color: var(--text-muted); }
+  .expired { text-align: center; padding: 40px 0; }
+  .expired-icon { font-size: 48px; margin-bottom: 16px; }
+  .expired-title { font-size: 18px; font-weight: 700; color: var(--danger); margin-bottom: 8px; }
+  .expired-sub { font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
+    <div class="logo-sub">受注管理システム</div>
+  </div>
+
+  <div class="card" id="mainCard">
+    <div id="loadingView">読み込み中...</div>
+
+    <div id="expiredView" class="expired" style="display:none">
+      <div class="expired-icon">⏰</div>
+      <div class="expired-title">招待URLが無効です</div>
+      <div class="expired-sub">URLの有効期限が切れているか、すでに使用済みです。<br>担当者にお問い合わせください。</div>
+    </div>
+
+    <div id="formView" style="display:none">
+      <div class="card-title">アカウント登録</div>
+      <div class="card-sub">以下の情報を入力してアカウントを作成してください</div>
+      <div class="error" id="errorMsg"></div>
+      <div class="form-group">
+        <label>会社名・屋号</label>
+        <input type="text" id="companyName" placeholder="例：株式会社ひかる商店" />
+      </div>
+      <div class="form-group">
+        <label>ログインID</label>
+        <input type="text" id="loginId" placeholder="半角英数字で入力" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>パスワード</label>
+        <input type="password" id="password" placeholder="8文字以上を推奨" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label>パスワード（確認）</label>
+        <input type="password" id="passwordConfirm" placeholder="もう一度入力" autocomplete="new-password" />
+      </div>
+      <button class="btn" id="submitBtn" onclick="register()">アカウントを作成する</button>
+    </div>
+
+    <div id="successView" class="success" style="display:none">
+      <div class="success-icon">✅</div>
+      <div class="success-title">登録完了しました！</div>
+      <div class="success-sub">ログイン画面からMeguReeをお使いください。</div>
+      <button class="btn" style="margin-top:20px;width:auto;padding:12px 32px" onclick="location.href='login.html'">ログインページへ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+
+  let invitationId = null;
+  let tenantId = null;
+
+  async function sbFetch(path, opts = {}) {
+    return fetch(SB_URL + path, {
+      ...opts,
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers || {}) }
+    });
+  }
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function init() {
+    if (!token) { showExpired(); return; }
+    const res = await sbFetch(`/rest/v1/invitations?token=eq.${encodeURIComponent(token)}&select=*&limit=1`);
+    const data = await res.json();
+    const inv = data[0];
+    if (!inv || inv.used_at || new Date(inv.expires_at) < new Date()) { showExpired(); return; }
+    invitationId = inv.id;
+    tenantId = inv.tenant_id;
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('formView').style.display = 'block';
+  }
+
+  function showExpired() {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('expiredView').style.display = 'block';
+  }
+
+  async function register() {
+    const company = document.getElementById('companyName').value.trim();
+    const loginId = document.getElementById('loginId').value.trim();
+    const pw      = document.getElementById('password').value.trim();
+    const pwConf  = document.getElementById('passwordConfirm').value.trim();
+    const errEl   = document.getElementById('errorMsg');
+
+    errEl.classList.remove('show');
+    if (!company || !loginId || !pw) { errEl.textContent = 'すべての項目を入力してください'; errEl.classList.add('show'); return; }
+    if (pw.length < 6) { errEl.textContent = 'パスワードは6文字以上にしてください'; errEl.classList.add('show'); return; }
+    if (pw !== pwConf) { errEl.textContent = 'パスワードが一致しません'; errEl.classList.add('show'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '登録中...';
+
+    try {
+      // login_id の重複チェック
+      const chk = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id&limit=1`);
+      const chkData = await chk.json();
+      if (chkData.length > 0) { errEl.textContent = 'このログインIDはすでに使用されています'; errEl.classList.add('show'); btn.disabled = false; btn.textContent = 'アカウントを作成する'; return; }
+
+      // テナントの会社名を更新
+      if (tenantId) {
+        await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, { method: 'PATCH', body: JSON.stringify({ name: company }) });
+      }
+
+      // アカウント作成
+      const pwHash = await sha256(pw);
+      const accRes = await sbFetch('/rest/v1/accounts', {
+        method: 'POST',
+        body: JSON.stringify({ login_id: loginId, name: company, role: 'admin', password: pwHash, tenant_id: tenantId })
+      });
+      if (!accRes.ok) throw new Error('HTTP ' + accRes.status);
+
+      // settingsレコード初期作成
+      await sbFetch('/rest/v1/settings', {
+        method: 'POST',
+        body: JSON.stringify({ tenant_id: tenantId, company_name: company })
+      });
+
+      // 招待を使用済みに
+      await sbFetch(`/rest/v1/invitations?id=eq.${invitationId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ used_at: new Date().toISOString() })
+      });
+
+      document.getElementById('formView').style.display = 'none';
+      document.getElementById('successView').style.display = 'block';
+    } catch(e) {
+      console.error(e);
+      errEl.textContent = '登録に失敗しました。もう一度お試しください。';
+      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'アカウントを作成する';
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

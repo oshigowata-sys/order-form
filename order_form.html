@@ -213,6 +213,9 @@
     });
   }
 
+  // テナントIDをURLパラメータから取得
+  const TENANT_ID = new URLSearchParams(location.search).get('tenant') || null;
+
   // ===== セッションキャッシュ =====
   const sessionCache = {};
 
@@ -246,7 +249,8 @@
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
-        const res = await sbFetch('/rest/v1/products?select=id,product_name,price&order=product_name');
+        const tenantFilter = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
+        const res = await sbFetch(`/rest/v1/products?${tenantFilter}select=id,product_name,price&order=product_name`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
@@ -379,8 +383,9 @@
     let customerId = null;
     try {
       const companyName = document.getElementById('companyName').value.trim();
+      const tenantFilter = TENANT_ID ? `&tenant_id=eq.${TENANT_ID}` : '';
       const custRes = await sbFetch(
-        '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + '&select=id&limit=1'
+        '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + tenantFilter + '&select=id&limit=1'
       );
       if (custRes.ok) {
         const custData = await custRes.json();
@@ -412,7 +417,8 @@
           customer_id: customerId,
           order_code: orderCode,
           order_date: today,
-          status: '新規受注'
+          status: '新規受注',
+          tenant_id: TENANT_ID
         })
       });
 
