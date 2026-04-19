@@ -78,6 +78,21 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .totals-item span.highlight{color:var(--orange)}
 .totals-item span.green{color:var(--green)}
 .modal-btns{display:flex;gap:8px}
+/* 新規受注入力モーダル */
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group2{display:flex;flex-direction:column;gap:5px}
+.form-label2{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase}
+.form-input2{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
+.form-input2:focus{border-color:var(--orange);background:#fff}
+.add-item-row{display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:flex-end;margin-bottom:14px}
+.entry-items-table{width:100%;border-collapse:collapse;margin-top:8px}
+.entry-items-table th{font-size:11px;font-weight:700;color:var(--text-muted);padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.5px}
+.entry-items-table td{padding:9px 10px;font-size:13px;border-bottom:1px solid var(--border)}
+.entry-items-table tr:last-child td{border-bottom:none}
+.entry-total{text-align:right;padding:12px 0 4px;font-size:15px;font-weight:700}
+.btn-danger-sm{background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:2px 6px}
+.entry-error{color:#dc2626;font-size:12px;margin-top:4px;display:none}
+.entry-error.show{display:block}
 
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
@@ -112,6 +127,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="page-title">受注一覧</div>
       <div class="page-sub">受注データの確認・詳細を管理します</div>
     </div>
+    <button class="btn btn-primary" onclick="openNewOrderModal()">＋ 新規受注入力</button>
   </div>
   <div class="content">
     <div class="card">
@@ -156,6 +172,68 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     </div>
   </div>
 </div>
+<!-- 新規受注入力モーダル -->
+<div class="overlay" id="newOrderOverlay" onclick="if(event.target===this)closeNewOrder()">
+  <div class="modal" style="width:700px">
+    <div class="modal-header">
+      <div class="modal-title">新規受注入力</div>
+      <button class="modal-close" onclick="closeNewOrder()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="form-group2">
+          <label class="form-label2">取引先 <span style="color:#dc2626">*</span></label>
+          <select class="form-input2" id="newOrderCustomer" onchange="onCustomerChange()">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+        <div class="form-group2">
+          <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
+          <input type="date" class="form-input2" id="newOrderDate" />
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group2">
+          <label class="form-label2">ステータス</label>
+          <select class="form-input2" id="newOrderStatus">
+            <option value="新規受注">新規受注</option>
+            <option value="処理中">処理中</option>
+            <option value="出荷済み">出荷済み</option>
+          </select>
+        </div>
+        <div class="form-group2">
+          <label class="form-label2">備考</label>
+          <input type="text" class="form-input2" id="newOrderNote" placeholder="配送日の希望など（任意）" />
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+        <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+        <div class="add-item-row">
+          <select class="form-input2" id="newItemProduct">
+            <option value="">商品を選択してください</option>
+          </select>
+          <input type="number" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" />
+          <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
+        </div>
+        <div class="entry-error" id="itemError">商品と数量を選択してください</div>
+        <table class="entry-items-table" id="newItemsTable" style="display:none">
+          <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th style="text-align:right">小計</th><th></th></tr></thead>
+          <tbody id="newItemsTbody"></tbody>
+        </table>
+        <div class="entry-total" id="newOrderTotal" style="display:none"></div>
+      </div>
+      <div class="entry-error" id="orderError" style="font-size:13px;margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <div></div>
+      <div class="modal-btns">
+        <button class="btn btn-outline" onclick="closeNewOrder()">キャンセル</button>
+        <button class="btn btn-primary" id="saveOrderBtn" onclick="saveNewOrder()">受注を登録する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   // ===== ページガード =====
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
@@ -318,6 +396,155 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       renderOrders();
     });
   });
+
+  // ===== 新規受注入力 =====
+  let newOrderItems = [];
+  let allCustomers = [];
+  let allProducts = [];
+  let allPricing = [];
+
+  async function openNewOrderModal() {
+    newOrderItems = [];
+    document.getElementById('newOrderDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('newOrderStatus').value = '新規受注';
+    document.getElementById('newOrderNote').value = '';
+    document.getElementById('newOrderCustomer').value = '';
+    document.getElementById('newItemProduct').value = '';
+    document.getElementById('newItemQty').value = '1';
+    document.getElementById('itemError').classList.remove('show');
+    document.getElementById('orderError').classList.remove('show');
+    renderNewItems();
+    document.getElementById('newOrderOverlay').classList.add('open');
+    await Promise.all([loadCustomersForEntry(), loadProductsForEntry()]);
+  }
+
+  function closeNewOrder() {
+    document.getElementById('newOrderOverlay').classList.remove('open');
+  }
+
+  async function loadCustomersForEntry() {
+    if (allCustomers.length) return;
+    const res = await sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name&order=company_name`);
+    allCustomers = await res.json();
+    const sel = document.getElementById('newOrderCustomer');
+    sel.innerHTML = '<option value="">選択してください</option>' +
+      allCustomers.map(c => `<option value="${esc(c.id)}">${esc(c.company_name)}</option>`).join('');
+  }
+
+  async function loadProductsForEntry() {
+    if (allProducts.length) return;
+    const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price,cost_price&order=product_name`);
+    allProducts = await res.json();
+    const sel = document.getElementById('newItemProduct');
+    sel.innerHTML = '<option value="">商品を選択してください</option>' +
+      allProducts.map(p => `<option value="${esc(p.id)}">${esc(p.product_name)}</option>`).join('');
+  }
+
+  async function onCustomerChange() {
+    const customerId = document.getElementById('newOrderCustomer').value;
+    if (!customerId) { allPricing = []; return; }
+    const res = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate`);
+    allPricing = await res.json();
+  }
+
+  function getUnitPrice(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return 0;
+    const pricing = allPricing.find(p => p.product_id === productId);
+    if (pricing) return Math.round(product.price * pricing.rate);
+    return product.price;
+  }
+
+  function addNewItem() {
+    const productId = document.getElementById('newItemProduct').value;
+    const qty = parseInt(document.getElementById('newItemQty').value, 10);
+    const errEl = document.getElementById('itemError');
+    if (!productId || !qty || qty < 1) { errEl.classList.add('show'); return; }
+    errEl.classList.remove('show');
+    const product = allProducts.find(p => p.id === productId);
+    const unitPrice = getUnitPrice(productId);
+    const existing = newOrderItems.find(i => i.productId === productId);
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: product.cost_price || 0 });
+    }
+    document.getElementById('newItemProduct').value = '';
+    document.getElementById('newItemQty').value = '1';
+    renderNewItems();
+  }
+
+  function removeNewItem(index) {
+    newOrderItems.splice(index, 1);
+    renderNewItems();
+  }
+
+  function renderNewItems() {
+    const tbody = document.getElementById('newItemsTbody');
+    const table = document.getElementById('newItemsTable');
+    const totalEl = document.getElementById('newOrderTotal');
+    if (newOrderItems.length === 0) { table.style.display = 'none'; totalEl.style.display = 'none'; return; }
+    table.style.display = 'table';
+    totalEl.style.display = 'block';
+    let total = 0;
+    tbody.innerHTML = newOrderItems.map((item, i) => {
+      const sub = item.qty * item.unitPrice;
+      total += sub;
+      return `<tr>
+        <td style="white-space:normal">${esc(item.name)}</td>
+        <td style="text-align:right">${item.qty}</td>
+        <td style="text-align:right">¥${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600">¥${sub.toLocaleString()}</td>
+        <td><button class="btn-danger-sm" onclick="removeNewItem(${i})">✕</button></td>
+      </tr>`;
+    }).join('');
+    totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</span>`;
+  }
+
+  async function saveNewOrder() {
+    const customerId = document.getElementById('newOrderCustomer').value;
+    const orderDate  = document.getElementById('newOrderDate').value;
+    const status     = document.getElementById('newOrderStatus').value;
+    const note       = document.getElementById('newOrderNote').value.trim() || null;
+    const errEl      = document.getElementById('orderError');
+    errEl.classList.remove('show');
+
+    if (!customerId) { errEl.textContent = '取引先を選択してください'; errEl.classList.add('show'); return; }
+    if (!orderDate)  { errEl.textContent = '受注日を入力してください'; errEl.classList.add('show'); return; }
+    if (newOrderItems.length === 0) { errEl.textContent = '商品を1つ以上追加してください'; errEl.classList.add('show'); return; }
+
+    const btn = document.getElementById('saveOrderBtn');
+    btn.disabled = true; btn.textContent = '登録中...';
+
+    try {
+      const code = 'M-' + orderDate.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+      const orderRes = await sbFetch('/rest/v1/orders', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, note, tenant_id: tenantId })
+      });
+      if (!orderRes.ok) throw new Error('order POST failed');
+      const orderData = await orderRes.json();
+      const orderId = orderData[0]?.id;
+
+      await Promise.all(newOrderItems.map(item =>
+        sbFetch('/rest/v1/order_items', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, tenant_id: tenantId })
+        })
+      ));
+
+      closeNewOrder();
+      await loadOrders();
+    } catch(e) {
+      console.error(e);
+      errEl.textContent = '登録に失敗しました。もう一度お試しください。';
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false; btn.textContent = '受注を登録する';
+    }
+  }
 
   loadOrders();
 </script>
