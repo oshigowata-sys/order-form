@@ -240,11 +240,16 @@
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   async function saveLogin() {
-    const currentPw    = document.getElementById('currentPassword').value;
+    const currentPw    = document.getElementById('currentPassword').value.trim();
     const newLoginId   = document.getElementById('newLoginId').value.trim();
-    const newPw        = document.getElementById('newPassword').value;
-    const newPwConfirm = document.getElementById('newPasswordConfirm').value;
+    const newPw        = document.getElementById('newPassword').value.trim();
+    const newPwConfirm = document.getElementById('newPasswordConfirm').value.trim();
 
     if (!currentPw) { alert('現在のパスワードを入力してください'); return; }
     if (newPw && newPw !== newPwConfirm) { alert('新しいパスワードが一致しません'); return; }
@@ -253,27 +258,28 @@
     try {
       const user = JSON.parse(sessionStorage.getItem('user') || '{}');
 
-      // login_id でアカウントのbcryptハッシュを取得
       const acctRes = await sbFetch(
-        `/rest/v1/accounts?login_id=eq.${encodeURIComponent(user.id)}&select=id,password_hash&limit=1`
+        `/rest/v1/accounts?login_id=eq.${encodeURIComponent(user.id)}&select=id,password,password_hash&limit=1`
       );
       const acctData = await acctRes.json();
-      if (!acctData || acctData.length === 0) {
-        alert('アカウントが見つかりません');
-        return;
-      }
+      if (!acctData || acctData.length === 0) { alert('アカウントが見つかりません'); return; }
 
-      // bcrypt でパスワードを照合
-      const valid = await bcrypt.compare(currentPw, acctData[0].password_hash);
-      if (!valid) {
-        alert('現在のパスワードが正しくありません');
-        return;
+      const acct = acctData[0];
+      let valid = false;
+      if (acct.password_hash) {
+        try { valid = await bcrypt.compare(currentPw, acct.password_hash); } catch(_) {}
       }
+      if (!valid && acct.password) {
+        valid = (await sha256(currentPw)) === acct.password;
+      }
+      if (!valid) { alert('現在のパスワードが正しくありません'); return; }
 
-      // 更新データを構築
       const update = {};
       if (newLoginId) update.login_id = newLoginId;
-      if (newPw)      update.password_hash = await bcrypt.hash(newPw, 10);
+      if (newPw) {
+        update.password = await sha256(newPw);
+        update.password_hash = null;
+      }
 
       const res = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(user.id)}`, {
         method: 'PATCH',
