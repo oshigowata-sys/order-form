@@ -63,6 +63,10 @@
     .preview-address{color:var(--text-muted);font-size:12px;margin-bottom:12px}
     .preview-bank-title{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
     .preview-bank{font-size:13px;line-height:1.8}
+    .url-box{display:flex;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+    .url-text{flex:1;font-size:12px;font-family:monospace;color:var(--text-muted);word-break:break-all}
+    .copy-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;white-space:nowrap}
+    .copy-btn:hover{border-color:var(--orange);color:var(--orange)}
   </style>
 </head>
 <body>
@@ -213,6 +217,20 @@
           <button class="btn-primary" onclick="saveLogin()">変更する</button>
         </div>
       </div>
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <span class="settings-card-icon">🔗</span>
+          <div class="settings-card-title">注文フォームURL</div>
+        </div>
+        <div class="settings-card-body">
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">このURLを取引先（小売店など）に共有してください。あなたの会社専用の注文フォームです。</p>
+          <div class="url-box">
+            <div class="url-text" id="orderFormUrl">読み込み中...</div>
+            <button class="copy-btn" onclick="copyOrderFormUrl()">コピー</button>
+          </div>
+        </div>
+      </div>
+
       <div class="preview-card">
         <div class="preview-card-header">
           <span class="settings-card-icon">👁️</span>
@@ -240,6 +258,13 @@
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+
+  const ORDER_FORM_URL = location.origin + location.pathname.replace('settings.html', '') + 'order_form.html?tenant=' + tenantId;
+  document.getElementById('orderFormUrl').textContent = ORDER_FORM_URL;
+
+  function copyOrderFormUrl() {
+    navigator.clipboard.writeText(ORDER_FORM_URL).then(() => alert('コピーしました'));
+  }
 
   async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));

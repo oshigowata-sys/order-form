@@ -127,6 +127,11 @@
 
     .error-msg { color: var(--danger); font-size: 13px; margin-top: 6px; display: none; }
     .empty-msg { text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; }
+    .invalid-screen { display: none; text-align: center; padding: 80px 20px; }
+    .invalid-screen.show { display: block; }
+    .invalid-icon { font-size: 56px; margin-bottom: 20px; }
+    .invalid-title { font-size: 20px; font-weight: 700; color: var(--danger); margin-bottom: 10px; }
+    .invalid-sub { color: var(--text-muted); font-size: 14px; line-height: 1.8; }
   </style>
 </head>
 <body>
@@ -135,6 +140,12 @@
   <div class="header">
     <h1>📦 注文フォーム</h1>
     <p>商品を選択して注文を送信してください</p>
+  </div>
+
+  <div class="invalid-screen" id="invalidScreen">
+    <div class="invalid-icon">🔗</div>
+    <div class="invalid-title">URLが正しくありません</div>
+    <div class="invalid-sub">このURLは無効です。<br>担当者から共有された正しいURLをご使用ください。</div>
   </div>
 
   <div id="formArea">
@@ -213,8 +224,12 @@
     });
   }
 
-  // テナントIDをURLパラメータから取得
+  // テナントIDをURLパラメータから取得（必須）
   const TENANT_ID = new URLSearchParams(location.search).get('tenant') || null;
+  if (!TENANT_ID) {
+    document.getElementById('formArea').style.display = 'none';
+    document.getElementById('invalidScreen').classList.add('show');
+  }
 
   // ===== セッションキャッシュ =====
   const sessionCache = {};
