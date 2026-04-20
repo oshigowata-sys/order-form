@@ -303,7 +303,7 @@
         body: JSON.stringify({ p_login_id: superAdmin.id, p_current_password: cur, p_new_password: nw })
       });
       const ok = await res2.json();
-      if (!ok) {
+      if (!ok?.success) {
         errorEl.textContent = '現在のパスワードが正しくありません';
         errorEl.style.display = 'block';
         return;
