@@ -35,6 +35,34 @@ async function sbUpdatePassword(newPassword) {
   return res.ok;
 }
 
+async function sbUpdateUserMeta(metadata) {
+  const token = sessionStorage.getItem('_sb_jwt');
+  if (!token) return false;
+  const res = await fetch(`${_SB_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: metadata })
+  });
+  return res.ok;
+}
+
+async function sbRefreshSession() {
+  const refresh = sessionStorage.getItem('_sb_refresh');
+  if (!refresh) return null;
+  const res = await fetch(`${_SB_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: 'POST',
+    headers: { 'apikey': _SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refresh })
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.access_token) {
+    sessionStorage.setItem('_sb_jwt', data.access_token);
+    if (data.refresh_token) sessionStorage.setItem('_sb_refresh', data.refresh_token);
+  }
+  return data;
+}
+
 async function signOut(redirectUrl) {
   const token = sessionStorage.getItem('_sb_jwt');
   if (token) {
@@ -48,5 +76,6 @@ async function signOut(redirectUrl) {
   sessionStorage.removeItem('user');
   sessionStorage.removeItem('superAdmin');
   sessionStorage.removeItem('_sb_jwt');
+  sessionStorage.removeItem('_sb_refresh');
   location.replace(redirectUrl || 'login.html');
 }
