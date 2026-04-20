@@ -292,7 +292,7 @@
           body: JSON.stringify({ p_login_id: user.id, p_current_password: currentPw, p_new_password: newPw })
         });
         const ok = await res.json();
-        if (!ok) { alert('現在のパスワードが正しくありません'); return; }
+        if (!ok?.success) { alert('現在のパスワードが正しくありません'); return; }
         // Supabase Auth パスワードも同期
         await sbUpdatePassword(newPw);
       }
