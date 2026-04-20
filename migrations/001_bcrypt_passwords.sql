@@ -1,14 +1,14 @@
 -- Migration: パスワードをbcryptに移行
 -- 適用方法: Supabase Dashboard > SQL Editor に貼り付けて実行
--- 前提: accountsテーブルに password（SHA-256）と password_hash（bcrypt用・現在空）カラムが存在
+-- 前提: accountsテーブルに password（SHA-256/平文）と password_hash（bcrypt用・現在空）カラムが存在
 
 -- pgcrypto 拡張を有効化（bcrypt用）
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ============================================================
 -- verify_login RPC を更新
--- bcryptで照合 → nullならSHA-256フォールバック
--- SHA-256で成功したら自動的にbcryptへ移行（次回からbcrypt）
+-- 優先順位: bcrypt → SHA-256 → 平文（移行期フォールバック）
+-- 照合成功時に自動でbcryptへ移行
 -- ============================================================
 CREATE OR REPLACE FUNCTION verify_login(
   p_login_id text,
@@ -27,17 +27,16 @@ BEGIN
   IF v_row.password_hash IS NOT NULL AND v_row.password_hash <> '' THEN
     -- bcrypt照合
     v_valid := (v_row.password_hash = crypt(p_password, v_row.password_hash));
-  ELSE
-    -- SHA-256フォールバック（旧パスワード）
-    v_valid := (v_row.password = encode(digest(p_password, 'sha256'), 'hex'));
-
-    -- 照合成功時にbcryptへ自動移行
-    IF v_valid THEN
-      UPDATE accounts
-      SET password_hash = crypt(p_password, gen_salt('bf', 10)),
-          password      = ''
-      WHERE accounts.login_id = p_login_id;
-    END IF;
+  ELSIF v_row.password = encode(digest(p_password, 'sha256'), 'hex') THEN
+    -- SHA-256照合 → bcryptへ自動移行
+    v_valid := true;
+    UPDATE accounts SET password_hash = crypt(p_password, gen_salt('bf', 10)), password = ''
+    WHERE accounts.login_id = p_login_id;
+  ELSIF v_row.password = p_password THEN
+    -- 平文フォールバック → bcryptへ自動移行
+    v_valid := true;
+    UPDATE accounts SET password_hash = crypt(p_password, gen_salt('bf', 10)), password = ''
+    WHERE accounts.login_id = p_login_id;
   END IF;
 
   IF v_valid THEN
@@ -51,9 +50,9 @@ $$;
 -- 現パスワードを照合してから新パスワードをbcryptで保存
 -- ============================================================
 CREATE OR REPLACE FUNCTION change_password(
-  p_login_id        text,
+  p_login_id         text,
   p_current_password text,
-  p_new_password    text
+  p_new_password     text
 )
 RETURNS json
 LANGUAGE plpgsql SECURITY DEFINER
@@ -69,8 +68,10 @@ BEGIN
 
   IF v_row.password_hash IS NOT NULL AND v_row.password_hash <> '' THEN
     v_valid := (v_row.password_hash = crypt(p_current_password, v_row.password_hash));
-  ELSE
-    v_valid := (v_row.password = encode(digest(p_current_password, 'sha256'), 'hex'));
+  ELSIF v_row.password = encode(digest(p_current_password, 'sha256'), 'hex') THEN
+    v_valid := true;
+  ELSIF v_row.password = p_current_password THEN
+    v_valid := true;
   END IF;
 
   IF NOT v_valid THEN
