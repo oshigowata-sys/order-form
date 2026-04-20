@@ -85,17 +85,17 @@
 
       // Step 2: Get Supabase Auth JWT (for RLS)
       const email = account.login_id + '@meguree.internal';
+      const meta = { login_id: account.login_id, name: account.name, role: account.role };
       let session = await sbSignIn(email, password);
       if (!session?.access_token) {
-        await sbSignUp(email, password, {
-          login_id: account.login_id,
-          name: account.name,
-          role: account.role
-        });
+        await sbSignUp(email, password, meta);
         session = await sbSignIn(email, password);
       }
       if (session?.access_token) {
         sessionStorage.setItem('_sb_jwt', session.access_token);
+        if (session.refresh_token) sessionStorage.setItem('_sb_refresh', session.refresh_token);
+        await sbUpdateUserMeta(meta);
+        await sbRefreshSession();
       }
 
       sessionStorage.setItem('superAdmin', JSON.stringify({ name: account.name, id: account.login_id }));
