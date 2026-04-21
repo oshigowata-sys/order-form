@@ -449,7 +449,8 @@
       if (bankType || bankNumber) lines.push(bankType + '  ' + bankNumber);
       if (bankHolder) lines.push('口座名義: ' + bankHolder);
       if (bankNote)   lines.push(bankNote);
-      bankEl.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
+      bankEl.textContent = '';
+      lines.forEach(l => { const d = document.createElement('div'); d.textContent = l; bankEl.appendChild(d); });
     }
   }
 
