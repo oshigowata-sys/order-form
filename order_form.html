@@ -61,45 +61,29 @@
 
     input[type="text"]:focus, select:focus { border-color: var(--accent); background: #fff; }
 
-    .product-list { display: flex; flex-direction: column; gap: 10px; }
+    .product-list { display: flex; flex-direction: column; }
 
     .product-row {
-      display: grid; grid-template-columns: 1fr 100px 80px 32px;
-      gap: 10px; align-items: center; padding: 12px 14px;
-      border: 1px solid var(--accent); border-radius: 8px;
-      background: var(--accent-light);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 4px; border-bottom: 1px solid var(--border);
     }
 
-    .product-name { font-size: 15px; font-weight: 500; }
-    .product-price { font-size: 13px; color: var(--text-muted); text-align: right; }
+    .product-row:last-child { border-bottom: none; }
+
+    .product-info { flex: 1; padding-right: 12px; }
+    .product-name { font-size: 15px; font-weight: 500; display: block; }
+    .product-price { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
+
+    .qty-wrap { display: flex; align-items: center; gap: 6px; }
+    .qty-unit { font-size: 13px; color: var(--text-muted); }
 
     .qty-input {
-      width: 100%; padding: 6px 10px; border: 1px solid var(--border);
-      border-radius: 6px; font-size: 14px; font-family: inherit;
+      width: 72px; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 16px; font-family: inherit;
       text-align: center; background: #fff; outline: none;
     }
 
-    .qty-input:focus { border-color: var(--accent); }
-
-    .remove-btn {
-      width: 32px; height: 32px; border: none; background: none;
-      cursor: pointer; color: #ccc; font-size: 18px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 6px; transition: color 0.2s, background 0.2s;
-    }
-
-    .remove-btn:hover { color: var(--danger); background: #fdecea; }
-
-    .add-product { display: flex; gap: 10px; margin-top: 14px; }
-    .add-product select { flex: 1; }
-
-    .add-btn {
-      padding: 10px 20px; background: var(--accent); color: #fff;
-      border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
-      font-family: inherit; cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
-    }
-
-    .add-btn:hover { opacity: 0.85; }
+    .qty-input:focus { border-color: var(--accent); border-width: 2px; }
 
     .total-bar {
       display: flex; justify-content: space-between; align-items: center;
@@ -175,13 +159,7 @@
         <span class="total-amount" id="totalAmount">¥0</span>
       </div>
 
-      <div class="add-product">
-        <select id="productSelect">
-          <option value="">-- 読み込み中... --</option>
-        </select>
-        <button class="add-btn" onclick="addProduct()">＋ 追加</button>
-      </div>
-      <div class="error-msg" id="productError">1つ以上の商品を追加してください</div>
+      <div class="error-msg" id="productError">1つ以上の商品を入力してください</div>
     </div>
 
     <div class="card">
@@ -275,11 +253,10 @@
     document.getElementById('submitError').style.display = 'none';
   }
 
-  let items = [];
   let products = [];
 
   async function loadProducts() {
-    const sel = document.getElementById('productSelect');
+    const list = document.getElementById('productList');
     try {
       if (sessionCache.products) {
         products = sessionCache.products;
@@ -296,69 +273,40 @@
         sessionCache.products = products;
       }
 
-      sel.innerHTML = '<option value="">-- 商品を選択 --</option>' +
-        products.map(p =>
-          `<option value="${esc(p.id)}">　${esc(p.name)}　¥${Number(p.price).toLocaleString()}</option>`
-        ).join('');
+      if (products.length === 0) {
+        list.innerHTML = '<div class="empty-msg">商品が登録されていません</div>';
+        return;
+      }
+
+      list.innerHTML = products.map(p => `
+        <div class="product-row">
+          <div class="product-info">
+            <span class="product-name">${esc(p.name)}</span>
+            <span class="product-price">¥${Number(p.price).toLocaleString()}</span>
+          </div>
+          <div class="qty-wrap">
+            <input class="qty-input" type="number" min="0" placeholder="0"
+              data-id="${esc(p.id)}" data-price="${Number(p.price)}"
+              oninput="updateTotal()">
+            <span class="qty-unit">個</span>
+          </div>
+        </div>
+      `).join('');
 
     } catch(e) {
-      sel.innerHTML = '<option value="">-- 読み込み失敗 --</option>';
+      list.innerHTML = '<div class="empty-msg">商品の読み込みに失敗しました</div>';
       console.error(e);
     }
   }
 
-  function addProduct() {
-    const sel = document.getElementById('productSelect');
-    const val = sel.value;
-    if (!val) return;
-
-    const product = products.find(p => String(p.id) === String(val));
-    if (!product) return;
-
-    if (items.find(i => String(i.id) === String(product.id))) {
-      alert('この商品はすでに追加されています');
-      return;
-    }
-
-    items.push({ ...product, qty: 1 });
-    sel.value = '';
-    renderList();
-  }
-
-  function removeProduct(id) {
-    items = items.filter(i => String(i.id) !== String(id));
-    renderList();
-  }
-
-  function updateQty(id, qty) {
-    const item = items.find(i => String(i.id) === String(id));
-    if (item) item.qty = parseInt(qty) || 1;
-    updateTotal();
-  }
-
-  function renderList() {
-    const list = document.getElementById('productList');
-    if (items.length === 0) {
-      list.innerHTML = '<div class="empty-msg">商品が追加されていません</div>';
-      updateTotal();
-      return;
-    }
-
-    list.innerHTML = items.map(item => `
-      <div class="product-row">
-        <span class="product-name">${esc(item.name)}</span>
-        <span class="product-price">¥${Number(item.price).toLocaleString()}</span>
-        <input class="qty-input" type="number" min="1" value="${item.qty}"
-          onchange="updateQty('${esc(item.id)}', this.value)">
-        <button class="remove-btn" onclick="removeProduct('${esc(item.id)}')">✕</button>
-      </div>
-    `).join('');
-
-    updateTotal();
+  function getOrderItems() {
+    return Array.from(document.querySelectorAll('.qty-input'))
+      .map(el => ({ id: el.dataset.id, price: Number(el.dataset.price), qty: parseInt(el.value) || 0 }))
+      .filter(i => i.qty > 0);
   }
 
   function updateTotal() {
-    const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const total = getOrderItems().reduce((sum, i) => sum + i.price * i.qty, 0);
     document.getElementById('totalAmount').textContent = '¥' + total.toLocaleString();
   }
 
@@ -400,6 +348,7 @@
       document.getElementById('companyError').style.display = 'none';
     }
 
+    const items = getOrderItems();
     if (items.length === 0) {
       document.getElementById('productError').style.display = 'block';
       valid = false;
