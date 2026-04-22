@@ -61,14 +61,34 @@
 
     input[type="text"]:focus, select:focus { border-color: var(--accent); background: #fff; }
 
-    .product-list { display: flex; flex-direction: column; }
+    .product-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .category-block { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+
+    .category-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 16px; background: #fafafa; cursor: pointer;
+      user-select: none;
+    }
+
+    .category-header:hover { background: var(--accent-light); }
+
+    .category-name { font-size: 15px; font-weight: 700; color: var(--accent); }
+
+    .category-arrow {
+      font-size: 12px; color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .category-block.open .category-arrow { transform: rotate(180deg); }
+
+    .category-body { display: none; }
+    .category-block.open .category-body { display: block; }
 
     .product-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 4px; border-bottom: 1px solid var(--border);
+      padding: 12px 16px; border-top: 1px solid var(--border);
     }
-
-    .product-row:last-child { border-bottom: none; }
 
     .product-info { flex: 1; padding-right: 12px; }
     .product-name { font-size: 15px; font-weight: 500; display: block; }
@@ -262,13 +282,14 @@
         products = sessionCache.products;
       } else {
         const tenantFilter = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-        const res = await sbFetch(`/rest/v1/products?${tenantFilter}select=id,product_name,price&order=product_name`);
+        const res = await sbFetch(`/rest/v1/products?${tenantFilter}select=id,product_name,price,category&order=category,product_name`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
-          id: p.id,
-          name: p.product_name || '',
-          price: p.price || 0
+          id:       p.id,
+          name:     p.product_name || '',
+          price:    p.price || 0,
+          category: p.category || 'その他',
         }));
         sessionCache.products = products;
       }
@@ -278,17 +299,34 @@
         return;
       }
 
-      list.innerHTML = products.map(p => `
-        <div class="product-row">
-          <div class="product-info">
-            <span class="product-name">${esc(p.name)}</span>
-            <span class="product-price">¥${Number(p.price).toLocaleString()}</span>
+      // カテゴリ別にグループ化
+      const groups = {};
+      products.forEach(p => {
+        if (!groups[p.category]) groups[p.category] = [];
+        groups[p.category].push(p);
+      });
+
+      list.innerHTML = Object.entries(groups).map(([cat, items], i) => `
+        <div class="category-block ${i === 0 ? 'open' : ''}" onclick="toggleCategory(this)">
+          <div class="category-header">
+            <span class="category-name">${esc(cat)}</span>
+            <span class="category-arrow">▼</span>
           </div>
-          <div class="qty-wrap">
-            <input class="qty-input" type="number" min="0" placeholder="0"
-              data-id="${esc(p.id)}" data-price="${Number(p.price)}"
-              oninput="updateTotal()">
-            <span class="qty-unit">個</span>
+          <div class="category-body">
+            ${items.map(p => `
+              <div class="product-row">
+                <div class="product-info">
+                  <span class="product-name">${esc(p.name)}</span>
+                  <span class="product-price">¥${Number(p.price).toLocaleString()}</span>
+                </div>
+                <div class="qty-wrap">
+                  <input class="qty-input" type="number" min="0" placeholder="0"
+                    data-id="${esc(p.id)}" data-price="${Number(p.price)}"
+                    oninput="updateTotal()" onclick="event.stopPropagation()">
+                  <span class="qty-unit">個</span>
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
       `).join('');
@@ -297,6 +335,10 @@
       list.innerHTML = '<div class="empty-msg">商品の読み込みに失敗しました</div>';
       console.error(e);
     }
+  }
+
+  function toggleCategory(block) {
+    block.classList.toggle('open');
   }
 
   function getOrderItems() {

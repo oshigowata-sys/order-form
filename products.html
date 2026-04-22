@@ -278,6 +278,10 @@
         <input type="text" class="form-input" id="formProductName" placeholder="例：琉球ガラスコップ" />
       </div>
       <div class="form-group">
+        <label class="form-label">カテゴリ</label>
+        <input type="text" class="form-input" id="formCategory" placeholder="例：出汁・ジャム・調味料" />
+      </div>
+      <div class="form-group">
         <label class="form-label">基本単価（円） *</label>
         <input type="number" class="form-input" id="formPrice" min="0" placeholder="例：1200" />
       </div>
@@ -330,11 +334,12 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       products = data.map(r => ({
-        id:     r.id,
-        code:   r.product_code || '',
-        name:   r.product_name || '',
-        price:  Number(r.price) || 0,
-        isFood: !!r.is_food,
+        id:       r.id,
+        code:     r.product_code || '',
+        name:     r.product_name || '',
+        price:    Number(r.price) || 0,
+        isFood:   !!r.is_food,
+        category: r.category || '',
       }));
       renderProducts();
     } catch(e) {
@@ -352,6 +357,7 @@
     tbody.innerHTML = products.map(p => `<tr>
       <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${esc(p.code)}</td>
       <td style="font-weight:500">${esc(p.name)}</td>
+      <td style="font-size:13px;color:var(--text-muted)">${esc(p.category) || '<span style="opacity:0.4">-</span>'}</td>
       <td style="font-family:'Space Grotesk',sans-serif">¥${p.price.toLocaleString()}</td>
       <td>${p.isFood
         ? '<span style="background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500">軽減8%</span>'
@@ -367,6 +373,7 @@
     document.getElementById('editRecordId').value = '';
     document.getElementById('modalTitle').textContent = '商品を追加';
     document.getElementById('formProductName').value = '';
+    document.getElementById('formCategory').value = '';
     document.getElementById('formPrice').value = '';
     document.getElementById('formIsFood').checked = false;
     document.getElementById('saveSuccess').classList.remove('show');
@@ -380,6 +387,7 @@
     document.getElementById('editRecordId').value = id;
     document.getElementById('modalTitle').textContent = '商品を編集';
     document.getElementById('formProductName').value = p.name;
+    document.getElementById('formCategory').value = p.category;
     document.getElementById('formPrice').value = p.price;
     document.getElementById('formIsFood').checked = p.isFood;
     document.getElementById('saveSuccess').classList.remove('show');
@@ -402,6 +410,7 @@
 
     const payload = {
       product_name: name,
+      category:     document.getElementById('formCategory').value.trim() || null,
       price:        Number(price),
       is_food:      document.getElementById('formIsFood').checked,
       tenant_id:    tenantId,
