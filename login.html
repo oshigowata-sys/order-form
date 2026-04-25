@@ -277,7 +277,14 @@
         await sbRefreshSession();
       }
 
-      const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id };
+      const planRes = await fetch(`${SB_URL}/rest/v1/rpc/get_tenant_plan`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_tenant_id: account.tenant_id })
+      });
+      const tenantPlan = planRes.ok ? (await planRes.json()) || 'standard' : 'standard';
+
+      const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id, tenantPlan };
       sessionStorage.setItem('user', JSON.stringify(user));
       window.location.href = 'dashboard.html';
     } catch(e) {

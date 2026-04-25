@@ -206,6 +206,20 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  async function changePlan(tenantId, plan) {
+    try {
+      const res = await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ plan })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } catch(e) {
+      console.error(e);
+      alert('プラン変更に失敗しました');
+      await loadTenants();
+    }
+  }
+
   async function loadTenants() {
     const res = await sbFetch('/rest/v1/tenants?select=*&order=created_at.desc');
     const tenants = await res.json();
@@ -214,7 +228,13 @@
     tbody.innerHTML = tenants.map(t => `<tr>
       <td style="font-weight:600">${esc(t.name)}</td>
       <td style="color:var(--text-muted)">${esc(t.email) || '—'}</td>
-      <td><span style="font-size:12px">${esc(t.plan) || 'standard'}</span></td>
+      <td>
+        <select style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer" onchange="changePlan('${esc(t.id)}', this.value)">
+          <option value="starter" ${t.plan === 'starter' ? 'selected' : ''}>starter</option>
+          <option value="standard" ${(t.plan === 'standard' || !t.plan) ? 'selected' : ''}>standard</option>
+          <option value="enterprise" ${t.plan === 'enterprise' ? 'selected' : ''}>enterprise</option>
+        </select>
+      </td>
       <td>${t.status === 'active' ? '<span class="status-active">稼働中</span>' : '<span class="status-suspended">停止中</span>'}</td>
       <td style="color:var(--text-muted);font-size:12px">${(t.created_at||'').slice(0,10)}</td>
       <td><button class="btn-primary btn-sm" onclick="reissueInvite('${esc(t.id)}')">招待再発行</button></td>
