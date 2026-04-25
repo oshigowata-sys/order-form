@@ -366,6 +366,9 @@ footer {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
 .footer-logo { height: 24px; filter: brightness(0) invert(1); opacity: 0.45; }
+.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.footer-link { font-size: 11px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.15s; }
+.footer-link:hover { color: rgba(255,255,255,0.8); }
 .footer-copy { font-size: 11px; color: rgba(255,255,255,0.2); }
 
 /* ===== FADE ===== */
@@ -771,6 +774,11 @@ footer {
 <!-- FOOTER -->
 <footer>
   <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" class="footer-logo">
+  <div class="footer-links">
+    <a href="terms.html" class="footer-link">利用規約</a>
+    <a href="privacy.html" class="footer-link">プライバシーポリシー</a>
+    <a href="tokushoho.html" class="footer-link">特定商取引法に基づく表記</a>
+  </div>
   <p class="footer-copy">© 2026 MeguRee. All rights reserved.</p>
 </footer>
 
