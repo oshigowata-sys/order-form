@@ -50,8 +50,25 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .btn-primary{background:var(--orange);color:#fff}
 .btn-green{background:var(--green);color:#fff}
 .btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
-.badge-issued{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
-.invoice-num{font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)}
+.badge-issued{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2);display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-issued::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.invoice-num{font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:none;padding:0}
+.topbar{display:flex;align-items:center;justify-content:space-between}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.kpi-card.green::after{background:var(--green)}
+.kpi-card.yellow::after{background:#d97706}
+.kpi-card.blue::after{background:#3b82f6}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value.warn{color:var(--orange)}
+.kpi-value.green{color:var(--green)}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.topbar-user{display:flex;align-items:center;gap:10px}
+.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:11px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
@@ -63,7 +80,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 <aside class="sidebar">
   <div class="sidebar-logo">
     <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
-    <div class="sidebar-logo-sub">受注管理システム</div>
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">メニュー</div>
@@ -83,10 +100,41 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 </aside>
 <main class="main">
   <div class="topbar">
-    <div class="page-title">請求書管理</div>
-    <div class="page-sub">締め請求の発行・管理を行います</div>
+    <div>
+      <div class="page-title">請求書管理</div>
+      <div class="page-sub">締め請求の発行・管理を行います</div>
+    </div>
+    <div class="topbar-user">
+      <div>
+        <div class="topbar-user-name" id="topbarUserName"></div>
+        <div class="topbar-user-role" id="topbarUserRole"></div>
+      </div>
+      <div class="topbar-avatar" id="topbarAvatar">—</div>
+    </div>
   </div>
   <div class="content">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">未発行件数</div>
+        <div class="kpi-value warn" id="kpiPending">—</div>
+        <div class="kpi-sub">請求待ち</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">発行済み</div>
+        <div class="kpi-value green" id="kpiIssued">—</div>
+        <div class="kpi-sub">件</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">未発行合計（税込）</div>
+        <div class="kpi-value" id="kpiPendingAmount">—</div>
+        <div class="kpi-sub">請求予定額</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">発行済み合計（税込）</div>
+        <div class="kpi-value" id="kpiIssuedAmount">—</div>
+        <div class="kpi-sub">累計請求額</div>
+      </div>
+    </div>
     <div class="card">
       <div class="filter-tabs">
         <button class="tab active" data-tab="pending">未発行</button>
@@ -125,7 +173,29 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
 const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
 const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
-const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+const { tenantId, name: userName, role: userRole } = userData;
+
+// Topbar user info
+(() => {
+  const nameEl = document.getElementById('topbarUserName');
+  const roleEl = document.getElementById('topbarUserRole');
+  const avatarEl = document.getElementById('topbarAvatar');
+  if (userName) { nameEl.textContent = userName; roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ'; avatarEl.textContent = userName.charAt(0); }
+})();
+
+let _pendingRows = [], _issuedRows = [];
+
+function updateKPIs() {
+  const pendingCount = _pendingRows.length;
+  const issuedCount = _issuedRows.length;
+  const pendingAmt = _pendingRows.reduce((s, r) => s + (r.excl + r.tax), 0);
+  const issuedAmt = _issuedRows.reduce((s, r) => s + (r.total_incl_tax || 0), 0);
+  document.getElementById('kpiPending').textContent = pendingCount;
+  document.getElementById('kpiIssued').textContent = issuedCount;
+  document.getElementById('kpiPendingAmount').textContent = '¥' + pendingAmt.toLocaleString();
+  document.getElementById('kpiIssuedAmount').textContent = '¥' + issuedAmt.toLocaleString();
+}
 
 function sbFetch(path, options = {}) {
   return fetch(SB_URL + path, {
@@ -233,6 +303,8 @@ async function loadPending() {
     });
 
     const pending = Object.values(map).filter(r => r.orders > 0);
+    _pendingRows = pending;
+    updateKPIs();
     if (pending.length === 0) {
       document.getElementById('pendingTbody').innerHTML =
         '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">未発行の請求書はありません</td></tr>';
@@ -275,6 +347,8 @@ async function loadIssued() {
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const invoices = await res.json();
+    _issuedRows = invoices;
+    updateKPIs();
     if (invoices.length === 0) {
       document.getElementById('issuedTbody').innerHTML =
         '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">発行済みの請求書はありません</td></tr>';

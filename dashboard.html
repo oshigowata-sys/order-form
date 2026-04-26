@@ -79,6 +79,10 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
+.topbar-user{display:flex;align-items:center;gap:10px}
+.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:11px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -86,7 +90,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
 <aside class="sidebar">
   <div class="sidebar-logo">
     <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
-    <div class="sidebar-logo-sub">受注管理システム</div>
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">メニュー</div>
@@ -110,6 +114,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       <div class="page-title">ダッシュボード</div>
       <div class="page-sub" id="periodLabel">月次サマリー</div>
     </div>
+    <div style="display:flex;align-items:center;gap:16px">
     <div class="period-select">
       <label>対象月</label>
       <select id="periodSelect" onchange="onPeriodChange()">
@@ -120,6 +125,14 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
         <option value="2026-03">2026年 3月</option>
         <option value="2026-04" selected>2026年 4月</option>
       </select>
+    </div>
+    <div class="topbar-user">
+      <div>
+        <div class="topbar-user-name" id="topbarUserName"></div>
+        <div class="topbar-user-role" id="topbarUserRole"></div>
+      </div>
+      <div class="topbar-avatar" id="topbarAvatar">—</div>
+    </div>
     </div>
   </div>
   <div class="content">
@@ -151,7 +164,14 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const BADGE = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
-  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const { tenantId, name: userName, role: userRole } = userData;
+  (() => {
+    const nameEl = document.getElementById('topbarUserName');
+    const roleEl = document.getElementById('topbarUserRole');
+    const avatarEl = document.getElementById('topbarAvatar');
+    if (userName) { nameEl.textContent = userName; roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ'; avatarEl.textContent = userName.charAt(0); }
+  })();
 
   let allOrders = [];
 

@@ -201,6 +201,19 @@
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.kpi-card.green::after{background:var(--green)}
+.kpi-card.yellow::after{background:#d97706}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value.green{color:var(--green)}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.topbar-user{display:flex;align-items:center;gap:10px}
+.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:11px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -210,7 +223,7 @@
 <aside class="sidebar">
   <div class="sidebar-logo">
     <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
-    <div class="sidebar-logo-sub">受注管理システム</div>
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">メニュー</div>
@@ -236,14 +249,35 @@
       <div class="page-title">商品マスタ管理</div>
       <div class="page-sub">商品の追加・編集・基本単価の設定を管理します</div>
     </div>
-    <div>
-      <button class="btn-primary" onclick="openAddModal()">＋ 新規商品</button>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="btn btn-primary" onclick="openAddModal()">＋ 新規商品</button>
+      <div class="topbar-user">
+        <div>
+          <div class="topbar-user-name" id="topbarUserName"></div>
+          <div class="topbar-user-role" id="topbarUserRole"></div>
+        </div>
+        <div class="topbar-avatar" id="topbarAvatar">—</div>
+      </div>
     </div>
   </div>
 
   <div class="content">
-    <div class="section-header">
-      <div class="section-title">商品一覧</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">商品数</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">登録済み</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">食品（軽減8%）</div>
+        <div class="kpi-value green" id="kpiFood">—</div>
+        <div class="kpi-sub">件</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">標準税率（10%）</div>
+        <div class="kpi-value" id="kpiStandard">—</div>
+        <div class="kpi-sub">件</div>
+      </div>
     </div>
     <div class="table-card">
       <table>
@@ -304,7 +338,14 @@
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
-  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const { tenantId, name: userName, role: userRole } = userData;
+  (() => {
+    const nameEl = document.getElementById('topbarUserName');
+    const roleEl = document.getElementById('topbarUserRole');
+    const avatarEl = document.getElementById('topbarAvatar');
+    if (userName) { nameEl.textContent = userName; roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ'; avatarEl.textContent = userName.charAt(0); }
+  })();
 
   function sbFetch(path, options = {}) {
     return fetch(SB_URL + path, {
@@ -348,7 +389,15 @@
     }
   }
 
+  function updateKPIs() {
+    const food = products.filter(p => p.isFood).length;
+    document.getElementById('kpiTotal').textContent = products.length;
+    document.getElementById('kpiFood').textContent = food;
+    document.getElementById('kpiStandard').textContent = products.length - food;
+  }
+
   function renderProducts() {
+    updateKPIs();
     const tbody = document.getElementById('productTableBody');
     if (products.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">商品が登録されていません</td></tr>';

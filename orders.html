@@ -45,10 +45,29 @@ tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg)}
 td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
-.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
-.badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.3)}
-.badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.3)}
-.badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
+.badge-new::before{background:var(--orange)}
+.badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
+.badge-processing::before{background:var(--yellow)}
+.badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
+.badge-shipped::before{background:var(--green)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.kpi-card.green::after{background:var(--green)}
+.kpi-card.yellow::after{background:var(--yellow)}
+.kpi-card.blue::after{background:#3b82f6}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value.warn{color:var(--orange)}
+.kpi-value.green{color:var(--green)}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.topbar-user{display:flex;align-items:center;gap:10px}
+.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:11px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 .num-right{text-align:right}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
 .btn:hover{opacity:0.85}
@@ -104,7 +123,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 <aside class="sidebar">
   <div class="sidebar-logo">
     <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
-    <div class="sidebar-logo-sub">受注管理システム</div>
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">メニュー</div>
@@ -128,9 +147,40 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="page-title">受注一覧</div>
       <div class="page-sub">受注データの確認・詳細を管理します</div>
     </div>
-    <button class="btn btn-primary" onclick="openNewOrderModal()">＋ 新規受注入力</button>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="btn btn-primary" onclick="openNewOrderModal()">＋ 新規受注入力</button>
+      <div class="topbar-user">
+        <div>
+          <div class="topbar-user-name" id="topbarUserName"></div>
+          <div class="topbar-user-role" id="topbarUserRole"></div>
+        </div>
+        <div class="topbar-avatar" id="topbarAvatar">—</div>
+      </div>
+    </div>
   </div>
   <div class="content">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">未処理件数</div>
+        <div class="kpi-value warn" id="kpiPending">—</div>
+        <div class="kpi-sub">新規受注 + 処理中</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">本日受注</div>
+        <div class="kpi-value" id="kpiToday">—</div>
+        <div class="kpi-sub">件</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">月間売上（税込）</div>
+        <div class="kpi-value green" id="kpiMonthly">—</div>
+        <div class="kpi-sub">今月累計</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">総受注件数</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">全期間</div>
+      </div>
+    </div>
     <div class="card">
       <div class="filter-tabs">
         <button class="tab active" data-filter="all">すべて</button>
@@ -242,7 +292,18 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const BADGE  = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
-  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const { tenantId, name: userName, role: userRole } = userData;
+
+  // Topbar user info
+  const nameEl = document.getElementById('topbarUserName');
+  const roleEl = document.getElementById('topbarUserRole');
+  const avatarEl = document.getElementById('topbarAvatar');
+  if (userName) {
+    nameEl.textContent = userName;
+    roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ';
+    avatarEl.textContent = userName.charAt(0);
+  }
 
   function sbFetch(path, options = {}) {
     return fetch(SB_URL + path, {
@@ -295,11 +356,24 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         };
       });
       renderOrders();
+      updateKPIs();
     } catch(e) {
       console.error('受注データ取得失敗:', e);
       document.getElementById('ordersTbody').innerHTML =
         '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
     }
+  }
+
+  function updateKPIs() {
+    const today = new Date().toISOString().slice(0, 10);
+    const thisMonth = today.slice(0, 7);
+    const pending = allOrders.filter(o => o.status === '新規受注' || o.status === '処理中').length;
+    const todayCount = allOrders.filter(o => o.date === today).length;
+    const monthly = allOrders.filter(o => o.date && o.date.startsWith(thisMonth)).reduce((s, o) => s + o.incl, 0);
+    document.getElementById('kpiPending').textContent = pending;
+    document.getElementById('kpiToday').textContent = todayCount;
+    document.getElementById('kpiMonthly').textContent = '¥' + monthly.toLocaleString();
+    document.getElementById('kpiTotal').textContent = allOrders.length;
   }
 
   function renderOrders() {
@@ -312,7 +386,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     tbody.innerHTML = list.map(o => {
       const profit = o.excl - o.cost;
       return `<tr>
-        <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${esc(o.code)}</td>
+        <td><button onclick="openDetail('${esc(o.id)}')" style="background:none;border:none;padding:0;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px">${esc(o.code)}</button></td>
         <td style="font-weight:500">${esc(o.customer)}</td>
         <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
         <td><span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span></td>
@@ -320,7 +394,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${o.tax.toLocaleString()}</td>
         <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${o.incl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${profit.toLocaleString()}</td>
-        <td><button class="btn btn-primary btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
+        <td><button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
       </tr>`;
     }).join('');
   }
