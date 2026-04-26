@@ -257,7 +257,9 @@
       if (account.role === 'super_admin') throw new Error('invalid');
 
       // Step 2: Get Supabase Auth JWT (for RLS)
-      const email = account.login_id + '@meguree.internal';
+      const email = account.login_id.includes('@')
+        ? account.login_id
+        : account.login_id + '@meguree.internal';
       const meta = {
         login_id: account.login_id,
         name: account.name,
