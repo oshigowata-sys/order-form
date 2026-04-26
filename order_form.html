@@ -359,10 +359,10 @@
     const today = new Date().toISOString().slice(0, 10);
     const dateStr = today.replace(/-/g, '');
     try {
-      const res = await sbFetch(`/rest/v1/orders?order_date=eq.${today}&select=id`);
+      const res = await sbFetch('/rest/v1/rpc/count_today_orders', { method: 'POST', body: '{}' });
       if (!res.ok) return `ORD-${dateStr}-001`;
-      const data = await res.json();
-      const seq = String(data.length + 1).padStart(3, '0');
+      const count = await res.json();
+      const seq = String((count || 0) + 1).padStart(3, '0');
       return `ORD-${dateStr}-${seq}`;
     } catch(e) {
       return `ORD-${dateStr}-001`;
