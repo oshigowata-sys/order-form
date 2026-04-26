@@ -256,26 +256,23 @@
       if (!account) throw new Error('invalid');
       if (account.role === 'super_admin') throw new Error('invalid');
 
-      // Step 2: Get Supabase Auth JWT (for RLS)
+      // Step 2: auth.users のパスワードを今回のログインパスワードで同期してから JWT 取得
+      // sync_auth_user_on_login が bcrypt 再ハッシュ＆auth.users 作成/更新を行うため
+      // sbSignIn は常に成功する（パスワード不一致・ユーザー未作成の問題が起きない）
       const email = account.login_id.includes('@')
         ? account.login_id
         : account.login_id + '@meguree.internal';
-      const meta = {
-        login_id: account.login_id,
-        name: account.name,
-        role: account.role,
-        tenant_id: account.tenant_id,
-      };
-      let session = await sbSignIn(email, password);
-      if (!session?.access_token) {
-        await sbSignUp(email, password, meta);
-        session = await sbSignIn(email, password);
-      }
+
+      await fetch(`${SB_URL}/rest/v1/rpc/sync_auth_user_on_login`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login_id: loginId, p_password: password })
+      });
+
+      const session = await sbSignIn(email, password);
       if (session?.access_token) {
         sessionStorage.setItem('_sb_jwt', session.access_token);
         if (session.refresh_token) sessionStorage.setItem('_sb_refresh', session.refresh_token);
-        // メタデータを最新に更新してJWTをリフレッシュ
-        await sbUpdateUserMeta(meta);
         await sbRefreshSession();
       }
 
