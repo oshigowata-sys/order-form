@@ -212,23 +212,6 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       console.error('受注データ取得失敗:', e);
       document.getElementById('periodLabel').textContent = 'データ取得に失敗しました';
     }
-  } catch(e) {
-        parsed = JSON.parse('[' + text + ']');
-      }
-      allOrders = parsed.map(r => ({
-        id:       r['受注ID'] || r.id || '',
-        customer: r['取引先名'] || '',
-        date:     r['受注日'] || '',
-        status:   r['受注ステータス'] || '',
-        total:    Number(r['注文合計']) || 0,
-        cost:     Number(r['原価合計']) || 0,
-      }));
-      buildMonthOptions();
-      renderAll();
-    } catch(e) {
-      console.error('受注データ取得失敗:', e);
-      document.getElementById('periodLabel').textContent = 'データ取得に失敗しました';
-    }
   }
 
   function buildMonthOptions() {

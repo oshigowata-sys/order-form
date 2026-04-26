@@ -213,6 +213,16 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="table-wrapper">
         <table id="modalItems"></table>
       </div>
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
+        <select class="form-input2" id="detailStatusSelect" style="width:160px">
+          <option value="新規受注">新規受注</option>
+          <option value="処理中">処理中</option>
+          <option value="出荷済み">出荷済み</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="detailStatusBtn" onclick="updateOrderStatus()">保存</button>
+        <span id="detailStatusMsg" style="font-size:12px;color:var(--green);display:none">✓ 変更しました</span>
+      </div>
     </div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
@@ -414,8 +424,39 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     document.getElementById('modalItems').innerHTML =
       `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th>税率</th></tr></thead>
       <tbody><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr></tbody>`;
+    document.getElementById('detailStatusSelect').value = o.status;
+    document.getElementById('detailStatusMsg').style.display = 'none';
     document.getElementById('detailOverlay').classList.add('open');
     loadOrderDetail(orderId);
+  }
+
+  async function updateOrderStatus() {
+    const newStatus = document.getElementById('detailStatusSelect').value;
+    const btn = document.getElementById('detailStatusBtn');
+    const msg = document.getElementById('detailStatusMsg');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+    msg.style.display = 'none';
+    try {
+      const res = await sbFetch(`/rest/v1/orders?id=eq.${currentDetailId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('PATCH failed: ' + res.status);
+      const order = allOrders.find(o => o.id === currentDetailId);
+      if (order) order.status = newStatus;
+      renderOrders();
+      updateKPIs();
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    } catch(e) {
+      console.error('ステータス更新失敗:', e);
+      alert('ステータスの更新に失敗しました。もう一度お試しください。');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '保存';
+    }
   }
 
   async function loadOrderDetail(orderId) {
