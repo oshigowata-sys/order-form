@@ -234,12 +234,15 @@
   if (CUSTOMER_ID) {
     (async () => {
       try {
-        const res = await sbFetch(`/rest/v1/customers?id=eq.${CUSTOMER_ID}&select=company_name&limit=1`);
+        const res = await sbFetch('/rest/v1/rpc/get_customer_name_by_id', {
+          method: 'POST',
+          body: JSON.stringify({ p_customer_id: CUSTOMER_ID })
+        });
         if (res.ok) {
-          const data = await res.json();
-          if (data.length > 0) {
+          const name = await res.json();
+          if (name) {
             const input = document.getElementById('companyName');
-            input.value = data[0].company_name;
+            input.value = name;
             input.readOnly = true;
             input.style.background = '#f0ede8';
             input.style.color = 'var(--text-muted)';
@@ -410,13 +413,15 @@
     if (!customerId) {
       try {
         const companyName = document.getElementById('companyName').value.trim();
-        const tenantFilter = TENANT_ID ? `&tenant_id=eq.${TENANT_ID}` : '';
-        const custRes = await sbFetch(
-          '/rest/v1/customers?company_name=eq.' + encodeURIComponent(companyName) + tenantFilter + '&select=id&limit=1'
-        );
-        if (custRes.ok) {
-          const custData = await custRes.json();
-          if (custData.length > 0) customerId = custData[0].id;
+        if (TENANT_ID) {
+          const custRes = await sbFetch('/rest/v1/rpc/get_customer_id_by_name', {
+            method: 'POST',
+            body: JSON.stringify({ p_company_name: companyName, p_tenant_id: TENANT_ID })
+          });
+          if (custRes.ok) {
+            const custId = await custRes.json();
+            if (custId) customerId = custId;
+          }
         }
       } catch(e) {
         console.warn('顧客検索エラー:', e);
