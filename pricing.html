@@ -33,7 +33,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .content{padding:28px 32px;flex:1}
 .layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
-.card-header{padding:18px 20px;border-bottom:1px solid var(--border)}
+.card-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+.search-input:focus{border-color:var(--orange);background:#fff}
 .card-title{font-size:14px;font-weight:700}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
@@ -132,7 +134,10 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
     </div>
     <div class="layout">
       <div class="card">
-        <div class="card-header"><div class="card-title">掛け率一覧</div></div>
+        <div class="card-header">
+          <div class="card-title">掛け率一覧</div>
+          <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・商品名で検索" oninput="onSearchInput(this.value)">
+        </div>
         <table><thead><tr>
           <th>取引先名</th><th>商品名</th><th>掛け率</th><th>適用単価</th><th></th>
         </tr></thead>
@@ -201,6 +206,12 @@ function sbFetch(path, options = {}) {
 let CUSTOMERS = [];
 let PRODUCTS  = [];
 let PRICING   = [];
+let currentSearch = '';
+
+function onSearchInput(val) {
+  currentSearch = val.trim();
+  renderPricing();
+}
 let editId = '';
 
 /* ── 初期ロード ── */
@@ -268,7 +279,14 @@ function renderPricing() {
       '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">掛け率の登録がありません</td></tr>';
     return;
   }
-  document.getElementById('pricingTbody').innerHTML = PRICING.map(p => {
+  const q = currentSearch.toLowerCase();
+  const list = q ? PRICING.filter(p => p.custName.toLowerCase().includes(q) || p.prodName.toLowerCase().includes(q)) : PRICING;
+  if (list.length === 0) {
+    document.getElementById('pricingTbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">該当する掛け率が見つかりません</td></tr>';
+    return;
+  }
+  document.getElementById('pricingTbody').innerHTML = list.map(p => {
     const applied = p.basePrice > 0 && p.rate > 0 ? Math.round(p.basePrice * p.rate) : null;
     return `<tr>
       <td style="font-weight:600">${p.custName}</td>
