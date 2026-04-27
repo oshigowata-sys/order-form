@@ -332,7 +332,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     try {
       const res = await fetch(SB_URL + `/rest/v1/orders?id=eq.${orderId}`, {
         method: 'PATCH',
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('PATCH failed');
