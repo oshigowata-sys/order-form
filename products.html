@@ -95,6 +95,10 @@
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 16px; overflow: hidden;
   }
+  .table-card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)}
+  .table-card-title{font-size:14px;font-weight:700}
+  .search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+  .search-input:focus{border-color:var(--orange);background:#fff}
   table { width: 100%; border-collapse: collapse; }
   thead tr { background: var(--bg); border-bottom: 1px solid var(--border); }
   th {
@@ -280,6 +284,10 @@
       </div>
     </div>
     <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title">商品一覧</div>
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 商品名・商品コードで検索" oninput="onSearchInput(this.value)">
+      </div>
       <table>
         <thead>
           <tr>
@@ -361,6 +369,12 @@
   }
 
   let products = [];
+  let currentSearch = '';
+
+  function onSearchInput(val) {
+    currentSearch = val.trim();
+    renderProducts();
+  }
 
   function esc(str) {
     if (str === null || str === undefined) return '';
@@ -403,7 +417,13 @@
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">商品が登録されていません</td></tr>';
       return;
     }
-    tbody.innerHTML = products.map(p => `<tr>
+    const q = currentSearch.toLowerCase();
+    const list = q ? products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) : products;
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">該当する商品が見つかりません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(p => `<tr>
       <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${esc(p.code)}</td>
       <td style="font-weight:500">${esc(p.name)}</td>
       <td style="font-size:13px;color:var(--text-muted)">${esc(p.category) || '<span style="opacity:0.4">-</span>'}</td>
