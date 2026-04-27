@@ -53,6 +53,11 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .badge-processing::before{background:var(--yellow)}
 .badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .badge-shipped::before{background:var(--green)}
+.status-sel{border-radius:20px;font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
+.status-sel.s-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
+.status-sel.s-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
+.status-sel.s-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
+.status-sel.saved{box-shadow:0 0 0 2px var(--green)}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 .kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
 .kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
@@ -301,7 +306,9 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
-  const BADGE  = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+  const BADGE      = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
+  const STATUS_CLS = {'新規受注':'s-new','処理中':'s-processing','出荷済み':'s-shipped'};
+  const STATUSES   = ['新規受注','処理中','出荷済み'];
   const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
   const { tenantId, name: userName, role: userRole } = userData;
 
@@ -399,7 +406,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td><button onclick="openDetail('${esc(o.id)}')" style="background:none;border:none;padding:0;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px">${esc(o.code)}</button></td>
         <td style="font-weight:500">${esc(o.customer)}</td>
         <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
-        <td><span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span></td>
+        <td><select class="status-sel ${STATUS_CLS[o.status]||''}" onchange="patchStatus('${esc(o.id)}',this)">${STATUSES.map(s=>`<option value="${s}"${o.status===s?' selected':''}>${s}</option>`).join('')}</select></td>
         <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${o.excl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${o.tax.toLocaleString()}</td>
         <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${o.incl.toLocaleString()}</td>
@@ -407,6 +414,32 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td><button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
       </tr>`;
     }).join('');
+  }
+
+  async function patchStatus(orderId, sel) {
+    const newStatus = sel.value;
+    const prevStatus = sel.dataset.prev || newStatus;
+    sel.dataset.prev = newStatus;
+    sel.className = 'status-sel ' + (STATUS_CLS[newStatus] || '');
+    try {
+      const res = await sbFetch(`/rest/v1/orders?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('PATCH failed');
+      const order = allOrders.find(o => o.id === orderId);
+      if (order) order.status = newStatus;
+      updateKPIs();
+      sel.classList.add('saved');
+      setTimeout(() => sel.classList.remove('saved'), 1000);
+    } catch(e) {
+      console.error(e);
+      sel.value = prevStatus;
+      sel.dataset.prev = prevStatus;
+      sel.className = 'status-sel ' + (STATUS_CLS[prevStatus] || '');
+      alert('ステータスの更新に失敗しました');
+    }
   }
 
   let currentDetailId = null;
