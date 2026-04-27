@@ -34,6 +34,8 @@
     .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
     .card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
     .card-title{font-size:14px;font-weight:700}
+    .search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+    .search-input:focus{border-color:var(--orange);background:#fff}
     table{width:100%;border-collapse:collapse}
     thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
     th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
@@ -145,6 +147,7 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">取引先一覧</div>
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 会社名・担当者で検索" oninput="onSearchInput(this.value)">
       </div>
       <table>
         <thead><tr>
@@ -275,6 +278,12 @@
   }
 
   let customers = [];
+  let currentSearch = '';
+
+  function onSearchInput(val) {
+    currentSearch = val.trim();
+    render();
+  }
   let editId = null;
   let tenantPlan = _storedPlan || 'standard';
 
@@ -328,7 +337,13 @@
       tbody.innerHTML = '<tr class="empty-row"><td colspan="6">取引先が登録されていません</td></tr>';
       return;
     }
-    tbody.innerHTML = customers.map(c => `<tr>
+    const q = currentSearch.toLowerCase();
+    const list = q ? customers.filter(c => c.company.toLowerCase().includes(q) || c.contact.toLowerCase().includes(q)) : customers;
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">該当する取引先が見つかりません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(c => `<tr>
       <td style="font-weight:600">${esc(c.company)}</td>
       <td style="color:var(--text-muted)">${esc(c.contact)}</td>
       <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:12px">${esc(c.phone)}</td>
