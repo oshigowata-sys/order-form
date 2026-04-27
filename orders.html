@@ -33,12 +33,14 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
 .content{padding:28px 32px;flex:1}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
-.filter-tabs{display:flex;gap:2px;padding:16px 20px 0;border-bottom:1px solid var(--border);align-items:center}
-.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
-.search-input:focus{border-color:var(--orange);background:#fff}
-.tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans JP',sans-serif;font-weight:500;transition:all 0.15s}
-.tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
-.tab:hover{color:var(--text)}
+.filter-tabs{display:flex;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border);align-items:center}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:7px 14px}
+.search-box input{border:none;background:none;outline:none;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);width:200px}
+.search-box input::placeholder{color:var(--text-muted)}
+.search-box:focus-within{border-color:var(--orange)}
+.tab{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;color:var(--text-muted)}
+.tab.active{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
+.tab:hover:not(.active){border-color:var(--orange);color:var(--orange)}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
@@ -60,17 +62,18 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .status-sel.s-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
 .status-sel.s-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .status-sel.saved{box-shadow:0 0 0 2px var(--green)}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
-.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
-.kpi-card.green::after{background:var(--green)}
-.kpi-card.yellow::after{background:var(--yellow)}
-.kpi-card.blue::after{background:#3b82f6}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 16px 0 80px;opacity:.08;background:var(--orange)}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.yellow::before{background:var(--yellow)}
+.kpi-card.blue::before{background:#3b82f6}
+.kpi-icon{font-size:22px;margin-bottom:10px}
 .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
-.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
 .kpi-value.green{color:var(--green)}
-.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
 .topbar-user{display:flex;align-items:center;gap:10px}
 .topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
 .topbar-user-role{font-size:11px;color:var(--text-muted)}
@@ -154,7 +157,11 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="page-title">受注一覧</div>
       <div class="page-sub">受注データの確認・詳細を管理します</div>
     </div>
-    <div style="display:flex;align-items:center;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="search-box">
+        <span style="color:var(--text-muted);font-size:14px">🔍</span>
+        <input type="text" id="searchInput" placeholder="取引先名・受注IDで検索..." oninput="onSearchInput(this.value)">
+      </div>
       <button class="btn btn-primary" onclick="openNewOrderModal()">＋ 新規受注入力</button>
       <div class="topbar-user">
         <div>
@@ -168,21 +175,25 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi-card">
+        <div class="kpi-icon">🕐</div>
         <div class="kpi-label">未処理件数</div>
         <div class="kpi-value warn" id="kpiPending">—</div>
         <div class="kpi-sub">新規受注 + 処理中</div>
       </div>
       <div class="kpi-card yellow">
+        <div class="kpi-icon">📅</div>
         <div class="kpi-label">本日受注</div>
         <div class="kpi-value" id="kpiToday">—</div>
         <div class="kpi-sub">件</div>
       </div>
       <div class="kpi-card green">
+        <div class="kpi-icon">💰</div>
         <div class="kpi-label">月間売上（税込）</div>
         <div class="kpi-value green" id="kpiMonthly">—</div>
         <div class="kpi-sub">今月累計</div>
       </div>
       <div class="kpi-card blue">
+        <div class="kpi-icon">📦</div>
         <div class="kpi-label">総受注件数</div>
         <div class="kpi-value" id="kpiTotal">—</div>
         <div class="kpi-sub">全期間</div>
@@ -194,9 +205,6 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <button class="tab" data-filter="新規受注">新規受注</button>
         <button class="tab" data-filter="処理中">処理中</button>
         <button class="tab" data-filter="出荷済み">出荷済み</button>
-        <div style="margin-left:auto;padding-bottom:14px">
-          <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・受注IDで検索" oninput="onSearchInput(this.value)">
-        </div>
       </div>
       <div class="table-wrapper">
         <table>

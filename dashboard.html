@@ -38,10 +38,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .period-select select:focus{border-color:var(--orange)}
 .content{padding:28px 32px;flex:1}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
-.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
-.kpi-card.green::after{background:var(--green)}
-.kpi-card.yellow::after{background:var(--yellow)}
+.kpi-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 16px 0 80px;opacity:.08;background:var(--orange)}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.yellow::before{background:var(--yellow)}
+.kpi-icon{font-size:22px;margin-bottom:10px}
 .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
@@ -127,10 +128,10 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   </div>
   <div class="content">
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
-      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
-      <div class="kpi-card"><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
-      <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
+      <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
+      <div class="kpi-card green"><div class="kpi-icon">📈</div><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
+      <div class="kpi-card"><div class="kpi-icon">📋</div><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
+      <div class="kpi-card yellow"><div class="kpi-icon">🕐</div><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
     </div>
     <div class="section-col">
       <div class="card">
@@ -333,7 +334,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     try {
       const res = await fetch(SB_URL + `/rest/v1/orders?id=eq.${orderId}`, {
         method: 'PATCH',
-        headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('PATCH failed');
