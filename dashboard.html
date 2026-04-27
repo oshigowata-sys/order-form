@@ -51,15 +51,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
 .card-title{font-size:14px;font-weight:700}
 .card-body{padding:20px}
-.chart-container{height:200px;display:flex;align-items:flex-end;gap:10px;padding-bottom:24px;position:relative;border-bottom:1px solid var(--border)}
-.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-.chart-bar{width:100%;border-radius:6px 6px 0 0;transition:opacity 0.2s;cursor:pointer;min-height:4px}
-.chart-bar:hover{opacity:0.8}
-.chart-bar.current{background:var(--orange)}
-.chart-bar.past{background:var(--border)}
-.chart-label{font-size:11px;color:var(--text-muted);margin-top:4px}
-.chart-label.current-label{color:var(--orange);font-weight:700}
-.chart-amount{font-size:10px;color:var(--text-muted);font-weight:600}
+.chart-container{height:200px;position:relative;border-bottom:1px solid var(--border)}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
 th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
@@ -299,15 +291,38 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       chartMonths.push({ key: k, label: `${m}月`, sales });
     }
     const max = Math.max(...chartMonths.map(d => d.sales), 1);
-    document.getElementById('chart').innerHTML = chartMonths.map(d => {
-      const h = Math.round((d.sales / max) * 160);
-      const isCurrent = d.key === key;
-      return `<div class="chart-bar-wrap">
-        <div class="chart-amount">${d.sales > 0 ? '¥'+(d.sales/10000).toFixed(0)+'万' : '—'}</div>
-        <div class="chart-bar ${isCurrent?'current':'past'}" style="height:${Math.max(h,4)}px" title="¥${d.sales.toLocaleString()}"></div>
-        <div class="chart-label ${isCurrent?'current-label':''}">${d.label}</div>
-      </div>`;
+    const W = 560, H = 180;
+    const padL = 8, padR = 8, padT = 32, padB = 28;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const n = chartMonths.length;
+    const pts = chartMonths.map((d, i) => ({
+      x: padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW),
+      y: padT + plotH - (d.sales / max) * plotH,
+      ...d
+    }));
+    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+    const areaPath = `${linePath} L${pts[n-1].x},${padT+plotH} L${pts[0].x},${padT+plotH} Z`;
+    const nodes = pts.map(p => {
+      const isCurrent = p.key === key;
+      const amt = p.sales > 0 ? '¥' + (p.sales / 10000).toFixed(1) + '万' : '—';
+      return `
+        <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9" fill="${isCurrent ? '#e8630a' : '#7a6a55'}" font-weight="${isCurrent ? '700' : '400'}" font-family="Space Grotesk,sans-serif">${amt}</text>
+        <circle cx="${p.x}" cy="${p.y}" r="${isCurrent ? 5 : 3.5}" fill="${isCurrent ? '#e8630a' : '#fff'}" stroke="${isCurrent ? '#e8630a' : '#e2d9ce'}" stroke-width="2"/>
+        <text x="${p.x}" y="${padT + plotH + 16}" text-anchor="middle" font-size="10" fill="${isCurrent ? '#e8630a' : '#7a6a55'}" font-weight="${isCurrent ? '700' : '400'}" font-family="Noto Sans JP,sans-serif">${p.label}</text>
+      `;
     }).join('');
+    document.getElementById('chart').innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%;overflow:visible">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e8630a" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#e8630a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#areaGrad)"/>
+        <path d="${linePath}" fill="none" stroke="#e8630a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${nodes}
+      </svg>`;
   }
 
   function renderRecentOrders(orders) {
