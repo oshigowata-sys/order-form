@@ -33,7 +33,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
 .content{padding:28px 32px;flex:1}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
-.filter-tabs{display:flex;gap:2px;padding:16px 20px 0;border-bottom:1px solid var(--border)}
+.filter-tabs{display:flex;gap:2px;padding:16px 20px 0;border-bottom:1px solid var(--border);align-items:center}
+.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+.search-input:focus{border-color:var(--orange);background:#fff}
 .tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans JP',sans-serif;font-weight:500;transition:all 0.15s}
 .tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
 .tab:hover{color:var(--text)}
@@ -192,6 +194,9 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <button class="tab" data-filter="新規受注">新規受注</button>
         <button class="tab" data-filter="処理中">処理中</button>
         <button class="tab" data-filter="出荷済み">出荷済み</button>
+        <div style="margin-left:auto;padding-bottom:14px">
+          <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・受注IDで検索" oninput="onSearchInput(this.value)">
+        </div>
       </div>
       <div class="table-wrapper">
         <table>
@@ -335,6 +340,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 
   let allOrders = [];
   let currentFilter = 'all';
+  let currentSearch = '';
 
   function esc(s) {
     if (s == null) return '';
@@ -392,9 +398,18 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     document.getElementById('kpiTotal').textContent = allOrders.length;
   }
 
+  function onSearchInput(val) {
+    currentSearch = val.trim();
+    renderOrders();
+  }
+
   function renderOrders() {
     const tbody = document.getElementById('ordersTbody');
-    const list = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+    let list = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+    if (currentSearch) {
+      const q = currentSearch.toLowerCase();
+      list = list.filter(o => o.customer.toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
+    }
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">受注データがありません</td></tr>';
       return;
