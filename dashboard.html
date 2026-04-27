@@ -109,14 +109,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     <div style="display:flex;align-items:center;gap:16px">
     <div class="period-select">
       <label>対象月</label>
-      <select id="periodSelect" onchange="onPeriodChange()">
-        <option value="2025-11">2025年11月</option>
-        <option value="2025-12">2025年12月</option>
-        <option value="2026-01">2026年 1月</option>
-        <option value="2026-02">2026年 2月</option>
-        <option value="2026-03">2026年 3月</option>
-        <option value="2026-04" selected>2026年 4月</option>
-      </select>
+      <select id="periodSelect" onchange="onPeriodChange()"></select>
     </div>
     <div class="topbar-user">
       <div>
@@ -207,33 +200,19 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   }
 
   function buildMonthOptions() {
-    const monthSet = new Set();
-    allOrders.forEach(o => { if (o.date) monthSet.add(o.date.substring(0, 7)); });
-    const months = Array.from(monthSet).sort();
-
-    const sel = document.getElementById('periodSelect');
-    if (months.length === 0) {
-      sel.innerHTML = '<option value="">データなし</option>';
-      document.getElementById('kpiSales').textContent   = '¥0';
-      document.getElementById('kpiProfit').textContent  = '¥0';
-      document.getElementById('kpiOrders').textContent  = '0件';
-      document.getElementById('kpiPending').textContent = '0件';
-      document.getElementById('kpiSalesSub').textContent   = '—';
-      document.getElementById('kpiProfitSub').textContent  = '—';
-      document.getElementById('kpiOrdersSub').textContent  = '—';
-      document.getElementById('kpiPendingSub').textContent = '処理待ちなし';
-      document.getElementById('periodLabel').textContent   = '受注データがありません';
-      document.getElementById('chart').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">受注データがありません</div>';
-      document.getElementById('recentOrders').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#aaa;">受注データがありません</td></tr>';
-      return;
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push(key);
     }
+    const sel = document.getElementById('periodSelect');
     sel.innerHTML = months.map(m => {
       const [y, mo] = m.split('-');
       return `<option value="${m}">${y}年${parseInt(mo)}月</option>`;
     }).join('');
-
-    const now = new Date().toISOString().substring(0, 7);
-    sel.value = months.includes(now) ? now : months[months.length - 1];
+    sel.value = months[months.length - 1];
   }
 
   function ordersForMonth(key) {
