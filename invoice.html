@@ -532,11 +532,12 @@
   }
 
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
-  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybmF5eG13Y2J4Ymxmb2t2ZW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNjc4NzIsImV4cCI6MjA5MTc0Mzg3Mn0.Rv_hZCtjOQZOecZPo7g9z62-r2RzearKb2DIKI322_M';
 
   function sbFetch(path) {
+    const token = sessionStorage.getItem('_sb_jwt') || SB_ANON;
     return fetch(SB_URL + path, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + token }
     });
   }
 
