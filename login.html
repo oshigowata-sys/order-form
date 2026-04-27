@@ -273,7 +273,7 @@
       if (session?.access_token) {
         sessionStorage.setItem('_sb_jwt', session.access_token);
         if (session.refresh_token) sessionStorage.setItem('_sb_refresh', session.refresh_token);
-        await sbRefreshSession();
+        startAutoRefresh();
       }
 
       const planRes = await fetch(`${SB_URL}/rest/v1/rpc/get_tenant_plan`, {

@@ -63,6 +63,34 @@ async function sbRefreshSession() {
   return data;
 }
 
+let _refreshTimer = null;
+
+function _getTokenExpiry() {
+  const token = sessionStorage.getItem('_sb_jwt');
+  if (!token) return 0;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000;
+  } catch { return 0; }
+}
+
+function startAutoRefresh() {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  const expiry = _getTokenExpiry();
+  if (!expiry) return;
+  const delay = Math.max(expiry - Date.now() - 5 * 60 * 1000, 30_000);
+  _refreshTimer = setTimeout(async () => {
+    const data = await sbRefreshSession();
+    if (data?.access_token) {
+      startAutoRefresh();
+    } else {
+      signOut();
+    }
+  }, delay);
+}
+
+if (sessionStorage.getItem('_sb_jwt')) startAutoRefresh();
+
 async function signOut(redirectUrl) {
   const token = sessionStorage.getItem('_sb_jwt');
   if (token) {
