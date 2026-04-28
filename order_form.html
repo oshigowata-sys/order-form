@@ -36,7 +36,7 @@
 
     /* ===== HEADER ===== */
     .site-header {
-      background: linear-gradient(135deg, #e8630a 0%, #f97316 100%);
+      background: linear-gradient(135deg, #c95407 0%, #e8630a 40%, #f97316 100%);
       color: white;
       padding: 14px 20px;
       display: flex;
@@ -45,8 +45,54 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 12px rgba(232,99,10,0.35);
+      box-shadow: 0 2px 16px rgba(201,84,7,0.45);
+      overflow: hidden;
     }
+
+    .site-header::before {
+      content: '';
+      position: absolute;
+      right: -70px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,
+        transparent 27%,
+        rgba(255,255,255,0.09) 27%, rgba(255,255,255,0.09) 34%,
+        transparent 34%, transparent 43%,
+        rgba(255,255,255,0.06) 43%, rgba(255,255,255,0.06) 50%,
+        transparent 50%, transparent 59%,
+        rgba(255,255,255,0.04) 59%, rgba(255,255,255,0.04) 66%,
+        transparent 66%, transparent 75%,
+        rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02) 82%,
+        transparent 82%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .site-header::after {
+      content: '';
+      position: absolute;
+      right: 110px;
+      top: -28px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,
+        transparent 30%,
+        rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.05) 42%,
+        transparent 42%, transparent 58%,
+        rgba(255,255,255,0.03) 58%, rgba(255,255,255,0.03) 70%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .site-header > * { position: relative; z-index: 1; }
 
     .site-header .logo {
       height: 26px;
@@ -178,11 +224,34 @@
       padding: 13px 20px;
       cursor: pointer;
       user-select: none;
-      background: var(--green);
+      background: linear-gradient(135deg, #1e6641 0%, #268a55 100%);
       transition: background 0.15s;
+      position: relative;
+      overflow: hidden;
     }
 
-    .category-header:hover { background: #1a5c39; }
+    .category-header::before {
+      content: '';
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,
+        transparent 35%,
+        rgba(255,255,255,0.06) 35%, rgba(255,255,255,0.06) 48%,
+        transparent 48%, transparent 62%,
+        rgba(255,255,255,0.04) 62%, rgba(255,255,255,0.04) 75%,
+        transparent 75%
+      );
+      pointer-events: none;
+    }
+
+    .category-header > * { position: relative; z-index: 1; }
+
+    .category-header:hover { background: linear-gradient(135deg, #1a5c39 0%, #1e6641 100%); }
 
     .category-name {
       font-size: 14px;
