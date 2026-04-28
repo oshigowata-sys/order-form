@@ -185,7 +185,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <div class="kpi-sub">件</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-label">月間売上（税込）</div>
+        <div class="kpi-label">月間売上（税抜）</div>
         <div class="kpi-value green" id="kpiMonthly">—</div>
         <div class="kpi-sub">今月累計</div>
       </div>
@@ -392,7 +392,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     const thisMonth = today.slice(0, 7);
     const pending = allOrders.filter(o => o.status === '新規受注' || o.status === '処理中').length;
     const todayCount = allOrders.filter(o => o.date === today).length;
-    const monthly = allOrders.filter(o => o.date && o.date.startsWith(thisMonth)).reduce((s, o) => s + o.incl, 0);
+    const monthly = allOrders.filter(o => o.date && o.date.startsWith(thisMonth)).reduce((s, o) => s + o.excl, 0);
     document.getElementById('kpiPending').textContent = pending;
     document.getElementById('kpiToday').textContent = todayCount;
     document.getElementById('kpiMonthly').textContent = '¥' + monthly.toLocaleString();

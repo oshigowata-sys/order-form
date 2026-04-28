@@ -47,6 +47,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .kpi-value.warn{color:var(--orange)}
 .kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
 .section-col{display:flex;flex-direction:column;gap:20px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
 .card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
 .card-title{font-size:14px;font-weight:700}
@@ -133,9 +134,15 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
     </div>
     <div class="section-col">
-      <div class="card">
-        <div class="card-header"><div class="card-title">月次売上推移（過去6ヶ月）</div></div>
-        <div class="card-body"><div class="chart-container" id="chart"></div></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><div class="card-title">月次売上推移（過去6ヶ月）</div></div>
+          <div class="card-body"><div class="chart-container" id="chart"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">商品別注文数（上位15品）</div></div>
+          <div class="card-body"><div class="chart-container" id="pieChart"></div></div>
+        </div>
       </div>
       <div class="card">
         <div class="card-header">
@@ -175,7 +182,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   async function loadDashboard() {
     try {
       const res = await fetch(
-        SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity)`,
+        SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity,products(product_name))`,
         {
           headers: {
             'apikey': SB_KEY,
@@ -194,7 +201,8 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
           customer: (r.customers && r.customers.company_name) || '',
           date:     r.order_date || '',
           status:   r.status || '',
-          total
+          total,
+          items:    items.map(i => ({ name: i.products?.product_name || '不明', qty: i.quantity || 0 }))
         };
       });
       buildMonthOptions();
@@ -262,6 +270,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     document.getElementById('kpiOrdersSub').textContent = `前月比 ${cDiff >= 0 ? '+' : ''}${cDiff}件`;
 
     renderChart(key);
+    renderPieChart(key);
     renderRecentOrders(cur);
   }
 
@@ -308,6 +317,51 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
         <path d="${linePath}" fill="none" stroke="#e8630a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
         ${nodes}
       </svg>`;
+  }
+
+  function renderPieChart(key) {
+    const cur = ordersForMonth(key);
+    const counts = {};
+    cur.forEach(o => (o.items || []).forEach(it => { counts[it.name] = (counts[it.name] || 0) + it.qty; }));
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 15);
+    const el = document.getElementById('pieChart');
+    if (sorted.length === 0) {
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">データなし</div>';
+      return;
+    }
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    const COLORS = ['#e8630a','#1e6641','#d97706','#c2410c','#2d9a5f','#92400e','#0891b2','#b45309','#065f46','#7c2d12','#6d28d9','#047857','#9a3412','#be185d','#0369a1'];
+    const cx = 90, cy = 90, rO = 78, rI = 48;
+    let paths = '', angle = -Math.PI / 2;
+    sorted.forEach(([, qty], i) => {
+      const sweep = (qty / total) * 2 * Math.PI;
+      const x1 = cx + rO * Math.cos(angle), y1 = cy + rO * Math.sin(angle);
+      const x2 = cx + rO * Math.cos(angle + sweep), y2 = cy + rO * Math.sin(angle + sweep);
+      const xi1 = cx + rI * Math.cos(angle + sweep), yi1 = cy + rI * Math.sin(angle + sweep);
+      const xi2 = cx + rI * Math.cos(angle), yi2 = cy + rI * Math.sin(angle);
+      const large = sweep > Math.PI ? 1 : 0;
+      paths += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${rO},${rO} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${rI},${rI} 0 ${large} 0 ${xi2.toFixed(1)},${yi2.toFixed(1)} Z" fill="${COLORS[i]}" stroke="#fff" stroke-width="1.5"/>`;
+      angle += sweep;
+    });
+    const legend = sorted.map(([name, qty], i) => {
+      const short = name.length > 14 ? name.slice(0, 14) + '…' : name;
+      return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+        <div style="width:9px;height:9px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
+        <span style="font-size:11px;color:var(--text);flex:1;overflow:hidden;white-space:nowrap">${short}</span>
+        <span style="font-size:11px;font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${qty}</span>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:12px;height:100%">
+      <div style="flex-shrink:0">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          ${paths}
+          <text x="${cx}" y="${cy - 5}" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="Noto Sans JP,sans-serif">合計</text>
+          <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)" font-family="Space Grotesk,sans-serif">${total}</text>
+          <text x="${cx}" y="${cy + 28}" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="Noto Sans JP,sans-serif">個</text>
+        </svg>
+      </div>
+      <div style="flex:1;overflow-y:auto;max-height:180px">${legend}</div>
+    </div>`;
   }
 
   function renderRecentOrders(orders) {
