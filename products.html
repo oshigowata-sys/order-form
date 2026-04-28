@@ -461,7 +461,7 @@
     let html = '';
     catKeys.forEach((cat, idx) => {
       const catId = 'cg' + idx;
-      html += `<tr class="category-group-row" data-catid="${catId}" onclick="toggleCategory('${catId}')">
+      html += `<tr class="category-group-row" data-catid="${catId}" data-catname="${esc(cat)}" onclick="toggleCategory('${catId}')">
         <td colspan="5">${esc(cat)}<span class="cat-count">${groups[cat].length}</span><span class="cat-toggle">▼</span></td>
       </tr>`;
       groups[cat].forEach(p => {
@@ -480,6 +480,18 @@
       });
     });
     tbody.innerHTML = html;
+
+    const savedState = JSON.parse(sessionStorage.getItem('meguree_cat_state') || '{}');
+    catKeys.forEach((cat, idx) => {
+      if (!savedState[cat]) return;
+      const catId = 'cg' + idx;
+      const header = document.querySelector(`.category-group-row[data-catid="${catId}"]`);
+      const rows = document.querySelectorAll(`.cat-product-row[data-cat="${catId}"]`);
+      if (header) {
+        header.classList.add('collapsed');
+        rows.forEach(r => r.classList.add('cat-hidden'));
+      }
+    });
   }
 
   function toggleCategory(catId) {
@@ -487,6 +499,11 @@
     const rows = document.querySelectorAll(`.cat-product-row[data-cat="${catId}"]`);
     const collapsed = header.classList.toggle('collapsed');
     rows.forEach(r => r.classList.toggle('cat-hidden', collapsed));
+
+    const catName = header.dataset.catname;
+    const state = JSON.parse(sessionStorage.getItem('meguree_cat_state') || '{}');
+    if (collapsed) { state[catName] = true; } else { delete state[catName]; }
+    sessionStorage.setItem('meguree_cat_state', JSON.stringify(state));
   }
 
   function openAddModal() {
