@@ -710,7 +710,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, note, tenant_id: tenantId })
+        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, tenant_id: tenantId })
       });
       if (!orderRes.ok) throw new Error('order POST failed');
       const orderData = await orderRes.json();
