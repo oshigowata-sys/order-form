@@ -276,10 +276,6 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
             <option value="出荷済み">出荷済み</option>
           </select>
         </div>
-        <div class="form-group2">
-          <label class="form-label2">備考</label>
-          <input type="text" class="form-input2" id="newOrderNote" placeholder="配送日の希望など（任意）" />
-        </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
         <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
@@ -596,7 +592,6 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     newOrderItems = [];
     document.getElementById('newOrderDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('newOrderStatus').value = '新規受注';
-    document.getElementById('newOrderNote').value = '';
     document.getElementById('newOrderCustomer').value = '';
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
@@ -694,8 +689,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     const customerId = document.getElementById('newOrderCustomer').value;
     const orderDate  = document.getElementById('newOrderDate').value;
     const status     = document.getElementById('newOrderStatus').value;
-    const note       = document.getElementById('newOrderNote').value.trim() || null;
-    const errEl      = document.getElementById('orderError');
+const errEl      = document.getElementById('orderError');
     errEl.classList.remove('show');
 
     if (!customerId) { errEl.textContent = '取引先を選択してください'; errEl.classList.add('show'); return; }
@@ -710,7 +704,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, note, tenant_id: tenantId })
+        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, tenant_id: tenantId })
       });
       if (!orderRes.ok) throw new Error('order POST failed');
       const orderData = await orderRes.json();
