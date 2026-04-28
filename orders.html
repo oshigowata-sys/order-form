@@ -63,12 +63,12 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .status-sel.s-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .status-sel.saved{box-shadow:0 0 0 2px var(--green)}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.kpi-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.kpi-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);transition:box-shadow 0.2s}
+.kpi-card:hover{box-shadow:0 8px 28px rgba(0,0,0,0.1)}
 .kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 16px 0 80px;opacity:.08;background:var(--orange)}
 .kpi-card.green::before{background:var(--green)}
 .kpi-card.yellow::before{background:var(--yellow)}
 .kpi-card.blue::before{background:#3b82f6}
-.kpi-icon{font-size:22px;margin-bottom:10px}
 .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
@@ -175,25 +175,21 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-icon">🕐</div>
         <div class="kpi-label">未処理件数</div>
         <div class="kpi-value warn" id="kpiPending">—</div>
         <div class="kpi-sub">新規受注 + 処理中</div>
       </div>
       <div class="kpi-card yellow">
-        <div class="kpi-icon">📅</div>
         <div class="kpi-label">本日受注</div>
         <div class="kpi-value" id="kpiToday">—</div>
         <div class="kpi-sub">件</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-icon">💰</div>
         <div class="kpi-label">月間売上（税込）</div>
         <div class="kpi-value green" id="kpiMonthly">—</div>
         <div class="kpi-sub">今月累計</div>
       </div>
       <div class="kpi-card blue">
-        <div class="kpi-icon">📦</div>
         <div class="kpi-label">総受注件数</div>
         <div class="kpi-value" id="kpiTotal">—</div>
         <div class="kpi-sub">全期間</div>

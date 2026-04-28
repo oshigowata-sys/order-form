@@ -42,7 +42,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 16px 0 80px;opacity:.08;background:var(--orange)}
 .kpi-card.green::before{background:var(--green)}
 .kpi-card.yellow::before{background:var(--yellow)}
-.kpi-icon{font-size:22px;margin-bottom:10px}
 .kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
@@ -128,10 +127,10 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   </div>
   <div class="content">
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
-      <div class="kpi-card green"><div class="kpi-icon">📈</div><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
-      <div class="kpi-card"><div class="kpi-icon">📋</div><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
-      <div class="kpi-card yellow"><div class="kpi-icon">🕐</div><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
+      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
     </div>
     <div class="section-col">
       <div class="card">
