@@ -157,7 +157,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
-  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
+  checkAuth();
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const BADGE      = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};

@@ -226,12 +226,24 @@
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
+  let _failCount = 0;
+  let _lockUntil = 0;
+  const _MAX_FAILS = 5;
+  const _LOCK_MS = 15 * 60 * 1000;
+
   async function login() {
     const loginId   = document.getElementById('loginId').value.trim();
     const password  = document.getElementById('password').value.trim();
     const btn       = document.getElementById('loginBtn');
     const errorMsg  = document.getElementById('errorMsg');
     const errorText = document.getElementById('errorText');
+
+    if (_lockUntil > Date.now()) {
+      const mins = Math.ceil((_lockUntil - Date.now()) / 60000);
+      errorText.textContent = `試行回数が上限を超えました。${mins}分後に再試行してください`;
+      errorMsg.classList.add('show');
+      return;
+    }
 
     if (!loginId || !password) {
       errorText.textContent = 'IDとパスワードを入力してください';
@@ -285,9 +297,18 @@
 
       const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id, tenantPlan };
       sessionStorage.setItem('user', JSON.stringify(user));
+      _failCount = 0; _lockUntil = 0;
       window.location.href = 'dashboard.html';
     } catch(e) {
-      errorText.textContent = 'IDまたはパスワードが正しくありません';
+      _failCount++;
+      if (_failCount >= _MAX_FAILS) {
+        _lockUntil = Date.now() + _LOCK_MS;
+        _failCount = 0;
+        errorText.textContent = 'ログイン試行回数が上限に達しました。15分後に再試行してください';
+      } else {
+        const rem = _MAX_FAILS - _failCount;
+        errorText.textContent = `IDまたはパスワードが正しくありません（あと${rem}回失敗するとロックされます）`;
+      }
       errorMsg.classList.add('show');
       btn.disabled = false;
       btn.textContent = 'ログインする';

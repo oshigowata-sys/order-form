@@ -3,21 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>注文フォーム</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <title>注文フォーム | MeguRee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f5f4f0;
+      --orange: #e8630a;
+      --orange-dark: #c4520a;
+      --orange-pale: #fff4ec;
+      --green: #1e6641;
+      --green-pale: #edf7f1;
+      --bg: #f5f0eb;
       --surface: #ffffff;
-      --border: #e0ddd6;
-      --accent: #2d6a4f;
-      --accent-light: #e8f4ee;
-      --text: #1a1a1a;
-      --text-muted: #6b6b6b;
-      --danger: #c0392b;
-      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --border: #e2d9ce;
+      --border-light: #ede7de;
+      --text: #1c1409;
+      --text-muted: #8c7355;
+      --danger: #dc2626;
+      --shadow: 0 2px 16px rgba(0,0,0,0.07);
+      --r: 14px;
+      --r-sm: 10px;
     }
 
     body {
@@ -25,255 +31,729 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 40px 16px;
+      padding-bottom: 88px;
     }
 
-    .container { max-width: 720px; margin: 0 auto; }
+    /* ===== HEADER ===== */
+    .site-header {
+      background: linear-gradient(135deg, #e8630a 0%, #f97316 100%);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(232,99,10,0.35);
+    }
 
-    .header { text-align: center; margin-bottom: 40px; }
-    .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.05em; color: var(--accent); }
-    .header p { margin-top: 8px; color: var(--text-muted); font-size: 14px; }
+    .site-header .logo {
+      height: 26px;
+      filter: brightness(0) invert(1);
+      flex-shrink: 0;
+    }
 
+    .header-divider {
+      width: 1px;
+      height: 22px;
+      background: rgba(255,255,255,0.35);
+      flex-shrink: 0;
+    }
+
+    .header-text { flex: 1; min-width: 0; }
+
+    .header-customer {
+      font-size: 14px;
+      font-weight: 700;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .header-date {
+      font-size: 11px;
+      opacity: 0.75;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .header-powered {
+      font-size: 11px;
+      opacity: 0.55;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ===== LAYOUT ===== */
+    .page-body { max-width: 1080px; margin: 0 auto; padding: 24px 16px; }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (min-width: 900px) {
+      .page-body { padding: 32px 24px; }
+      .layout-grid { grid-template-columns: 1fr 340px; }
+    }
+
+    /* ===== CARDS ===== */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
-      margin-bottom: 24px;
+      border-radius: var(--r);
       box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 20px;
     }
 
-    .card h2 {
-      font-size: 15px; font-weight: 700; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.08em;
-      margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    .card:last-child { margin-bottom: 0; }
+
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #fafaf8;
     }
 
-    .form-group { margin-bottom: 16px; }
-
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-muted); }
-
-    input[type="text"], select {
-      width: 100%; padding: 10px 14px; border: 1px solid var(--border);
-      border-radius: 8px; font-size: 15px; font-family: inherit;
-      background: #fafafa; transition: border-color 0.2s; outline: none;
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    input[type="text"]:focus, select:focus { border-color: var(--accent); background: #fff; }
+    .card-body { padding: 18px 20px; }
 
-    .product-list { display: flex; flex-direction: column; gap: 8px; }
+    /* ===== FORM FIELDS ===== */
+    .form-group { margin-bottom: 14px; }
+    .form-group:last-child { margin-bottom: 0; }
 
-    .category-block { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .required { color: var(--danger); margin-left: 2px; }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafaf8;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    input[type="text"]:focus { border-color: var(--orange); background: #fff; }
+    input[type="text"][readonly] { background: #f0ece6; color: var(--text-muted); cursor: default; }
+
+    .field-error {
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 4px;
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    /* ===== CATEGORY BLOCK ===== */
+    .category-block { border-bottom: 1px solid var(--border-light); }
+    .category-block:last-child { border-bottom: none; }
 
     .category-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 16px; background: #fafafa; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 20px;
+      cursor: pointer;
       user-select: none;
+      background: #fafaf8;
+      transition: background 0.15s;
     }
 
-    .category-header:hover { background: var(--accent-light); }
+    .category-header:hover { background: var(--orange-pale); }
 
-    .category-name { font-size: 15px; font-weight: 700; color: var(--accent); }
+    .cat-bar {
+      width: 3px;
+      height: 16px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
 
-    .category-arrow {
-      font-size: 12px; color: var(--text-muted);
+    .category-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .cat-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--orange);
+      color: white;
+      border-radius: 20px;
+      padding: 2px 8px;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .cat-badge.show { display: inline-block; }
+
+    .cat-arrow {
+      font-size: 10px;
+      color: var(--text-muted);
       transition: transform 0.2s;
+      flex-shrink: 0;
     }
 
-    .category-block.open .category-arrow { transform: rotate(180deg); }
+    .category-block.open .cat-arrow { transform: rotate(180deg); }
 
     .category-body { display: none; }
     .category-block.open .category-body { display: block; }
 
+    /* ===== PRODUCT ROW ===== */
     .product-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 16px; border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      border-top: 1px solid var(--border-light);
+      transition: background 0.15s;
     }
 
-    .product-info { flex: 1; padding-right: 12px; }
-    .product-name { font-size: 15px; font-weight: 500; display: block; }
-    .product-price { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: block; }
+    .product-row:hover { background: #faf8f5; }
+    .product-row.has-qty { background: var(--orange-pale); }
 
-    .qty-wrap { display: flex; align-items: center; gap: 6px; }
-    .qty-unit { font-size: 13px; color: var(--text-muted); }
+    .product-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      letter-spacing: 0;
+    }
+
+    .product-info { flex: 1; min-width: 0; }
+
+    .product-name {
+      font-size: 13px;
+      font-weight: 500;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .product-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .tax-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #e8f0f4;
+      color: #4a6a7a;
+    }
+
+    /* ===== STEPPER ===== */
+    .stepper {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .stepper-btn {
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      color: var(--text-muted);
+      line-height: 1;
+      user-select: none;
+    }
+
+    .stepper-btn.minus { border-radius: 8px 0 0 8px; }
+    .stepper-btn.minus:hover { background: #f0ece6; }
+
+    .stepper-btn.plus {
+      border-radius: 0 8px 8px 0;
+      background: var(--orange);
+      border-color: var(--orange);
+      color: white;
+    }
+
+    .stepper-btn.plus:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
 
     .qty-input {
-      width: 72px; padding: 8px 10px; border: 1px solid var(--border);
-      border-radius: 8px; font-size: 16px; font-family: inherit;
-      text-align: center; background: #fff; outline: none;
+      width: 46px;
+      height: 34px;
+      border: 1.5px solid var(--border);
+      border-left: none;
+      border-right: none;
+      background: white;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      -moz-appearance: textfield;
+      color: var(--text);
     }
 
-    .qty-input:focus { border-color: var(--accent); border-width: 2px; }
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-    .total-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+    .qty-input:focus { background: #fff8f4; }
+
+    /* ===== EMPTY / LOADING ===== */
+    .empty-msg {
+      text-align: center;
+      padding: 28px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
     }
 
-    .total-label { font-size: 14px; color: var(--text-muted); }
-    .total-amount { font-size: 22px; font-weight: 700; color: var(--accent); }
+    /* ===== SUMMARY CARD (sidebar) ===== */
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 82px;
+    }
+
+    .summary-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-count {
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .summary-count .num { color: var(--orange); }
+
+    .summary-count-unit {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    .summary-lines {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .summary-line:last-child { margin-bottom: 0; }
+
+    .summary-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .summary-total .price { color: var(--orange); }
+
+    .summary-actions { padding: 14px 20px; }
 
     .submit-btn {
-      width: 100%; padding: 16px; background: var(--accent); color: #fff;
-      border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
-      font-family: inherit; cursor: pointer; letter-spacing: 0.05em;
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, var(--orange) 0%, #f97316 100%);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(232,99,10,0.3);
     }
 
-    .submit-btn:hover { opacity: 0.88; }
-    .submit-btn:active { transform: scale(0.99); }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    .success { display: none; text-align: center; padding: 60px 20px; }
-    .success-icon { font-size: 60px; margin-bottom: 20px; }
-    .success h2 { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
-    .success p { color: var(--text-muted); font-size: 15px; }
+    .submit-error {
+      font-size: 12px;
+      color: var(--danger);
+      margin-bottom: 10px;
+      display: none;
+      line-height: 1.5;
+    }
 
-    .error-msg { color: var(--danger); font-size: 13px; margin-top: 6px; display: none; }
-    .empty-msg { text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; }
-    .invalid-screen { display: none; text-align: center; padding: 80px 20px; }
+    .submit-error.show { display: block; }
+
+    /* ===== INVALID SCREEN ===== */
+    .invalid-screen {
+      display: none;
+      text-align: center;
+      padding: 80px 20px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
     .invalid-screen.show { display: block; }
-    .invalid-icon { font-size: 56px; margin-bottom: 20px; }
-    .invalid-title { font-size: 20px; font-weight: 700; color: var(--danger); margin-bottom: 10px; }
-    .invalid-sub { color: var(--text-muted); font-size: 14px; line-height: 1.8; }
+    .invalid-icon { font-size: 48px; margin-bottom: 16px; }
+    .invalid-title { font-size: 18px; font-weight: 700; color: var(--danger); margin-bottom: 8px; }
+    .invalid-sub { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
+
+    /* ===== MOBILE STICKY BAR ===== */
+    .mobile-bar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      z-index: 200;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+    }
+
+    @media (max-width: 899px) {
+      .mobile-bar { display: flex; align-items: center; gap: 12px; }
+      .side-col { display: none; }
+    }
+
+    .mobile-bar-info { flex: 1; }
+    .mobile-bar-label { font-size: 11px; color: var(--text-muted); display: block; }
+    .mobile-bar-total { font-size: 18px; font-weight: 700; color: var(--orange); }
+
+    .mobile-submit-btn {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--orange) 0%, #f97316 100%);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .mobile-submit-btn:hover { opacity: 0.9; }
+    .mobile-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== SUCCESS MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(28,20,9,0.55);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.9) translateY(12px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .modal-check {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--green-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 30px;
+      color: var(--green);
+    }
+
+    .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .modal-order-num {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .modal-order-num strong {
+      display: block;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+
+    .modal-note { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
   </style>
 </head>
 <body>
-<div class="container">
 
-  <div class="header">
-    <h1>📦 注文フォーム</h1>
-    <p>商品を選択して注文を送信してください</p>
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" class="logo">
+  <div class="header-divider"></div>
+  <div class="header-text">
+    <span class="header-customer" id="headerCustomer">注文フォーム</span>
+    <span class="header-date" id="headerDate"></span>
   </div>
+  <span class="header-powered">Powered by MeguRee</span>
+</header>
 
-  <div class="invalid-screen" id="invalidScreen">
-    <div class="invalid-icon">🔗</div>
-    <div class="invalid-title">URLが正しくありません</div>
-    <div class="invalid-sub">このURLは無効です。<br>担当者から共有された正しいURLをご使用ください。</div>
-  </div>
+<!-- ===== INVALID SCREEN ===== -->
+<div class="invalid-screen" id="invalidScreen">
+  <div class="invalid-icon">🔗</div>
+  <div class="invalid-title">URLが正しくありません</div>
+  <div class="invalid-sub">このURLは無効です。<br>担当者から共有された正しいURLをご使用ください。</div>
+</div>
 
-  <div id="formArea">
+<!-- ===== FORM AREA ===== -->
+<div class="page-body" id="formArea">
+  <div class="layout-grid">
 
-    <div class="card">
-      <h2>取引先情報</h2>
-      <div class="form-group">
-        <label>会社名 / 店舗名 <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="companyName" placeholder="例：株式会社MeguRee">
-        <div class="error-msg" id="companyError">会社名を入力してください</div>
+    <!-- LEFT COLUMN -->
+    <div class="main-col">
+
+      <!-- Customer info (visible when no ?customer param) -->
+      <div class="card" id="customerCard">
+        <div class="card-header"><span class="card-title">取引先情報</span></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>会社名・店舗名<span class="required">*</span></label>
+            <input type="text" id="companyName" placeholder="例：山田農場">
+            <div class="field-error" id="companyError">会社名を入力してください</div>
+          </div>
+          <div class="form-group">
+            <label>担当者名</label>
+            <input type="text" id="personName" placeholder="例：山田 太郎">
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>担当者名</label>
-        <input type="text" id="personName" placeholder="例：担当者名">
+
+      <!-- Product list -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">商品を選んでください</span></div>
+        <div id="productList">
+          <div class="empty-msg">読み込み中...</div>
+        </div>
+        <div class="field-error" id="productError" style="padding:0 20px 14px;">1つ以上の商品を選択してください</div>
+      </div>
+
+
+    </div>
+
+    <!-- RIGHT COLUMN — desktop summary sidebar -->
+    <div class="side-col">
+      <div class="summary-card">
+        <div class="summary-header">
+          <div class="summary-title">ご注文内容</div>
+          <div class="summary-count">
+            <span class="num" id="summaryCount">0</span><span class="summary-count-unit">点選択中</span>
+          </div>
+        </div>
+        <div class="summary-lines">
+          <div class="summary-line">
+            <span>小計（税抜）</span>
+            <span id="summarySubtotal">¥0</span>
+          </div>
+          <div class="summary-line">
+            <span>消費税（8%）</span>
+            <span id="summaryTax8">¥0</span>
+          </div>
+          <div class="summary-line">
+            <span>消費税（10%）</span>
+            <span id="summaryTax10">¥0</span>
+          </div>
+          <div class="summary-line summary-total">
+            <span>合計（税込）</span>
+            <span class="price" id="summaryTotal">¥0</span>
+          </div>
+        </div>
+        <div class="summary-actions">
+          <div class="submit-error" id="submitError"></div>
+          <button class="submit-btn" id="submitBtn" onclick="submitOrder()">
+            注文を確定する →
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>注文商品</h2>
-
-      <div class="product-list" id="productList">
-        <div class="empty-msg">商品が追加されていません</div>
-      </div>
-
-      <div class="total-bar">
-        <span class="total-label">注文合計</span>
-        <span class="total-amount" id="totalAmount">¥0</span>
-      </div>
-
-      <div class="error-msg" id="productError">1つ以上の商品を入力してください</div>
-    </div>
-
-    <div class="card">
-      <h2>備考</h2>
-      <div class="form-group">
-        <input type="text" id="note" placeholder="配送日の希望など（任意）">
-      </div>
-    </div>
-
-    <div class="error-msg" id="submitError" style="margin-bottom:12px;font-size:14px;"></div>
-    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">注文を確定する</button>
-
   </div>
+</div>
 
-  <div class="success" id="successArea">
-    <div class="success-icon">✅</div>
-    <h2>注文を受け付けました</h2>
-    <p>ご注文ありがとうございます。<br>担当者より確認のご連絡をいたします。</p>
+<!-- ===== MOBILE STICKY BAR ===== -->
+<div class="mobile-bar" id="mobileBar">
+  <div class="mobile-bar-info">
+    <span class="mobile-bar-label">合計（税込）</span>
+    <span class="mobile-bar-total" id="mobileTotal">¥0</span>
   </div>
+  <button class="mobile-submit-btn" id="mobileSubmitBtn" onclick="submitOrder()">注文を確定する</button>
+</div>
 
+<!-- ===== SUCCESS MODAL ===== -->
+<div class="modal-overlay" id="successModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-check">✓</div>
+    <h2 class="modal-title">ご注文ありがとうございます！</h2>
+    <p class="modal-sub">ご注文の内容を受け付けました</p>
+    <div class="modal-order-num">
+      注文番号
+      <strong id="modalOrderNum">—</strong>
+    </div>
+    <p class="modal-note">担当者より確認のご連絡をいたします。</p>
+  </div>
 </div>
 
 <script>
-  // =============================
-  // Supabase 接続設定
-  // =============================
+  // ===== Supabase =====
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybmF5eG13Y2J4Ymxmb2t2ZW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNjc4NzIsImV4cCI6MjA5MTc0Mzg3Mn0.Rv_hZCtjOQZOecZPo7g9z62-r2RzearKb2DIKI322_M';
-  // =============================
 
   function sbFetch(path, options = {}) {
     return fetch(SB_URL + path, {
       ...options,
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', ...(options.headers || {}) }
     });
   }
 
-  // テナントIDをURLパラメータから取得（必須）
+  // ===== URL params =====
   const _params    = new URLSearchParams(location.search);
   const TENANT_ID  = _params.get('tenant')   || null;
   const CUSTOMER_ID = _params.get('customer') || null;
+
   if (!TENANT_ID) {
     document.getElementById('formArea').style.display = 'none';
+    document.getElementById('mobileBar').style.display = 'none';
     document.getElementById('invalidScreen').classList.add('show');
   }
-  // customer パラメータがある場合は会社名を自動セット・読み取り専用にする
+
+  // ===== Header date =====
+  (() => {
+    const d = new Date();
+    document.getElementById('headerDate').textContent =
+      `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  })();
+
+  // ===== Customer name from param =====
   if (CUSTOMER_ID) {
+    document.getElementById('customerCard').style.display = 'none';
     (async () => {
       try {
         const res = await sbFetch('/rest/v1/rpc/get_customer_name_by_id', {
-          method: 'POST',
-          body: JSON.stringify({ p_customer_id: CUSTOMER_ID })
+          method: 'POST', body: JSON.stringify({ p_customer_id: CUSTOMER_ID })
         });
         if (res.ok) {
           const name = await res.json();
           if (name) {
-            const input = document.getElementById('companyName');
-            input.value = name;
-            input.readOnly = true;
-            input.style.background = '#f0ede8';
-            input.style.color = 'var(--text-muted)';
+            document.getElementById('headerCustomer').textContent = name + ' 様の注文フォーム';
+            const inp = document.getElementById('companyName');
+            if (inp) { inp.value = name; inp.readOnly = true; }
           }
         }
       } catch(e) { console.warn('顧客名取得エラー:', e); }
     })();
   }
 
-  // ===== セッションキャッシュ =====
   const sessionCache = {};
 
-  // XSSエスケープ：外部データをHTMLに埋め込む前に必ず通す
   function esc(str) {
     if (str === null || str === undefined) return '';
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
   }
 
-  function showError(message) {
-    const el = document.getElementById('submitError');
-    el.textContent = message;
-    el.style.display = 'block';
-  }
+  // ===== Category color palette =====
+  const CAT_COLORS = ['#e8630a','#1e6641','#d4870c','#2a7d8f','#8b5a2b','#6b4c8c','#c0392b','#2980b9'];
+  const _catColorMap = {};
+  let _catIdx = 0;
 
-  function hideError() {
-    document.getElementById('submitError').style.display = 'none';
+  function catColor(cat) {
+    if (!_catColorMap[cat]) { _catColorMap[cat] = CAT_COLORS[_catIdx++ % CAT_COLORS.length]; }
+    return _catColorMap[cat];
   }
 
   let products = [];
@@ -284,15 +764,13 @@
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
-        const tenantFilter = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-        const res = await sbFetch(`/rest/v1/products?${tenantFilter}select=id,product_name,price,category&order=category,product_name`);
+        const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
+        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,tax_rate&order=category,product_name`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
-          id:       p.id,
-          name:     p.product_name || '',
-          price:    p.price || 0,
-          category: p.category || 'その他',
+          id: p.id, name: p.product_name || '', price: p.price || 0,
+          category: p.category || 'その他', taxRate: p.tax_rate || 10,
         }));
         sessionCache.products = products;
       }
@@ -302,37 +780,50 @@
         return;
       }
 
-      // カテゴリ別にグループ化
+      // Group by category (preserve insertion order)
       const groups = {};
+      const catOrder = [];
       products.forEach(p => {
-        if (!groups[p.category]) groups[p.category] = [];
+        if (!groups[p.category]) { groups[p.category] = []; catOrder.push(p.category); }
         groups[p.category].push(p);
       });
 
-      list.innerHTML = Object.entries(groups).map(([cat, items], i) => `
-        <div class="category-block ${i === 0 ? 'open' : ''}" onclick="toggleCategory(this)">
-          <div class="category-header">
-            <span class="category-name">${esc(cat)}</span>
-            <span class="category-arrow">▼</span>
-          </div>
-          <div class="category-body">
-            ${items.map(p => `
-              <div class="product-row">
-                <div class="product-info">
-                  <span class="product-name">${esc(p.name)}</span>
-                  <span class="product-price">¥${Number(p.price).toLocaleString()}</span>
+      list.innerHTML = catOrder.map((cat, ci) => {
+        const items = groups[cat];
+        const color = catColor(cat);
+        return `
+          <div class="category-block open">
+            <div class="category-header" onclick="toggleCategory(this.parentElement)">
+              <div class="cat-bar" style="background:${color}"></div>
+              <span class="category-name">${esc(cat)}</span>
+              <span class="cat-badge" data-cat="${esc(cat)}"></span>
+              <span class="cat-arrow">▼</span>
+            </div>
+            <div class="category-body">
+              ${items.map(p => `
+                <div class="product-row" id="prow-${esc(p.id)}">
+                  <div class="product-icon" style="background:${color}">${esc(p.name.slice(0,2))}</div>
+                  <div class="product-info">
+                    <span class="product-name">${esc(p.name)}</span>
+                    <div class="product-meta">
+                      <span>¥${Number(p.price).toLocaleString()}</span>
+                      <span class="tax-badge">税${p.taxRate}%</span>
+                    </div>
+                  </div>
+                  <div class="stepper" onclick="event.stopPropagation()">
+                    <button class="stepper-btn minus" onclick="stepQty('${esc(p.id)}',-1)">−</button>
+                    <input class="qty-input" type="number" min="0" max="999" value="0"
+                      id="qty-${esc(p.id)}"
+                      data-id="${esc(p.id)}" data-price="${Number(p.price)}"
+                      data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
+                      oninput="syncQty(this)">
+                    <button class="stepper-btn plus" onclick="stepQty('${esc(p.id)}',1)">+</button>
+                  </div>
                 </div>
-                <div class="qty-wrap">
-                  <input class="qty-input" type="number" min="0" placeholder="0"
-                    data-id="${esc(p.id)}" data-price="${Number(p.price)}"
-                    oninput="updateTotal()" onclick="event.stopPropagation()">
-                  <span class="qty-unit">個</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
+              `).join('')}
+            </div>
+          </div>`;
+      }).join('');
 
     } catch(e) {
       list.innerHTML = '<div class="empty-msg">商品の読み込みに失敗しました</div>';
@@ -340,114 +831,139 @@
     }
   }
 
-  function toggleCategory(block) {
-    block.classList.toggle('open');
+  function toggleCategory(block) { block.classList.toggle('open'); }
+
+  function stepQty(id, delta) {
+    const input = document.getElementById('qty-' + id);
+    if (!input) return;
+    input.value = Math.max(0, Math.min(999, (parseInt(input.value) || 0) + delta));
+    syncQty(input);
+  }
+
+  function syncQty(input) {
+    const val = Math.max(0, Math.min(999, parseInt(input.value) || 0));
+    input.value = val;
+    const row = document.getElementById('prow-' + input.dataset.id);
+    if (row) row.classList.toggle('has-qty', val > 0);
+    updateSummary();
   }
 
   function getOrderItems() {
     return Array.from(document.querySelectorAll('.qty-input'))
-      .map(el => ({ id: el.dataset.id, price: Number(el.dataset.price), qty: parseInt(el.value) || 0 }))
+      .map(el => ({
+        id: el.dataset.id, price: Number(el.dataset.price),
+        taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
+        qty: parseInt(el.value) || 0
+      }))
       .filter(i => i.qty > 0);
   }
 
-  function updateTotal() {
-    const total = getOrderItems().reduce((sum, i) => sum + i.price * i.qty, 0);
-    document.getElementById('totalAmount').textContent = '¥' + total.toLocaleString();
+  function updateSummary() {
+    const items = getOrderItems();
+    let subtotal = 0, tax8 = 0, tax10 = 0, totalQty = 0;
+    items.forEach(i => {
+      const amt = i.price * i.qty;
+      subtotal += amt;
+      if (i.taxRate === 8) tax8 += Math.round(amt * 0.08);
+      else tax10 += Math.round(amt * 0.10);
+      totalQty += i.qty;
+    });
+    const total = subtotal + tax8 + tax10;
+
+    document.getElementById('summaryCount').textContent = totalQty;
+    document.getElementById('summarySubtotal').textContent = '¥' + subtotal.toLocaleString();
+    document.getElementById('summaryTax8').textContent = '¥' + tax8.toLocaleString();
+    document.getElementById('summaryTax10').textContent = '¥' + tax10.toLocaleString();
+    document.getElementById('summaryTotal').textContent = '¥' + total.toLocaleString();
+    document.getElementById('mobileTotal').textContent = '¥' + total.toLocaleString();
+
+    // Category badges
+    const catCounts = {};
+    items.forEach(i => { catCounts[i.cat] = (catCounts[i.cat] || 0) + i.qty; });
+    document.querySelectorAll('.cat-badge').forEach(badge => {
+      const cat = badge.dataset.cat;
+      const n = catCounts[cat] || 0;
+      badge.textContent = n + '点';
+      badge.classList.toggle('show', n > 0);
+    });
   }
 
+  function updateTotal() { updateSummary(); }
+
   async function generateOrderCode() {
-    const today = new Date().toISOString().slice(0, 10);
-    const dateStr = today.replace(/-/g, '');
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
     try {
       const res = await sbFetch('/rest/v1/rpc/count_today_orders', { method: 'POST', body: '{}' });
       if (!res.ok) return `ORD-${dateStr}-001`;
       const count = await res.json();
-      const seq = String((count || 0) + 1).padStart(3, '0');
-      return `ORD-${dateStr}-${seq}`;
-    } catch(e) {
-      return `ORD-${dateStr}-001`;
-    }
+      return `ORD-${dateStr}-${String((count||0)+1).padStart(3,'0')}`;
+    } catch(e) { return `ORD-${dateStr}-001`; }
   }
 
   async function getRate(customerId, productId) {
     try {
-      const res = await sbFetch(
-        `/rest/v1/pricing?customer_id=eq.${customerId}&product_id=eq.${productId}&select=rate`
-      );
+      const res = await sbFetch(`/rest/v1/pricing?customer_id=eq.${customerId}&product_id=eq.${productId}&select=rate`);
       if (!res.ok) return 1.0;
       const data = await res.json();
       return (data.length > 0 && data[0].rate != null) ? Number(data[0].rate) : 1.0;
-    } catch(e) {
-      return 1.0;
-    }
+    } catch(e) { return 1.0; }
   }
 
   async function submitOrder() {
     let valid = true;
 
-    const company = document.getElementById('companyName').value.trim();
-    if (!company) {
-      document.getElementById('companyError').style.display = 'block';
-      valid = false;
+    const customerCard = document.getElementById('customerCard');
+    let company = '';
+    if (customerCard.style.display !== 'none') {
+      company = document.getElementById('companyName').value.trim();
+      const companyErr = document.getElementById('companyError');
+      if (!company) { companyErr.classList.add('show'); valid = false; }
+      else { companyErr.classList.remove('show'); }
     } else {
-      document.getElementById('companyError').style.display = 'none';
+      company = document.getElementById('companyName')?.value?.trim() || '';
     }
 
     const items = getOrderItems();
-    if (items.length === 0) {
-      document.getElementById('productError').style.display = 'block';
-      valid = false;
-    } else {
-      document.getElementById('productError').style.display = 'none';
-    }
+    const productErr = document.getElementById('productError');
+    if (items.length === 0) { productErr.classList.add('show'); valid = false; }
+    else { productErr.classList.remove('show'); }
 
     if (!valid) return;
 
     const btn = document.getElementById('submitBtn');
+    const mBtn = document.getElementById('mobileSubmitBtn');
     btn.disabled = true;
     btn.textContent = '送信中...';
-    hideError();
+    if (mBtn) { mBtn.disabled = true; mBtn.textContent = '送信中...'; }
 
-    // customer_id を取得（URLパラメータ優先、なければ会社名で検索）
+    const errEl = document.getElementById('submitError');
+    errEl.classList.remove('show');
+
     let customerId = CUSTOMER_ID || null;
-    if (!customerId) {
+    if (!customerId && company && TENANT_ID) {
       try {
-        const companyName = document.getElementById('companyName').value.trim();
-        if (TENANT_ID) {
-          const custRes = await sbFetch('/rest/v1/rpc/get_customer_id_by_name', {
-            method: 'POST',
-            body: JSON.stringify({ p_company_name: companyName, p_tenant_id: TENANT_ID })
-          });
-          if (custRes.ok) {
-            const custId = await custRes.json();
-            if (custId) customerId = custId;
-          }
-        }
-      } catch(e) {
-        console.warn('顧客検索エラー:', e);
-      }
+        const custRes = await sbFetch('/rest/v1/rpc/get_customer_id_by_name', {
+          method: 'POST',
+          body: JSON.stringify({ p_company_name: company, p_tenant_id: TENANT_ID })
+        });
+        if (custRes.ok) { const id = await custRes.json(); if (id) customerId = id; }
+      } catch(e) { console.warn('顧客検索エラー:', e); }
     }
 
     try {
-      // 1. 各商品の掛け率を取得し unit_price を計算
       const orderItemsPayload = await Promise.all(items.map(async item => {
         const rate = customerId ? await getRate(customerId, item.id) : 1.0;
-        const unit_price = Math.round(item.price * rate);
-        return { product_id: item.id, quantity: item.qty, unit_price };
+        return { product_id: item.id, quantity: item.qty, unit_price: Math.round(item.price * rate) };
       }));
 
-      // 2. SECURITY DEFINER RPC で orders + order_items を一括登録（anon JWT 不要）
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0,10);
       const orderCode = await generateOrderCode();
       const rpcRes = await sbFetch('/rest/v1/rpc/create_anon_order', {
         method: 'POST',
         body: JSON.stringify({
-          p_tenant_id:   TENANT_ID || null,
-          p_customer_id: customerId || null,
-          p_order_code:  orderCode,
-          p_order_date:  today,
-          p_status:      '新規受注',
-          p_items:       orderItemsPayload
+          p_tenant_id: TENANT_ID || null, p_customer_id: customerId || null,
+          p_order_code: orderCode, p_order_date: today,
+          p_status: '新規受注', p_items: orderItemsPayload
         })
       });
 
@@ -456,15 +972,16 @@
         throw new Error('注文の登録に失敗しました: ' + errText);
       }
 
-      // 3. 成功表示
-      document.getElementById('formArea').style.display = 'none';
-      document.getElementById('successArea').style.display = 'block';
+      document.getElementById('modalOrderNum').textContent = orderCode;
+      document.getElementById('successModal').style.display = 'flex';
 
     } catch(e) {
       console.error(e);
       btn.disabled = false;
-      btn.textContent = '注文を確定する';
-      showError(e.message || '送信に失敗しました。もう一度お試しください。');
+      btn.innerHTML = '注文を確定する →';
+      if (mBtn) { mBtn.disabled = false; mBtn.textContent = '注文を確定する'; }
+      errEl.textContent = e.message || '送信に失敗しました。もう一度お試しください。';
+      errEl.classList.add('show');
     }
   }
 

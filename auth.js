@@ -89,7 +89,7 @@ function startAutoRefresh() {
   }, delay);
 }
 
-if (sessionStorage.getItem('_sb_jwt')) startAutoRefresh();
+if (sessionStorage.getItem('_sb_jwt')) { startAutoRefresh(); startIdleWatch(); }
 
 async function signOut(redirectUrl) {
   const token = sessionStorage.getItem('_sb_jwt');
@@ -106,4 +106,31 @@ async function signOut(redirectUrl) {
   sessionStorage.removeItem('_sb_jwt');
   sessionStorage.removeItem('_sb_refresh');
   location.replace(redirectUrl || 'login.html');
+}
+
+function checkAuth(redirectUrl) {
+  const user = sessionStorage.getItem('user');
+  const jwt = sessionStorage.getItem('_sb_jwt');
+  if (!user || !jwt) { location.replace(redirectUrl || 'login.html'); return false; }
+  try {
+    const payload = JSON.parse(atob(jwt.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
+  } catch { location.replace(redirectUrl || 'login.html'); return false; }
+  return true;
+}
+
+let _idleTimer = null;
+const _IDLE_MS = 30 * 60 * 1000;
+
+function _resetIdleTimer() {
+  clearTimeout(_idleTimer);
+  if (!sessionStorage.getItem('_sb_jwt')) return;
+  _idleTimer = setTimeout(() => signOut(), _IDLE_MS);
+}
+
+function startIdleWatch() {
+  ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(e =>
+    document.addEventListener(e, _resetIdleTimer, { passive: true })
+  );
+  _resetIdleTimer();
 }

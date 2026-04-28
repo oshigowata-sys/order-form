@@ -220,7 +220,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
-  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
+  checkAuth();
 const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
 const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
