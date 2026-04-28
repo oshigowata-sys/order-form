@@ -254,7 +254,7 @@
 
 <script src="auth.js"></script>
 <script>
-  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
+  checkAuth();
   const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
   const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');

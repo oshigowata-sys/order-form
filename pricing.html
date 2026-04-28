@@ -185,7 +185,7 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
-  if (!sessionStorage.getItem('user')) { location.replace('login.html'); }
+  checkAuth();
 const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
 const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
