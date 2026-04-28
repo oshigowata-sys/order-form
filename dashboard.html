@@ -128,7 +128,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
-      <div class="kpi-card green"><div class="kpi-label">月次利益</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub" id="kpiProfitSub">—</div></div>
+      <div class="kpi-card green"><div class="kpi-label">平均受注額</div><div class="kpi-value" id="kpiAvg">—</div><div class="kpi-sub" id="kpiAvgSub">—</div></div>
       <div class="kpi-card"><div class="kpi-label">受注件数</div><div class="kpi-value" id="kpiOrders">—</div><div class="kpi-sub" id="kpiOrdersSub">—</div></div>
       <div class="kpi-card yellow"><div class="kpi-label">未処理受注</div><div class="kpi-value warn" id="kpiPending">—</div><div class="kpi-sub" id="kpiPendingSub">—</div></div>
     </div>
@@ -175,7 +175,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   async function loadDashboard() {
     try {
       const res = await fetch(
-        SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity,cost_price)`,
+        SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity)`,
         {
           headers: {
             'apikey': SB_KEY,
@@ -188,15 +188,13 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       allOrders = data.map(r => {
         const items = Array.isArray(r.order_items) ? r.order_items : [];
         const total = items.reduce((s, i) => s + (i.unit_price * i.quantity), 0);
-        const cost  = items.reduce((s, i) => s + (i.cost_price * i.quantity), 0);
         return {
           id:       r.order_code || r.id || '',
           uuid:     r.id,
           customer: (r.customers && r.customers.company_name) || '',
           date:     r.order_date || '',
           status:   r.status || '',
-          total,
-          cost
+          total
         };
       });
       buildMonthOptions();
@@ -241,13 +239,13 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
 
     const cur = ordersForMonth(key);
     const sales   = cur.reduce((s,o) => s + o.total, 0);
-    const profit  = cur.reduce((s,o) => s + (o.total - o.cost), 0);
     const count   = cur.length;
+    const avg     = count > 0 ? Math.round(sales / count) : 0;
     const pending = cur.filter(o => o.status === '新規受注').length;
 
-    document.getElementById('kpiSales').textContent   = '¥' + sales.toLocaleString();
-    document.getElementById('kpiProfit').textContent  = '¥' + profit.toLocaleString();
-    document.getElementById('kpiProfitSub').textContent = sales > 0 ? '利益率 ' + (profit/sales*100).toFixed(1) + '%' : '—';
+    document.getElementById('kpiSales').textContent  = '¥' + sales.toLocaleString();
+    document.getElementById('kpiAvg').textContent    = count > 0 ? '¥' + avg.toLocaleString() : '—';
+    document.getElementById('kpiAvgSub').textContent = count > 0 ? `受注${count}件の平均` : '受注なし';
     document.getElementById('kpiOrders').textContent  = count + '件';
     document.getElementById('kpiPending').textContent = pending + '件';
     document.getElementById('kpiPendingSub').textContent = pending > 0 ? '要対応' : '処理待ちなし';
