@@ -75,6 +75,13 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
 .topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
 .topbar-user-role{font-size:11px;color:var(--text-muted)}
 .topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.cust-group-row{cursor:pointer;user-select:none}
+.cust-group-row td{background:#f0ebe3;font-size:11px;font-weight:700;color:var(--text-muted);padding:9px 16px;letter-spacing:0.8px;text-transform:uppercase;border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-left:3px solid var(--orange)}
+.cust-group-row:hover td{background:#e8e2d8;color:var(--text)}
+.cust-toggle{float:right;font-size:11px;transition:transform 0.25s;display:inline-block;opacity:0.5}
+.cust-group-row.collapsed .cust-toggle{transform:rotate(-90deg)}
+.cust-count{display:inline-block;background:rgba(26,18,8,0.07);color:var(--text-muted);border-radius:10px;padding:1px 8px;font-size:10px;font-weight:600;margin-left:8px;vertical-align:middle}
+.cust-pricing-row.cust-hidden{display:none}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -286,19 +293,59 @@ function renderPricing() {
       '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">該当する掛け率が見つかりません</td></tr>';
     return;
   }
-  document.getElementById('pricingTbody').innerHTML = list.map(p => {
+
+  function rowHtml(p) {
     const applied = p.basePrice > 0 && p.rate > 0 ? Math.round(p.basePrice * p.rate) : null;
-    return `<tr>
-      <td style="font-weight:600">${p.custName}</td>
+    return `<td style="font-weight:600">${p.custName}</td>
       <td style="font-size:12px;color:var(--text-muted)">${p.prodName}</td>
       <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${p.rate > 0 ? (p.rate*100).toFixed(0)+'%' : '—'}</span></td>
       <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${applied !== null ? '¥'+applied.toLocaleString() : '—'}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing('${p.id}')">編集</button>
         <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;margin-left:4px" onclick="deletePricing('${p.id}')">削除</button>
-      </td>
+      </td>`;
+  }
+
+  if (q) {
+    document.getElementById('pricingTbody').innerHTML = list.map(p => `<tr>${rowHtml(p)}</tr>`).join('');
+    return;
+  }
+
+  const groups = {};
+  list.forEach(p => { if (!groups[p.custName]) groups[p.custName] = []; groups[p.custName].push(p); });
+  const custKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
+  const savedState = JSON.parse(sessionStorage.getItem('meguree_pricing_state') || '{}');
+
+  let html = '';
+  custKeys.forEach((cust, idx) => {
+    const cgId = 'pcg' + idx;
+    html += `<tr class="cust-group-row" data-cgid="${cgId}" data-custname="${cust.replace(/"/g,'&quot;')}" onclick="toggleCustGroup('${cgId}')">
+      <td colspan="5">${cust}<span class="cust-count">${groups[cust].length}</span><span class="cust-toggle">▼</span></td>
     </tr>`;
-  }).join('');
+    groups[cust].forEach(p => {
+      html += `<tr class="cust-pricing-row" data-cg="${cgId}">${rowHtml(p)}</tr>`;
+    });
+  });
+  document.getElementById('pricingTbody').innerHTML = html;
+
+  custKeys.forEach((cust, idx) => {
+    if (!savedState[cust]) return;
+    const cgId = 'pcg' + idx;
+    const header = document.querySelector(`.cust-group-row[data-cgid="${cgId}"]`);
+    const rows = document.querySelectorAll(`.cust-pricing-row[data-cg="${cgId}"]`);
+    if (header) { header.classList.add('collapsed'); rows.forEach(r => r.classList.add('cust-hidden')); }
+  });
+}
+
+function toggleCustGroup(cgId) {
+  const header = document.querySelector(`.cust-group-row[data-cgid="${cgId}"]`);
+  const rows = document.querySelectorAll(`.cust-pricing-row[data-cg="${cgId}"]`);
+  const collapsed = header.classList.toggle('collapsed');
+  rows.forEach(r => r.classList.toggle('cust-hidden', collapsed));
+  const custName = header.dataset.custname;
+  const state = JSON.parse(sessionStorage.getItem('meguree_pricing_state') || '{}');
+  if (collapsed) { state[custName] = true; } else { delete state[custName]; }
+  sessionStorage.setItem('meguree_pricing_state', JSON.stringify(state));
 }
 
 /* ── プレビュー ── */

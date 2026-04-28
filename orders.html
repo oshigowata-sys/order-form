@@ -240,7 +240,8 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     </div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
-      <div class="modal-btns">
+      <div class="modal-btns" style="display:flex;align-items:center;gap:10px">
+        <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:12px" onclick="deleteOrder()">受注を削除</button>
         <button class="btn btn-primary" onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')">📄 請求書・納品書発行</button>
       </div>
     </div>
@@ -556,6 +557,25 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   }
 
   function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+  async function deleteOrder() {
+    const o = allOrders.find(x => x.id === currentDetailId);
+    if (!o) return;
+    if (!confirm(`受注「${o.code}」を削除しますか？\nこの操作は取り消せません。`)) return;
+    try {
+      const r1 = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      if (!r1.ok) throw new Error('明細削除失敗');
+      const r2 = await sbFetch(`/rest/v1/orders?id=eq.${currentDetailId}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      if (!r2.ok) throw new Error('受注削除失敗');
+      allOrders = allOrders.filter(x => x.id !== currentDetailId);
+      closeDetail();
+      renderOrders();
+      updateKPIs();
+    } catch(e) {
+      console.error(e);
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
+  }
 
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => {
