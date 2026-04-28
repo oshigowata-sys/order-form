@@ -221,17 +221,23 @@
 
   .category-group-row { cursor: pointer; user-select: none; }
   .category-group-row td {
-    background: var(--bg); font-size: 11px; font-weight: 700;
-    color: var(--text-muted); padding: 8px 16px 6px;
-    letter-spacing: 1px; text-transform: uppercase;
-    border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);
+    background: var(--orange-pale); font-size: 12px; font-weight: 700;
+    color: var(--orange); padding: 10px 16px;
+    border-top: 1px solid rgba(232,99,10,0.15);
+    border-bottom: 1px solid rgba(232,99,10,0.15);
+    border-left: 3px solid var(--orange);
   }
-  .category-group-row:hover td { background: #ede9e3; }
+  .category-group-row:hover td { background: #fde0c4; }
   .category-group-row:first-child td { border-top: none; }
   .cat-toggle {
-    float: right; font-size: 10px; transition: transform 0.2s; display: inline-block;
+    float: right; font-size: 12px; transition: transform 0.25s; display: inline-block; color: var(--orange);
   }
   .category-group-row.collapsed .cat-toggle { transform: rotate(-90deg); }
+  .cat-count {
+    display: inline-block; background: rgba(232,99,10,0.12); color: var(--orange);
+    border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 600;
+    margin-left: 8px; vertical-align: middle;
+  }
   .cat-product-row.cat-hidden { display: none; }
 </style>
 <link rel="stylesheet" href="mobile.css">
@@ -453,7 +459,7 @@
     catKeys.forEach((cat, idx) => {
       const catId = 'cg' + idx;
       html += `<tr class="category-group-row" data-catid="${catId}" onclick="toggleCategory('${catId}')">
-        <td colspan="5">${esc(cat)} <span class="cat-toggle">▼</span></td>
+        <td colspan="5">${esc(cat)}<span class="cat-count">${groups[cat].length}</span><span class="cat-toggle">▼</span></td>
       </tr>`;
       groups[cat].forEach(p => {
         html += `<tr class="cat-product-row" data-cat="${catId}">
