@@ -178,23 +178,16 @@
       padding: 13px 20px;
       cursor: pointer;
       user-select: none;
-      background: #fafaf8;
+      background: var(--green);
       transition: background 0.15s;
     }
 
-    .category-header:hover { background: var(--orange-pale); }
-
-    .cat-bar {
-      width: 3px;
-      height: 16px;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
+    .category-header:hover { background: #1a5c39; }
 
     .category-name {
       font-size: 14px;
       font-weight: 700;
-      color: var(--text);
+      color: white;
       flex: 1;
     }
 
@@ -213,7 +206,7 @@
 
     .cat-arrow {
       font-size: 10px;
-      color: var(--text-muted);
+      color: rgba(255,255,255,0.65);
       transition: transform 0.2s;
       flex-shrink: 0;
     }
@@ -765,12 +758,13 @@
         products = sessionCache.products;
       } else {
         const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,is_food&order=category,product_name`);
+        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,is_food,image_url&order=category,product_name`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
           id: p.id, name: p.product_name || '', price: p.price || 0,
           category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
+          imageUrl: p.image_url || '',
         }));
         sessionCache.products = products;
       }
@@ -794,7 +788,6 @@
         return `
           <div class="category-block open">
             <div class="category-header" onclick="toggleCategory(this.parentElement)">
-              <div class="cat-bar" style="background:${color}"></div>
               <span class="category-name">${esc(cat)}</span>
               <span class="cat-badge" data-cat="${esc(cat)}"></span>
               <span class="cat-arrow">▼</span>
@@ -802,7 +795,7 @@
             <div class="category-body">
               ${items.map(p => `
                 <div class="product-row" id="prow-${esc(p.id)}">
-                  <div class="product-icon" style="background:${color}">${esc(p.name.slice(0,2))}</div>
+                  ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" onerror="this.style.display='none'" />` : ''}
                   <div class="product-info">
                     <span class="product-name">${esc(p.name)}</span>
                     <div class="product-meta">
