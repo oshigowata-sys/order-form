@@ -765,12 +765,12 @@
         products = sessionCache.products;
       } else {
         const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,tax_rate&order=category,product_name`);
+        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,is_food&order=category,product_name`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
           id: p.id, name: p.product_name || '', price: p.price || 0,
-          category: p.category || 'その他', taxRate: p.tax_rate || 10,
+          category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
         }));
         sessionCache.products = products;
       }
