@@ -355,6 +355,13 @@
         <input type="checkbox" id="formIsFood" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer" />
         <label for="formIsFood" class="form-label" style="margin:0;cursor:pointer">食品フラグ（軽減税率8%対象）</label>
       </div>
+      <div class="form-group">
+        <label class="form-label">商品画像URL（任意）</label>
+        <input type="url" class="form-input" id="formImageUrl" placeholder="https://example.com/image.jpg" />
+        <div id="imagePreview" style="margin-top:8px;display:none;">
+          <img id="imagePreviewImg" src="" alt="プレビュー" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn-primary" id="saveBtn" onclick="saveProduct()">保存する</button>
         <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
@@ -419,6 +426,7 @@
         price:    Number(r.price) || 0,
         isFood:   !!r.is_food,
         category: r.category || '',
+        imageUrl: r.image_url || '',
       }));
       renderProducts();
     } catch(e) {
@@ -467,7 +475,7 @@
       groups[cat].forEach(p => {
         html += `<tr class="cat-product-row" data-cat="${catId}">
           <td style="font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--text-muted)">${esc(p.code)}</td>
-          <td style="font-weight:500">${esc(p.name)}</td>
+          <td style="font-weight:500;display:flex;align-items:center;gap:8px">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'" />` : ''}<span>${esc(p.name)}</span></td>
           <td style="font-family:'Space Grotesk',sans-serif">¥${p.price.toLocaleString()}</td>
           <td>${p.isFood
             ? '<span style="background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500">軽減8%</span>'
@@ -513,6 +521,9 @@
     document.getElementById('formCategory').value = '';
     document.getElementById('formPrice').value = '';
     document.getElementById('formIsFood').checked = false;
+    document.getElementById('formImageUrl').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imagePreviewImg').src = '';
     document.getElementById('saveSuccess').classList.remove('show');
     document.getElementById('modalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('formProductName').focus(), 100);
@@ -527,6 +538,12 @@
     document.getElementById('formCategory').value = p.category;
     document.getElementById('formPrice').value = p.price;
     document.getElementById('formIsFood').checked = p.isFood;
+    const _imgUrl = p.imageUrl || '';
+    document.getElementById('formImageUrl').value = _imgUrl;
+    const _prev = document.getElementById('imagePreview');
+    const _prevImg = document.getElementById('imagePreviewImg');
+    if (_imgUrl) { _prevImg.src = _imgUrl; _prev.style.display = 'block'; }
+    else { _prev.style.display = 'none'; _prevImg.src = ''; }
     document.getElementById('saveSuccess').classList.remove('show');
     document.getElementById('modalOverlay').classList.add('open');
   }
@@ -551,6 +568,7 @@
       price:        Number(price),
       is_food:      document.getElementById('formIsFood').checked,
       tenant_id:    tenantId,
+      image_url:    document.getElementById('formImageUrl').value.trim() || null,
     };
 
     try {
@@ -570,6 +588,14 @@
       btn.disabled = false; btn.textContent = '保存する';
     }
   }
+
+  document.getElementById('formImageUrl').addEventListener('input', function() {
+    const url = this.value.trim();
+    const prev = document.getElementById('imagePreview');
+    const img = document.getElementById('imagePreviewImg');
+    if (url) { img.src = url; prev.style.display = 'block'; }
+    else { prev.style.display = 'none'; img.src = ''; }
+  });
 
   loadProducts();
 </script>
