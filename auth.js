@@ -109,13 +109,14 @@ async function signOut(redirectUrl) {
 }
 
 function checkAuth(redirectUrl) {
-  const user = sessionStorage.getItem('user');
+  if (!sessionStorage.getItem('user')) { location.replace(redirectUrl || 'login.html'); return false; }
   const jwt = sessionStorage.getItem('_sb_jwt');
-  if (!user || !jwt) { location.replace(redirectUrl || 'login.html'); return false; }
-  try {
-    const payload = JSON.parse(atob(jwt.split('.')[1]));
-    if (payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
-  } catch { location.replace(redirectUrl || 'login.html'); return false; }
+  if (jwt) {
+    try {
+      const payload = JSON.parse(atob(jwt.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
+    } catch { /* malformed JWT — ignore, user key still valid */ }
+  }
   return true;
 }
 
