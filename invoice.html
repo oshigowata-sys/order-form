@@ -368,16 +368,20 @@
   .invoice-table tbody tr:hover { background: #faf8f5; }
 
   .invoice-table tbody td {
-    padding: 14px 16px;
+    padding: 7px 14px;
     color: var(--text);
+    font-size: 13px;
   }
 
-  .invoice-table tbody td:not(:first-child) { text-align: right; }
+  .invoice-table tbody td:not(:first-child):not(:nth-child(2)) { text-align: right; }
+
+  .invoice-table tbody tr:nth-child(even) { background: #faf8f5; }
+  .invoice-table tbody tr:hover { background: #f3ede4; }
 
   .invoice-table tfoot tr { background: #faf8f5; }
 
   .invoice-table tfoot td {
-    padding: 10px 16px;
+    padding: 7px 14px;
     font-size: 13px;
     text-align: right;
   }
@@ -395,9 +399,9 @@
   }
 
   .invoice-table tfoot tr.total-row td {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    padding: 16px;
+    padding: 11px 14px;
   }
 
   /* 振込先・備考 */
@@ -614,6 +618,7 @@
           const sub   = Number(it['小計'] || qty * price || 0);
           const taxLabel = it.isFood ? '8%' : '10%';
           return `<tr>
+            <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
             <td>${esc(it['商品名'] || '-')}</td>
             <td style="text-align:right">${qty.toLocaleString()}</td>
             <td style="text-align:right">${fmt(price)}</td>
@@ -621,7 +626,7 @@
             <td style="text-align:center;font-size:11px;color:var(--text-muted)">${taxLabel}</td>
           </tr>`;
         }).join('')
-      : `<tr><td colspan="5" style="text-align:center;color:#999;padding:24px;">明細データがありません</td></tr>`;
+      : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
 
     const fromBlock = s.name
       ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
@@ -657,19 +662,20 @@
         <table class="invoice-table">
           <thead>
             <tr>
+              <th style="width:90px">商品コード</th>
               <th>商品名</th>
-              <th style="text-align:right">数量</th>
-              <th style="text-align:right">単価</th>
-              <th style="text-align:right">金額</th>
-              <th style="text-align:center">税率</th>
+              <th style="text-align:right;width:52px">数量</th>
+              <th style="text-align:right;width:90px">単価</th>
+              <th style="text-align:right;width:90px">金額</th>
+              <th style="text-align:center;width:46px">税率</th>
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
           <tfoot>
-            <tr><td>税抜合計</td><td colspan="4">${fmt(subtotal)}</td></tr>
-            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
-            <tr class="total-row"><td>合計（税込）</td><td colspan="4">${fmt(total)}</td></tr>
+            <tr><td colspan="2">税抜合計</td><td colspan="4">${fmt(subtotal)}</td></tr>
+            ${tax8  > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
+            <tr class="total-row"><td colspan="2">合計（税込）</td><td colspan="4">${fmt(total)}</td></tr>
           </tfoot>
         </table>
       </div>
@@ -703,14 +709,15 @@
           const rate = it.isFood ? '8%' : '10%';
           return `
             <tr>
+              <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
               <td>${esc(it['商品名'] || '-')}</td>
-              <td>${qty.toLocaleString()}</td>
-              <td>${fmt(price)}</td>
-              <td>${fmt(sub)}</td>
+              <td style="text-align:right">${qty.toLocaleString()}</td>
+              <td style="text-align:right">${fmt(price)}</td>
+              <td style="text-align:right">${fmt(sub)}</td>
               <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
             </tr>`;
         }).join('')
-      : `<tr><td colspan="5" style="text-align:center;color:#999;padding:24px;">明細データがありません</td></tr>`;
+      : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
 
     // 発行者情報
     const fromBlock = s.name
@@ -761,23 +768,21 @@
         <table class="invoice-table">
           <thead>
             <tr>
+              <th style="width:90px">商品コード</th>
               <th>商品名</th>
-              <th>数量</th>
-              <th>単価</th>
-              <th>金額</th>
-              <th>税率</th>
+              <th style="text-align:right;width:52px">数量</th>
+              <th style="text-align:right;width:90px">単価</th>
+              <th style="text-align:right;width:90px">金額</th>
+              <th style="text-align:center;width:46px">税率</th>
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
           <tfoot>
-            <tr>
-              <td>小計</td>
-              <td colspan="4">${fmt(subtotal)}</td>
-            </tr>
-            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
+            <tr><td colspan="2">小計</td><td colspan="4">${fmt(subtotal)}</td></tr>
+            ${tax8  > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="4">${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="4">${fmt(tax10)}</td></tr>` : ''}
             <tr class="total-row">
-              <td>合計（税込）</td>
+              <td colspan="2">合計（税込）</td>
               <td colspan="4">${fmt(total)}</td>
             </tr>
           </tfoot>
@@ -816,7 +821,7 @@
         const res = await sbFetch(
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
-          '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_name,is_food))'
+          '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_code,product_name,is_food))'
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
         orders = await res.json();
@@ -836,6 +841,7 @@
         };
         const allItems = orders.flatMap(o =>
           (o.order_items || []).map(it => ({
+            '商品コード': it.products?.product_code || '',
             '商品名': it.products?.product_name || '',
             '数量':   it.quantity || 0,
             '単価':   it.unit_price || 0,
@@ -853,7 +859,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_name,is_food))';
+        query += '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
