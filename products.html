@@ -264,6 +264,7 @@
     <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
     <div class="nav-label">その他</div>
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
+    <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
   </nav>
   <div class="sidebar-footer">
     <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
@@ -552,6 +553,21 @@
     document.getElementById('modalOverlay').classList.remove('open');
   }
 
+  async function writeAuditLog(action, recordId, recordLabel, oldValues, newValues) {
+    try {
+      await sbFetch('/rest/v1/audit_log', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tenant_id: tenantId, user_name: userName || '—',
+          action, table_name: 'products',
+          record_id: String(recordId || ''), record_label: recordLabel || '',
+          old_values: oldValues || null, new_values: newValues || null,
+        })
+      });
+    } catch(e) { console.warn('監査ログ書き込み失敗:', e); }
+  }
+
   async function saveProduct() {
     const name  = document.getElementById('formProductName').value.trim();
     const price = document.getElementById('formPrice').value;
@@ -571,13 +587,25 @@
       image_url:    document.getElementById('formImageUrl').value.trim() || null,
     };
 
+    const oldProduct = editId ? products.find(x => x.id === editId) : null;
+
     try {
       if (editId) {
         const res = await sbFetch('/rest/v1/products?id=eq.' + editId, { method: 'PATCH', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
+        await writeAuditLog('update', editId, name,
+          oldProduct ? { product_name: oldProduct.name, price: oldProduct.price, is_food: oldProduct.isFood, category: oldProduct.category } : null,
+          { product_name: name, price: Number(price), is_food: payload.is_food, category: payload.category }
+        );
       } else {
         const res = await sbFetch('/rest/v1/products', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
+        const created = await res.json();
+        const newId = Array.isArray(created) ? created[0]?.id : created?.id;
+        await writeAuditLog('create', newId || '', name,
+          null,
+          { product_name: name, price: Number(price), is_food: payload.is_food, category: payload.category }
+        );
       }
       document.getElementById('saveSuccess').classList.add('show');
       setTimeout(() => { closeModal(); loadProducts(); }, 800);

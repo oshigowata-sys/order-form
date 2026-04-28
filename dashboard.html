@@ -53,6 +53,27 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .card-title{font-size:14px;font-weight:700}
 .card-body{padding:20px}
 .chart-container{height:200px;position:relative;border-bottom:1px solid var(--border)}
+.plan-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(247,243,238,0.92);backdrop-filter:blur(3px);z-index:10;text-align:center;padding:16px}
+.plan-lock-icon{font-size:28px;line-height:1}
+.plan-lock-title{font-size:13px;font-weight:700;color:var(--text)}
+.plan-lock-sub{font-size:11px;color:var(--text-muted);line-height:1.5}
+.plan-lock-btn{padding:7px 16px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.plan-lock-btn:hover{opacity:0.85}
+.upgrade-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+.upgrade-modal-overlay.open{display:flex}
+.upgrade-modal{background:var(--surface);border-radius:16px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:modalIn 0.25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.upgrade-modal-header{background:linear-gradient(135deg,#e8630a,#f97316);padding:24px 28px;color:white}
+.upgrade-modal-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.upgrade-modal-sub{font-size:13px;opacity:0.85}
+.upgrade-modal-body{padding:24px 28px}
+.upgrade-feature{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:13px}
+.upgrade-feature-icon{color:var(--green);font-size:16px;flex-shrink:0;margin-top:1px}
+.upgrade-modal-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.btn-upgrade{background:var(--orange);color:white;padding:10px 22px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.btn-upgrade:hover{opacity:0.85}
+.btn-later{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.btn-later:hover{border-color:var(--orange);color:var(--orange)}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
 th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
@@ -101,6 +122,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
     <div class="nav-label">その他</div>
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
+    <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
   </nav>
   <div class="sidebar-footer">
     <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
@@ -154,6 +176,29 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     </div>
   </div>
 </main>
+<!-- UPGRADE MODAL -->
+<div class="upgrade-modal-overlay" id="upgradeModal" onclick="if(event.target===this)closeUpgradeModal()">
+  <div class="upgrade-modal">
+    <div class="upgrade-modal-header">
+      <div class="upgrade-modal-title">スタンダードプランにアップグレード</div>
+      <div class="upgrade-modal-sub">より詳しい分析でビジネスを加速させましょう</div>
+    </div>
+    <div class="upgrade-modal-body">
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📈</span><div><strong>月次売上推移グラフ</strong><br><span style="color:var(--text-muted);font-size:12px">過去6ヶ月の売上を視覚的に把握</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📊</span><div><strong>商品別注文数グラフ</strong><br><span style="color:var(--text-muted);font-size:12px">売れ筋商品を一目で確認</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">🏢</span><div><strong>取引先数 無制限</strong><br><span style="color:var(--text-muted);font-size:12px">スターター：8社まで → 無制限</span></div></div>
+      <div style="margin-top:16px;padding:14px 16px;background:var(--orange-pale);border-radius:10px;border:1px solid rgba(232,99,10,0.2)">
+        <div style="font-size:12px;color:var(--orange);font-weight:700;margin-bottom:4px">スタンダードプラン</div>
+        <div style="font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">¥9,800<span style="font-size:13px;font-weight:400;color:var(--text-muted)">/月（税別）</span></div>
+      </div>
+    </div>
+    <div class="upgrade-modal-footer">
+      <button class="btn-later" onclick="closeUpgradeModal()">後で</button>
+      <button class="btn-upgrade" onclick="location.href='mailto:oshigowata@gmail.com?subject=プランアップグレード申請'">お問い合わせ →</button>
+    </div>
+  </div>
+</div>
+
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
@@ -173,6 +218,39 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   })();
 
   let allOrders = [];
+  let tenantPlan = 'starter';
+
+  async function loadTenantPlan() {
+    try {
+      const res = await fetch(SB_URL + `/rest/v1/tenants?id=eq.${tenantId}&select=plan`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken() }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        tenantPlan = data[0]?.plan || 'starter';
+      }
+    } catch(e) { console.warn('プラン取得失敗:', e); }
+  }
+
+  function isChartLocked() { return tenantPlan === 'starter'; }
+
+  function renderChartLock(containerId) {
+    document.getElementById(containerId).innerHTML = `
+      <div class="plan-lock">
+        <div class="plan-lock-icon">🔒</div>
+        <div class="plan-lock-title">スタンダードプランで利用可能</div>
+        <div class="plan-lock-sub">グラフ機能は<br>スタンダードプランでご利用いただけます</div>
+        <button class="plan-lock-btn" onclick="openUpgradeModal()">アップグレードを見る</button>
+      </div>`;
+  }
+
+  function openUpgradeModal() {
+    document.getElementById('upgradeModal').classList.add('open');
+  }
+
+  function closeUpgradeModal() {
+    document.getElementById('upgradeModal').classList.remove('open');
+  }
 
   function esc(s) {
     if (s == null) return '';
@@ -180,6 +258,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   }
 
   async function loadDashboard() {
+    await loadTenantPlan();
     try {
       const res = await fetch(
         SB_URL + `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(unit_price,quantity,products(product_name))`,
@@ -275,6 +354,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   }
 
   function renderChart(key) {
+    if (isChartLocked()) { renderChartLock('chart'); return; }
     const chartMonths = [];
     let [cy, cm] = key.split('-').map(Number);
     for (let i = 5; i >= 0; i--) {
@@ -320,6 +400,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   }
 
   function renderPieChart(key) {
+    if (isChartLocked()) { renderChartLock('pieChart'); return; }
     const cur = ordersForMonth(key);
     const counts = {};
     cur.forEach(o => (o.items || []).forEach(it => { counts[it.name] = (counts[it.name] || 0) + it.qty; }));

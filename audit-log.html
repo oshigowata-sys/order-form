@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>操作履歴 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f3ee; --surface: #ffffff; --border: #d4c9bb;
+    --orange: #e8630a; --orange-pale: #fff4ec;
+    --green: #1e6641; --green-pale: #e8f5ee;
+    --red: #dc2626; --red-pale: #fef2f2;
+    --yellow: #d97706; --yellow-pale: #fffbeb;
+    --text: #1a1208; --text-muted: #7a6a55;
+    --sidebar-bg: #1a1208; --sidebar-text: #e8d5bc;
+  }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar { width: 240px; min-height: 100vh; background: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+  .sidebar-logo { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-logo img { width: 140px; margin-bottom: 4px; display: block; }
+  .sidebar-logo-sub { font-size: 10px; color: rgba(232,213,188,0.4); letter-spacing: 2px; text-transform: uppercase; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; }
+  .nav-label { font-size: 10px; color: rgba(232,213,188,0.3); letter-spacing: 2px; text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; margin-top: 16px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: var(--sidebar-text); font-size: 13px; font-weight: 500; transition: all 0.2s; text-decoration: none; margin-bottom: 2px; }
+  .nav-item:hover { background: rgba(255,255,255,0.06); }
+  .nav-item.active { background: var(--orange); color: white; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 12px 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto; }
+  .logout-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: rgba(232,213,188,0.5); font-size: 13px; font-weight: 500; transition: all 0.2s; text-decoration: none; }
+  .logout-item:hover { background: rgba(255,69,0,0.15); color: #ff9a7a; }
+
+  /* MAIN */
+  .main { margin-left: 240px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 8px rgba(15,10,5,0.06); }
+  .page-title { font-size: 18px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .topbar-user { display: flex; align-items: center; gap: 10px; }
+  .topbar-user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .topbar-user-role { font-size: 11px; color: var(--text-muted); }
+  .topbar-avatar { width: 34px; height: 34px; border-radius: 10px; background: var(--orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* FILTERS */
+  .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Noto Sans JP', sans-serif; }
+  .filter-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .filter-btn.active { background: var(--orange); border-color: var(--orange); color: white; }
+  .filter-count { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+  /* TABLE */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(15,10,5,0.07); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--bg); border-bottom: 1px solid var(--border); }
+  th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
+
+  /* BADGES */
+  .action-badge { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .action-create { background: var(--green-pale); color: var(--green); border: 1px solid rgba(30,102,65,0.25); }
+  .action-update { background: var(--yellow-pale); color: var(--yellow); border: 1px solid rgba(217,119,6,0.25); }
+  .action-delete { background: var(--red-pale); color: var(--red); border: 1px solid rgba(220,38,38,0.25); }
+  .table-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* DIFF */
+  .diff-cell { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .diff-old { color: var(--red); text-decoration: line-through; }
+  .diff-new { color: var(--green); }
+  .diff-arrow { color: var(--text-muted); margin: 0 4px; }
+
+  /* BUTTONS */
+  .btn-rollback { padding: 5px 12px; border-radius: 8px; border: 1.5px solid var(--orange); background: var(--orange-pale); color: var(--orange); font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Noto Sans JP', sans-serif; white-space: nowrap; }
+  .btn-rollback:hover { background: var(--orange); color: white; }
+  .btn-rollback:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row td { text-align: center; padding: 48px; color: var(--text-muted); }
+  .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); font-size: 14px; }
+
+  /* CONFIRM MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 16px; width: 100%; max-width: 480px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); animation: modalIn 0.25s ease; overflow: hidden; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: var(--bg); }
+  .modal-body { padding: 20px 24px; }
+  .modal-info { background: var(--bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; }
+  .modal-info-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 4px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: all 0.2s; font-family: 'Noto Sans JP', sans-serif; }
+  .btn-primary { background: var(--orange); color: white; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 300; display: none; animation: slideUp 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .toast.show { display: block; }
+  @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
+    <a class="nav-item active" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">操作履歴</div>
+      <div class="page-sub">マスタデータへの変更履歴・ロールバック</div>
+    </div>
+    <div class="topbar-user">
+      <div>
+        <div class="topbar-user-name" id="topbarUserName"></div>
+        <div class="topbar-user-role" id="topbarUserRole"></div>
+      </div>
+      <div class="topbar-avatar" id="topbarAvatar">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
+      <button class="filter-btn" onclick="setFilter('products', this)">商品マスタ</button>
+      <button class="filter-btn" onclick="setFilter('pricing', this)">掛け率</button>
+      <button class="filter-btn" onclick="setFilter('create', this)">追加</button>
+      <button class="filter-btn" onclick="setFilter('update', this)">編集</button>
+      <button class="filter-btn" onclick="setFilter('delete', this)">削除</button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>日時</th>
+            <th>操作者</th>
+            <th>操作</th>
+            <th>対象</th>
+            <th>レコード</th>
+            <th>変更内容</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr class="loading-row"><td colspan="7"><span class="spinner"></span>読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ROLLBACK CONFIRM MODAL -->
+<div class="modal-overlay" id="rollbackModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">操作を元に戻す</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info">
+        <div class="modal-info-label">対象レコード</div>
+        <div id="rollbackLabel" style="font-weight:700;margin-bottom:8px"></div>
+        <div class="modal-info-label">変更内容（元に戻す内容）</div>
+        <div id="rollbackDetail" style="font-size:13px;line-height:1.8"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.7">この操作を元に戻してもよいですか？<br>ロールバック後、操作履歴に新しいエントリが追加されます。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="rollbackConfirmBtn" onclick="executeRollback()">元に戻す</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="auth.js"></script>
+<script>
+  checkAuth();
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
+  const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const { tenantId, name: userName, role: userRole } = userData;
+
+  (() => {
+    const nameEl = document.getElementById('topbarUserName');
+    const roleEl = document.getElementById('topbarUserRole');
+    const avatarEl = document.getElementById('topbarAvatar');
+    if (userName) { nameEl.textContent = userName; roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ'; avatarEl.textContent = userName.charAt(0); }
+  })();
+
+  function sbFetch(path, options = {}) {
+    return fetch(SB_URL + path, {
+      ...options,
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {})
+      }
+    });
+  }
+
+  function esc(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  let logs = [];
+  let currentFilter = 'all';
+  let pendingRollback = null;
+
+  const ACTION_LABEL = { create: '追加', update: '編集', delete: '削除' };
+  const TABLE_LABEL  = { products: '商品マスタ', pricing: '掛け率' };
+
+  async function loadLogs() {
+    const tbody = document.getElementById('logTableBody');
+    try {
+      const res = await sbFetch(`/rest/v1/audit_log?tenant_id=eq.${tenantId}&order=created_at.desc&limit=200`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      logs = await res.json();
+      renderLogs();
+    } catch(e) {
+      console.error(e);
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
+    }
+  }
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLogs();
+  }
+
+  function filtered() {
+    if (currentFilter === 'all') return logs;
+    if (currentFilter === 'products' || currentFilter === 'pricing') return logs.filter(l => l.table_name === currentFilter);
+    return logs.filter(l => l.action === currentFilter);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function renderDiff(log) {
+    if (log.action === 'create') {
+      const nv = log.new_values || {};
+      const parts = [];
+      if (nv.product_name) parts.push(`商品名: <span class="diff-new">${esc(nv.product_name)}</span>`);
+      if (nv.price != null) parts.push(`単価: <span class="diff-new">¥${Number(nv.price).toLocaleString()}</span>`);
+      if (nv.rate != null) parts.push(`掛け率: <span class="diff-new">${(nv.rate*100).toFixed(0)}%</span>`);
+      return parts.join('　') || '—';
+    }
+    if (log.action === 'delete') {
+      const ov = log.old_values || {};
+      const parts = [];
+      if (ov.rate != null) parts.push(`掛け率: <span class="diff-old">${(ov.rate*100).toFixed(0)}%</span>`);
+      return parts.join('　') || '削除済み';
+    }
+    // update
+    const ov = log.old_values || {}, nv = log.new_values || {};
+    const keys = new Set([...Object.keys(ov), ...Object.keys(nv)]);
+    const parts = [];
+    const labelMap = { product_name: '商品名', price: '単価', is_food: '食品', category: 'カテゴリ', rate: '掛け率', custName: null, prodName: null, basePrice: null };
+    keys.forEach(k => {
+      if (labelMap[k] === null) return;
+      if (ov[k] === nv[k]) return;
+      const lbl = labelMap[k] || k;
+      const oldStr = k === 'price' ? `¥${Number(ov[k]).toLocaleString()}` : k === 'rate' ? `${(ov[k]*100).toFixed(0)}%` : k === 'is_food' ? (ov[k] ? '食品(8%)' : '標準(10%)') : esc(String(ov[k] ?? '—'));
+      const newStr = k === 'price' ? `¥${Number(nv[k]).toLocaleString()}` : k === 'rate' ? `${(nv[k]*100).toFixed(0)}%` : k === 'is_food' ? (nv[k] ? '食品(8%)' : '標準(10%)') : esc(String(nv[k] ?? '—'));
+      parts.push(`${lbl}: <span class="diff-old">${oldStr}</span><span class="diff-arrow">→</span><span class="diff-new">${newStr}</span>`);
+    });
+    return parts.join('　') || '変更なし';
+  }
+
+  function canRollback(log) {
+    return log.action === 'update' && log.old_values && log.record_id;
+  }
+
+  function renderLogs() {
+    const list = filtered();
+    document.getElementById('filterCount').textContent = `${list.length}件`;
+    const tbody = document.getElementById('logTableBody');
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">操作履歴がありません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(log => {
+      const actionCls = { create: 'action-create', update: 'action-update', delete: 'action-delete' }[log.action] || '';
+      const rb = canRollback(log)
+        ? `<button class="btn-rollback" onclick="openRollback('${esc(log.id)}')">元に戻す</button>`
+        : `<span style="font-size:11px;color:var(--border)">—</span>`;
+      return `<tr>
+        <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">${formatDate(log.created_at)}</td>
+        <td style="font-size:13px;font-weight:500">${esc(log.user_name)}</td>
+        <td><span class="action-badge ${actionCls}">${ACTION_LABEL[log.action] || log.action}</span></td>
+        <td><span class="table-badge">${TABLE_LABEL[log.table_name] || log.table_name}</span></td>
+        <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(log.record_label)}">${esc(log.record_label)}</td>
+        <td class="diff-cell">${renderDiff(log)}</td>
+        <td>${rb}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openRollback(logId) {
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    pendingRollback = log;
+    document.getElementById('rollbackLabel').textContent = log.record_label || log.record_id;
+    const ov = log.old_values || {};
+    const lines = [];
+    if (ov.product_name) lines.push(`商品名: ${ov.product_name}`);
+    if (ov.price != null) lines.push(`単価: ¥${Number(ov.price).toLocaleString()}`);
+    if (ov.is_food != null) lines.push(`食品フラグ: ${ov.is_food ? '食品(8%)' : '標準(10%)'}`);
+    if (ov.category != null) lines.push(`カテゴリ: ${ov.category || '（なし）'}`);
+    if (ov.rate != null) lines.push(`掛け率: ${(ov.rate*100).toFixed(0)}%`);
+    document.getElementById('rollbackDetail').textContent = lines.join('\n') || JSON.stringify(ov, null, 2);
+    document.getElementById('rollbackModal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('rollbackModal').classList.remove('open');
+    pendingRollback = null;
+  }
+
+  async function executeRollback() {
+    if (!pendingRollback) return;
+    const log = pendingRollback;
+    const btn = document.getElementById('rollbackConfirmBtn');
+    btn.disabled = true; btn.textContent = '実行中...';
+
+    try {
+      const ov = log.old_values || {};
+      let payload = {};
+      let path = '';
+
+      if (log.table_name === 'products') {
+        if (ov.product_name != null) payload.product_name = ov.product_name;
+        if (ov.price != null) payload.price = ov.price;
+        if (ov.is_food != null) payload.is_food = ov.is_food;
+        if (ov.category !== undefined) payload.category = ov.category;
+        path = `/rest/v1/products?id=eq.${log.record_id}`;
+      } else if (log.table_name === 'pricing') {
+        if (ov.rate != null) payload.rate = ov.rate;
+        path = `/rest/v1/pricing?id=eq.${log.record_id}`;
+      }
+
+      if (!path || Object.keys(payload).length === 0) throw new Error('ロールバック対象なし');
+
+      const res = await sbFetch(path, { method: 'PATCH', body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      // ロールバック自体を監査ログに記録
+      await sbFetch('/rest/v1/audit_log', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tenant_id: tenantId, user_name: userName || '—',
+          action: 'update', table_name: log.table_name,
+          record_id: log.record_id, record_label: `[ロールバック] ${log.record_label}`,
+          old_values: log.new_values, new_values: log.old_values,
+        })
+      });
+
+      closeModal();
+      showToast(`「${log.record_label}」を元に戻しました`);
+      await loadLogs();
+    } catch(e) {
+      console.error(e);
+      alert('ロールバックに失敗しました: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '元に戻す';
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = '✓ ' + msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  loadLogs();
+</script>
+</body>
+</html>

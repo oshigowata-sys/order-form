@@ -102,6 +102,7 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
     <a class="nav-item active" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
     <div class="nav-label">その他</div>
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
+    <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
   </nav>
   <div class="sidebar-footer">
     <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
@@ -391,6 +392,21 @@ function resetForm() {
   document.getElementById('previewBox').style.display = 'none';
 }
 
+async function writeAuditLog(action, recordId, recordLabel, oldValues, newValues) {
+  try {
+    await sbFetch('/rest/v1/audit_log', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        tenant_id: tenantId, user_name: userName || '—',
+        action, table_name: 'pricing',
+        record_id: String(recordId || ''), record_label: recordLabel || '',
+        old_values: oldValues || null, new_values: newValues || null,
+      })
+    });
+  } catch(e) { console.warn('監査ログ書き込み失敗:', e); }
+}
+
 /* ── 削除 ── */
 async function deletePricing(id) {
   const p = PRICING.find(x => x.id === id);
@@ -399,6 +415,10 @@ async function deletePricing(id) {
   try {
     const res = await sbFetch('/rest/v1/pricing?id=eq.' + id, { method: 'DELETE' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+    await writeAuditLog('delete', id, `${p.custName} × ${p.prodName}`,
+      { customer_id: p.customer_id, product_id: p.product_id, rate: p.rate, custName: p.custName, prodName: p.prodName, basePrice: p.basePrice },
+      null
+    );
     await loadAll();
   } catch(e) {
     console.error(e);
@@ -417,11 +437,22 @@ async function savePricing() {
 
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '保存中...';
+
+  const oldPricing = id ? PRICING.find(x => x.id === id) : null;
+  const custName = CUSTOMERS.find(c => c.id === customerId)?.name || '';
+  const prod = PRODUCTS.find(p => p.id === productId);
+  const prodName = prod?.name || '';
+  const label = `${custName} × ${prodName}`;
+
   try {
     const payload = { customer_id: customerId, product_id: productId, rate, tenant_id: tenantId };
     if (id) {
       const res = await sbFetch('/rest/v1/pricing?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(payload) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      await writeAuditLog('update', id, label,
+        oldPricing ? { rate: oldPricing.rate, custName: oldPricing.custName, prodName: oldPricing.prodName } : null,
+        { rate, custName, prodName }
+      );
     } else {
       const res = await sbFetch('/rest/v1/pricing', { method: 'POST', body: JSON.stringify(payload) });
       if (!res.ok) {
@@ -429,6 +460,12 @@ async function savePricing() {
         if (err.code === '23505') { alert('この取引先・商品の組み合わせはすでに登録されています'); return; }
         throw new Error('HTTP ' + res.status);
       }
+      const created = await res.json();
+      const newId = Array.isArray(created) ? created[0]?.id : created?.id;
+      await writeAuditLog('create', newId || '', label,
+        null,
+        { rate, custName, prodName, basePrice: prod?.basePrice || 0 }
+      );
     }
     resetForm();
     await loadAll();
