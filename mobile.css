@@ -170,6 +170,42 @@
 
   /* Super dashboard (no sidebar) */
   .content > .card { margin-bottom: 16px; }
+
+  /* ---- Topbar: page-sub vertical-text fix ---- */
+  /* 左div（ページタイトル+サブ）に最小幅を確保してテキストが縦書きになるのを防ぐ */
+  .topbar > div:first-of-type,
+  .topbar-left {
+    flex: 1 1 auto;
+    min-width: 100px;
+    overflow: hidden;
+  }
+  .topbar .page-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* モバイルではtopbarのユーザー情報を非表示（スペース節約） */
+  .topbar .topbar-user { display: none !important; }
+  /* topbar内検索ボックスを縮小可能に */
+  .topbar .search-box { flex-shrink: 1; min-width: 80px; }
+  .topbar .search-box input { width: 100% !important; min-width: 0; }
+
+  /* ---- Dashboard: グラフ行を縦積みに ---- */
+  .charts-row { grid-template-columns: 1fr !important; }
+
+  /* ---- Pricing: 2カラムレイアウト → 1カラム ---- */
+  .layout { grid-template-columns: 1fr !important; }
+  /* pricing.html の kpi-row（kpi-gridと同様に2列化） */
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* ---- Invoice-list: filter-tabs の検索input折り返し ---- */
+  .filter-tabs { flex-wrap: wrap; }
+  .filter-tabs > div { width: 100%; padding-bottom: 10px !important; }
+  .filter-tabs .search-input { width: 100% !important; }
 }
 
 /* =============================================
