@@ -371,6 +371,18 @@ footer {
 .footer-link:hover { color: rgba(255,255,255,0.8); }
 .footer-copy { font-size: 11px; color: rgba(255,255,255,0.2); }
 
+/* ===== BRAND LOGO TEXT ===== */
+.brand-logo-text {
+  font-family: 'Palatino Linotype', Palatino, Georgia, serif;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ff5500 0%, #ff9900 55%, #00b850 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
 /* ===== FADE ===== */
 .fade-up {
   opacity: 0; transform: translateY(20px);
@@ -421,7 +433,14 @@ footer {
     <a href="#faq" class="nav-link">よくある質問</a>
   </div>
   <div class="nav-btns">
-    <a href="contact.html" class="btn-outline">お問い合わせ</a>
+    <a href="contact.html" class="btn-outline">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      資料ダウンロード
+    </a>
+    <a href="contact.html" class="btn-outline" style="background:var(--orange);color:#fff;border-color:var(--orange)">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      お問い合わせ
+    </a>
   </div>
 </nav>
 
@@ -430,7 +449,7 @@ footer {
   <div class="hero-inner">
     <div class="fade-up">
       <div class="hero-tag">観光卸業の受注管理を、もっとラクに、もっと正確に。</div>
-      <h1>注文管理はぜんぶ、<br><span class="brand">MeguRee</span>へ。</h1>
+      <h1>注文管理はぜんぶ、<br><span class="brand-logo-text">MeguRee</span>へ。</h1>
       <p class="hero-catch">
         FAX・電話のアナログ業務をデジタル化。<br>
         受注から請求まで、これひとつで完結する受注管理システム。
@@ -467,10 +486,6 @@ footer {
       <div class="hero-dash-float">
         <img src="assets/lp/15.png" alt="MeguReeダッシュボード画面">
       </div>
-      <div class="hero-real-badge">
-        <span class="badge-num">300<span style="font-size:14px">+</span></span>
-        <span class="badge-label">導入実績</span>
-      </div>
     </div>
   </div>
 </section>
@@ -503,8 +518,8 @@ footer {
         <div class="flow-icon-wrap">
           <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         </div>
-        <div class="flow-step-title">在庫・取引先管理</div>
-        <div class="flow-step-sub">在庫や価格、掛け率をリアルタイムで管理</div>
+        <div class="flow-step-title">取引先管理</div>
+        <div class="flow-step-sub">価格・掛け率をリアルタイムで管理</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
@@ -649,8 +664,8 @@ footer {
     <div class="pricing-grid fade-up">
       <div class="plan-card">
         <div class="plan-name">スタータープラン</div>
-        <div class="plan-price">¥3,800<span>/月</span></div>
-        <div class="plan-desc">まずは基本機能から始めたい方に</div>
+        <div class="plan-price">¥5,500<span>/月</span></div>
+        <div class="plan-desc">取引先8社・1ユーザー／まずは試したい方に</div>
         <hr class="plan-divider">
         <ul class="plan-features">
           <li>受注管理</li>
@@ -662,10 +677,10 @@ footer {
       </div>
 
       <div class="plan-card featured">
-        <div class="plan-badge">人気 No.1</div>
+        <div class="plan-badge">おすすめ</div>
         <div class="plan-name">スタンダードプラン</div>
-        <div class="plan-price">¥7,800<span>/月</span></div>
-        <div class="plan-desc">本格的に業務効率化を進めたい方に</div>
+        <div class="plan-price">¥9,800<span>/月</span></div>
+        <div class="plan-desc">取引先・ユーザー数無制限／本格運用したい方に</div>
         <hr class="plan-divider">
         <ul class="plan-features">
           <li>スタータープランの全機能</li>
