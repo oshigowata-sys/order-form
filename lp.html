@@ -40,7 +40,7 @@ body {
   box-shadow: 0 1px 8px rgba(0,0,0,0.05);
 }
 .nav-logo { display: flex; align-items: center; text-decoration: none; }
-.nav-logo img { height: 28px; }
+.nav-logo img { height: 48px; }
 .nav-links { display: flex; align-items: center; gap: 24px; }
 .nav-link { font-size: 13px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color 0.15s; }
 .nav-link:hover { color: var(--orange); }
@@ -113,8 +113,7 @@ body {
   box-shadow: 0 20px 60px rgba(0,0,0,0.12);
 }
 .hero-main-photo img {
-  width: 100%; height: 300px;
-  object-fit: cover; object-position: right center;
+  width: 100%; height: auto;
   display: block;
 }
 
@@ -214,8 +213,7 @@ h2 {
 }
 .pain-photo { margin-top: 24px; border-radius: 12px; overflow: hidden; }
 .pain-photo img {
-  width: 100%; height: 220px;
-  object-fit: cover; object-position: right center;
+  width: 100%; height: auto;
   display: block;
 }
 
@@ -228,13 +226,11 @@ h2 {
   transition: box-shadow 0.2s, transform 0.2s;
 }
 .str-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); transform: translateY(-3px); }
-.str-card-img { height: 160px; overflow: hidden; position: relative; }
+.str-card-img { overflow: hidden; position: relative; }
 .str-card-img.photo img {
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: right center;
+  width: 100%; height: auto;
   display: block;
 }
-.str-card-img.photo img.center { object-position: center; }
 .str-card-img.industries {
   background: var(--green-pale);
   display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -355,8 +351,7 @@ h2 {
 .btn-cta-orange:hover { background: var(--orange-dark); transform: translateY(-1px); }
 .footer-cta-photo { border-radius: 14px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
 .footer-cta-photo img {
-  width: 100%; height: 280px;
-  object-fit: cover; object-position: right center;
+  width: 100%; height: auto;
   display: block;
 }
 
@@ -598,7 +593,6 @@ footer {
           <div class="ind-icon"><img src="assets/lp/08.png" alt="酒類"></div>
         </div>
         <div class="str-body">
-          <div class="str-num">01</div>
           <div class="str-title">観光卸に特化した豊富な機能</div>
           <p class="str-text">ツアー・宿泊・土産など、観光卸業務に必要な機能を標準搭載。</p>
         </div>
@@ -609,7 +603,6 @@ footer {
           <img src="assets/lp/20.png" alt="シンプルな操作性" class="center">
         </div>
         <div class="str-body">
-          <div class="str-num">02</div>
           <div class="str-title">誰でも使いやすいシンプルな操作性</div>
           <p class="str-text">直感的に使えるUIで、ITが苦手な方でもすぐに使いこなせます。</p>
         </div>
@@ -620,7 +613,6 @@ footer {
           <img src="assets/lp/21.png" alt="リアルタイム可視化" class="center">
         </div>
         <div class="str-body">
-          <div class="str-num">03</div>
           <div class="str-title">リアルタイムで状況を可視化</div>
           <p class="str-text">受注状況・売上をリアルタイムに確認でき、素早い意思決定を支援。</p>
         </div>
@@ -631,7 +623,6 @@ footer {
           <img src="assets/lp/22.png" alt="安心のサポート体制">
         </div>
         <div class="str-body">
-          <div class="str-num">04</div>
           <div class="str-title">安心のサポート体制</div>
           <p class="str-text">導入サポートから運用後のフォローまで、専任スタッフがしっかりサポート。</p>
         </div>
