@@ -227,8 +227,12 @@ h2 {
 }
 .str-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); transform: translateY(-3px); }
 .str-card-img { overflow: hidden; position: relative; }
+.str-card-img.photo {
+  height: 200px;
+}
 .str-card-img.photo img {
-  width: 100%; height: auto;
+  width: 100%; height: 100%;
+  object-fit: cover;
   display: block;
 }
 .str-card-img.industries {
@@ -478,8 +482,10 @@ footer {
       <div class="hero-main-photo">
         <img src="assets/lp/17.png" alt="受注管理を行うビジネスパーソン">
       </div>
-      <div class="hero-dash-float">
-        <img src="assets/lp/15.png" alt="MeguReeダッシュボード画面">
+
+      <div class="hero-real-badge">
+        <span class="badge-num">300<span style="font-size:14px">+</span></span>
+        <span class="badge-label">導入実績</span>
       </div>
     </div>
   </div>
@@ -602,10 +608,8 @@ footer {
 
     <div class="strengths-grid fade-up">
       <div class="str-card">
-        <div class="str-card-img industries">
-          <div class="ind-icon"><img src="assets/lp/06.png" alt="観光"></div>
-          <div class="ind-icon"><img src="assets/lp/07.png" alt="花き"></div>
-          <div class="ind-icon"><img src="assets/lp/08.png" alt="酒類"></div>
+        <div class="str-card-img photo">
+          <img src="assets/lp/15.png" alt="MeguRee管理画面">
         </div>
         <div class="str-body">
           <div class="str-title">観光卸に特化した豊富な機能</div>
@@ -615,7 +619,7 @@ footer {
 
       <div class="str-card">
         <div class="str-card-img photo">
-          <img src="assets/lp/20.png" alt="シンプルな操作性" class="center">
+          <img src="assets/lp/19.png" alt="シンプルな操作性">
         </div>
         <div class="str-body">
           <div class="str-title">誰でも使いやすいシンプルな操作性</div>
@@ -625,7 +629,7 @@ footer {
 
       <div class="str-card">
         <div class="str-card-img photo">
-          <img src="assets/lp/21.png" alt="リアルタイム可視化" class="center">
+          <img src="assets/lp/16.png" alt="リアルタイム可視化">
         </div>
         <div class="str-body">
           <div class="str-title">リアルタイムで状況を可視化</div>
