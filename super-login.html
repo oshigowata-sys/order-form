@@ -83,19 +83,18 @@
       const account = data[0];
       if (!account || account.role !== 'super_admin') throw new Error('invalid');
 
-      // Step 2: Get Supabase Auth JWT (for RLS)
+      // Step 2: Sync auth.users for super_admin then get JWT
+      await fetch(`${SB_URL}/rest/v1/rpc/sync_auth_super_admin_on_login`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login_id: loginId, p_password: password })
+      });
       const email = account.login_id + '@meguree.internal';
-      const meta = { login_id: account.login_id, name: account.name, role: account.role };
-      let session = await sbSignIn(email, password);
-      if (!session?.access_token) {
-        await sbSignUp(email, password, meta);
-        session = await sbSignIn(email, password);
-      }
+      const session = await sbSignIn(email, password);
       if (session?.access_token) {
         sessionStorage.setItem('_sb_jwt', session.access_token);
         if (session.refresh_token) sessionStorage.setItem('_sb_refresh', session.refresh_token);
-        await sbUpdateUserMeta(meta);
-        await sbRefreshSession();
+        startAutoRefresh();
       }
 
       sessionStorage.setItem('superAdmin', JSON.stringify({ name: account.name, id: account.login_id }));
