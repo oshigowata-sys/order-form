@@ -147,6 +147,22 @@
     </table>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">資料DLリード一覧 <span class="count-badge" id="leadCount">0</span></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>会社名</th>
+        <th>担当者名</th>
+        <th>メールアドレス</th>
+        <th>ソース</th>
+        <th>登録日</th>
+      </tr></thead>
+      <tbody id="leadTbody"><tr><td colspan="5" class="empty">読み込み中...</td></tr></tbody>
+    </table>
+  </div>
+
   <div id="inviteResult" style="display:none">
     <div class="card">
       <div class="card-header">
@@ -390,8 +406,24 @@
     await loadInquiries();
   }
 
+  async function loadLeads() {
+    const res = await sbFetch('/rest/v1/leads?select=*&order=created_at.desc');
+    const rows = await res.json();
+    const tbody = document.getElementById('leadTbody');
+    document.getElementById('leadCount').textContent = rows.length + ' 件';
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">リードはありません</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td style="font-weight:600">${esc(r.company_name)}</td>
+      <td>${esc(r.name)}</td>
+      <td style="color:var(--text-muted);font-size:12px">${esc(r.email)}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${esc(r.source) || '—'}</td>
+      <td style="color:var(--text-muted);font-size:12px">${(r.created_at||'').slice(0,10)}</td>
+    </tr>`).join('');
+  }
+
   loadTenants();
   loadInquiries();
+  loadLeads();
 </script>
 <script src="mobile.js"></script>
 </body>
