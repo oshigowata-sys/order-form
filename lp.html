@@ -213,7 +213,8 @@ h2 {
 }
 .pain-photo { margin-top: 24px; border-radius: 12px; overflow: hidden; }
 .pain-photo img {
-  width: 100%; height: auto;
+  width: 100%; height: 260px;
+  object-fit: cover; object-position: center top;
   display: block;
 }
 
@@ -686,8 +687,8 @@ footer {
       </div>
 
       <div class="str-card">
-        <div class="str-card-img photo">
-          <img src="assets/lp/16.png" alt="リアルタイム可視化">
+        <div class="str-card-img photo" style="height:auto;min-height:200px;background:var(--cream)">
+          <img src="assets/lp/16.png" alt="リアルタイム可視化" style="height:auto;object-fit:contain">
         </div>
         <div class="str-body">
           <div class="str-title">リアルタイムで状況を可視化</div>
