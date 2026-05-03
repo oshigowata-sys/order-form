@@ -382,6 +382,40 @@ footer {
   display: inline-block;
 }
 
+/* ===== USP STRIP ===== */
+.usp-strip {
+  background: var(--green);
+  padding: 20px 40px;
+}
+.usp-strip-inner {
+  max-width: 1120px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  flex-wrap: wrap;
+}
+.usp-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 40px; gap: 4px;
+}
+.usp-num {
+  font-size: 22px; font-weight: 900; color: #fff;
+  font-family: 'Inter', sans-serif; line-height: 1;
+}
+.usp-label {
+  font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 600;
+}
+.usp-sep {
+  width: 1px; height: 36px; background: rgba(255,255,255,0.2); flex-shrink: 0;
+}
+
+/* ===== PRICING ZERO ===== */
+.pricing-zero {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green-pale); color: var(--green);
+  border: 1.5px solid rgba(30,102,65,0.25);
+  border-radius: 100px; padding: 8px 20px;
+  font-size: 13px; font-weight: 700; margin-top: 24px;
+}
+
 /* ===== FADE ===== */
 .fade-up {
   opacity: 0; transform: translateY(20px);
@@ -415,6 +449,10 @@ footer {
   .flow-steps { flex-direction: column; gap: 24px; }
   .blob-green { width: 160px; }
   .blob-orange { width: 120px; }
+  .usp-strip { padding: 16px 20px; }
+  .usp-item { padding: 6px 16px; }
+  .usp-num { font-size: 18px; }
+  .usp-sep { height: 28px; }
 }
 </style>
 </head>
@@ -466,6 +504,10 @@ footer {
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           受注状況をリアルタイムで可視化
         </div>
+        <div class="hero-chip" style="border-color:rgba(30,102,65,0.3);color:var(--green)">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          初期費用0円・月額固定
+        </div>
       </div>
       <div class="hero-industries">
         <span class="industry-label">対応業界：</span>
@@ -486,6 +528,26 @@ footer {
     </div>
   </div>
 </section>
+
+<!-- USP STRIP -->
+<div class="usp-strip">
+  <div class="usp-strip-inner">
+    <div class="usp-item">
+      <div class="usp-num">¥0</div>
+      <div class="usp-label">初期費用・解約費用</div>
+    </div>
+    <div class="usp-sep"></div>
+    <div class="usp-item">
+      <div class="usp-num">月額固定</div>
+      <div class="usp-label">売上が伸びてもコスト変わらず</div>
+    </div>
+    <div class="usp-sep"></div>
+    <div class="usp-item">
+      <div class="usp-num">最短1週間</div>
+      <div class="usp-label">で導入完了</div>
+    </div>
+  </div>
+</div>
 
 <!-- ABOUT -->
 <section class="about" id="about">
@@ -697,7 +759,11 @@ footer {
         <a href="contact.html" class="btn-plan btn-plan-outline">お問い合わせ</a>
       </div>
     </div>
-    <p class="pricing-note">※ 料金はすべて税別です。初期費用・詳細はお問い合わせください。</p>
+    <div class="pricing-zero">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      初期費用・解約費用は一切かかりません
+    </div>
+    <p class="pricing-note" style="margin-top:10px">※ 料金はすべて税別・月額固定です。取引先が増えても月額は変わりません。</p>
   </div>
 </section>
 
