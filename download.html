@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資料ダウンロード | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fdf6ee; --surface: #ffffff; --border: #e8d5bc;
+    --orange: #e8630a; --green: #1e6641;
+    --text: #1c1409; --text-muted: #8c7355; --danger: #dc2626;
+  }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: #fff; border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+  .header img { width: 140px; }
+  .header-sub { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+  .hero { background: linear-gradient(135deg, #1c1409 0%, #3a2510 100%); color: #fff; padding: 56px 32px; text-align: center; }
+  .hero-title { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+  .hero-sub { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.8; }
+  .hero-orange { color: var(--orange); }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(232,99,10,0.15); border: 1px solid rgba(232,99,10,0.4); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: var(--orange); margin-bottom: 20px; }
+  .content { max-width: 560px; margin: 0 auto; padding: 48px 24px; }
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 24px; padding: 40px; box-shadow: 0 8px 40px rgba(232,99,10,0.08); }
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.7; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; letter-spacing: 1px; text-transform: uppercase; }
+  .required { color: var(--orange); margin-left: 4px; }
+  input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: 'Noto Sans JP', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--orange); background: #fff; }
+  .btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
+  .error.show { display: block; }
+  .privacy-note { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 14px; line-height: 1.7; }
+  .privacy-note a { color: var(--orange); text-decoration: none; }
+  .success-screen { display: none; text-align: center; padding: 20px 0; }
+  .success-screen.show { display: block; }
+  .success-icon { font-size: 56px; margin-bottom: 16px; }
+  .success-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: var(--green); }
+  .success-sub { font-size: 14px; color: var(--text-muted); line-height: 1.9; margin-bottom: 28px; }
+  .success-actions { display: flex; flex-direction: column; gap: 10px; }
+  .btn-green { display: block; padding: 14px; background: var(--green); border-radius: 12px; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; text-align: center; transition: opacity 0.2s; }
+  .btn-green:hover { opacity: 0.9; }
+  .btn-outline-sm { display: block; padding: 12px; border: 1.5px solid var(--border); border-radius: 12px; color: var(--text-muted); font-size: 14px; text-decoration: none; text-align: center; transition: border-color 0.2s; }
+  .btn-outline-sm:hover { border-color: var(--orange); color: var(--orange); }
+  .pdf-preview { background: #f0f7f3; border: 1px solid #b8d9c6; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; }
+  .pdf-icon { font-size: 32px; flex-shrink: 0; }
+  .pdf-info { text-align: left; }
+  .pdf-name { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 2px; }
+  .pdf-size { font-size: 11px; color: var(--text-muted); }
+  @media (max-width: 600px) {
+    .card { padding: 24px; }
+    .hero { padding: 40px 20px; }
+    .hero-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" />
+  <span class="header-sub">受注管理システム</span>
+</div>
+
+<div class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    無料資料ダウンロード
+  </div>
+  <div class="hero-title">サービス紹介資料を<br><span class="hero-orange">無料でダウンロード</span></div>
+  <div class="hero-sub">機能・料金・導入ステップをまとめた資料です。<br>情報入力後、すぐにダウンロードが始まります。</div>
+</div>
+
+<div class="content">
+  <div class="card">
+    <div id="formArea">
+      <div class="card-title">お客様情報の入力</div>
+      <div class="card-desc">資料のダウンロードに、簡単な情報をご入力ください。<br>いただいた情報はMeguReeのサービス改善・ご案内にのみ使用します。</div>
+      <div class="error" id="errorMsg"></div>
+
+      <div class="form-group">
+        <label>会社名・屋号<span class="required">*</span></label>
+        <input type="text" id="companyName" placeholder="例：ひかる商店" />
+      </div>
+      <div class="form-group">
+        <label>担当者名<span class="required">*</span></label>
+        <input type="text" id="name" placeholder="例：山田 太郎" />
+      </div>
+      <div class="form-group">
+        <label>メールアドレス<span class="required">*</span></label>
+        <input type="email" id="email" placeholder="例：info@example.com" />
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="submitForm()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        ダウンロードする（無料）
+      </button>
+      <p class="privacy-note">
+        ご入力いただいた情報は<a href="privacy.html">プライバシーポリシー</a>に基づき適切に管理します。
+      </p>
+    </div>
+
+    <div class="success-screen" id="successScreen">
+      <div class="pdf-preview">
+        <div class="pdf-icon">📄</div>
+        <div class="pdf-info">
+          <div class="pdf-name">MeguRee サービス紹介資料</div>
+          <div class="pdf-size">観光卸売業向け 受注管理システム・12ページ</div>
+        </div>
+      </div>
+      <div class="success-icon">✅</div>
+      <div class="success-title">ダウンロードを開始しました</div>
+      <div class="success-sub">
+        自動的にダウンロードが始まります。<br>
+        始まらない場合は下のボタンからダウンロードしてください。
+      </div>
+      <div class="success-actions">
+        <a href="assets/meguree-service-guide.pdf" download class="btn-green">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          もう一度ダウンロードする
+        </a>
+        <a href="contact.html" class="btn-outline-sm">導入のご相談・お問い合わせはこちら</a>
+        <a href="lp.html" class="btn-outline-sm">トップページに戻る</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybmF5eG13Y2J4Ymxmb2t2ZW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNjc4NzIsImV4cCI6MjA5MTc0Mzg3Mn0.Rv_hZCtjOQZOecZPo7g9z62-r2RzearKb2DIKI322_M';
+
+  async function submitForm() {
+    const errEl = document.getElementById('errorMsg');
+    errEl.classList.remove('show');
+
+    const companyName = document.getElementById('companyName').value.trim();
+    const name        = document.getElementById('name').value.trim();
+    const email       = document.getElementById('email').value.trim();
+
+    if (!companyName || !name || !email) {
+      errEl.textContent = '必須項目をすべて入力してください';
+      errEl.classList.add('show');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'メールアドレスの形式が正しくありません';
+      errEl.classList.add('show');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"/></svg> 処理中...';
+
+    try {
+      const res = await fetch(SB_URL + '/rest/v1/leads', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ company_name: companyName, name, email, source: 'lp_download' })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      // PDFを自動ダウンロード開始
+      const a = document.createElement('a');
+      a.href = 'assets/meguree-service-guide.pdf';
+      a.download = 'MeguRee_サービス紹介資料.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      document.getElementById('formArea').style.display = 'none';
+      document.getElementById('successScreen').classList.add('show');
+    } catch(e) {
+      console.error(e);
+      errEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ダウンロードする（無料）';
+    }
+  }
+</script>
+<style>
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+</body>
+</html>
