@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -183,12 +183,11 @@ td{padding:14px 16px;font-size:13px;vertical-align:middle}
     </div>
   </div>
 </main>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
-const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
-const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
 const { tenantId, name: userName, role: userRole } = userData;
 (() => {
