@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -53,10 +53,9 @@
     <button class="btn" id="loginBtn" onclick="login()">ログインする</button>
   </div>
 </div>
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
-  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
-  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 
   if (sessionStorage.getItem('superAdmin')) location.replace('super-dashboard.html');
 

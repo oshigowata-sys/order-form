@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -227,12 +227,11 @@ tr.row-inprogress td{color:var(--text-muted)}
 
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
 checkAuth();
 
-const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
-const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
 const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
 const { tenantId, name: userName, role: userRole } = userData;
 

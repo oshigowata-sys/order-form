@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -306,12 +306,11 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 
+<script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
-  const SB_URL = 'https://vrnayxmwcbxblfokveok.supabase.co';
-  const SB_KEY = 'sb_publishable_NIKtwat_yat2LxbACHVMbA_PT_8F53O';
   const BADGE      = {'新規受注':'badge-new','処理中':'badge-processing','出荷済み':'badge-shipped'};
   const STATUS_CLS = {'新規受注':'s-new','処理中':'s-processing','出荷済み':'s-shipped'};
   const STATUSES   = ['新規受注','処理中','出荷済み'];
