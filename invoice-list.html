@@ -199,10 +199,13 @@ tr.row-inprogress td{color:var(--text-muted)}
 <div class="overlay" id="issueModalOverlay" onclick="if(event.target===this)closeIssueModal()">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">請求書発行</div>
+      <div class="modal-title" id="issueModalTitle">請求書発行</div>
       <button class="modal-close" onclick="closeIssueModal()">✕</button>
     </div>
     <div class="modal-body">
+      <div id="interimWarning" style="display:none;background:#fff4ec;border:1px solid var(--orange);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#b34500;line-height:1.6">
+        ⚠️ <strong>途中発行</strong>です。本日以降に届いた注文は今月末に再度発行が必要になります。
+      </div>
       <div style="margin-bottom:16px;font-size:13px">
         取引先：<strong id="issueCustomerName"></strong>
       </div>
@@ -447,7 +450,7 @@ function renderAll() {
       issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—';
     } else {
       badge          = '<span class="badge badge-inprogress">進行中</span>';
-      action         = '';
+      action         = `<button class="btn btn-outline btn-sm interim-btn" data-idx="${idx}" style="border-color:var(--orange);color:var(--orange)">途中発行</button>`;
       ordersCell     = r.orders > 0 ? `${r.orders}件` : '—';
       issuedDateCell = '—';
     }
@@ -467,6 +470,9 @@ function renderAll() {
   tbody.querySelectorAll('.issue-btn').forEach(btn => {
     btn.onclick = () => openIssueModal(_renderedRows[parseInt(btn.dataset.idx)]);
   });
+  tbody.querySelectorAll('.interim-btn').forEach(btn => {
+    btn.onclick = () => openIssueModal(_renderedRows[parseInt(btn.dataset.idx)], true);
+  });
 }
 
 function openPdf(idx) {
@@ -482,12 +488,16 @@ function openPdf(idx) {
 
 // ── 発行モーダル ──
 let _issueTarget = null;
+let _isInterim   = false;
 
-function openIssueModal(r) {
+function openIssueModal(r, isInterim = false) {
   _issueTarget = r;
+  _isInterim   = isInterim;
+  document.getElementById('issueModalTitle').textContent   = isInterim ? '途中発行' : '請求書発行';
+  document.getElementById('interimWarning').style.display  = isInterim ? 'block' : 'none';
   document.getElementById('issueCustomerName').textContent = r.customer;
-  document.getElementById('issuePeriodStart').value = r.periodStart;
-  document.getElementById('issuePeriodEnd').value   = r.periodEnd;
+  document.getElementById('issuePeriodStart').value        = r.periodStart;
+  document.getElementById('issuePeriodEnd').value          = r.periodEnd;
   updateIssuePreview();
   document.getElementById('issueModalOverlay').classList.add('open');
 }
@@ -495,6 +505,7 @@ function openIssueModal(r) {
 function closeIssueModal() {
   document.getElementById('issueModalOverlay').classList.remove('open');
   _issueTarget = null;
+  _isInterim   = false;
 }
 
 function updateIssuePreview() {
