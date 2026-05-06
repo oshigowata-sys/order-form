@@ -156,7 +156,7 @@
           <th>担当者</th>
           <th>電話番号</th>
           <th>メール</th>
-          <th>締め日</th>
+          <th>締め / 支払</th>
           <th></th>
         </tr></thead>
         <tbody id="customerTbody"></tbody>
@@ -193,8 +193,36 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">締め日</label>
-        <input class="form-input" id="fClosing" type="text" placeholder="例：月末、20日">
+        <label class="form-label">住所</label>
+        <input class="form-input" id="fAddress" type="text" placeholder="例：北海道札幌市中央区〇〇1-2-3">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">締め日</label>
+          <select class="form-input" id="fClosing">
+            <option value="">未設定</option>
+            <option value="5">5日</option>
+            <option value="10">10日</option>
+            <option value="15">15日</option>
+            <option value="20">20日</option>
+            <option value="25">25日</option>
+            <option value="28">28日</option>
+            <option value="31">末日</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">支払日（翌月）</label>
+          <select class="form-input" id="fPayment">
+            <option value="">未設定</option>
+            <option value="5">5日</option>
+            <option value="10">10日</option>
+            <option value="15">15日</option>
+            <option value="20">20日</option>
+            <option value="25">25日</option>
+            <option value="28">28日</option>
+            <option value="31">末日</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -292,11 +320,18 @@
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function formatClosing(val) {
+  function formatDay(val) {
     if (!val) return '';
-    const trimmed = String(val).trim();
-    if (/^\d+$/.test(trimmed)) return trimmed + '日';
-    return trimmed;
+    return val == 31 ? '末日' : val + '日';
+  }
+
+  function formatClosingPayment(closing, payment) {
+    const c = formatDay(closing);
+    const p = formatDay(payment);
+    if (c && p) return `${c}締め / 翌月${p}払`;
+    if (c) return `${c}締め`;
+    if (p) return `翌月${p}払`;
+    return '';
   }
 
   async function loadCustomers() {
@@ -312,7 +347,9 @@
         contact: r.contact_name  || '',
         phone:   r.phone         || '',
         email:   r.email         || '',
-        closing: r.closing_day != null ? String(r.closing_day) : '',
+        address: r.address       || '',
+        closing: r.closing_day   != null ? r.closing_day  : '',
+        payment: r.payment_day   != null ? r.payment_day  : '',
       }));
       render();
     } catch(e) {
@@ -348,7 +385,7 @@
       <td style="color:var(--text-muted)">${esc(c.contact)}</td>
       <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:12px">${esc(c.phone)}</td>
       <td style="color:var(--text-muted);font-size:12px">${esc(c.email)}</td>
-      <td style="font-weight:600;color:var(--orange);font-size:12px">${formatClosing(c.closing)}</td>
+      <td style="font-weight:600;color:var(--orange);font-size:12px">${formatClosingPayment(c.closing, c.payment)}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(c.id)}')">編集</button>
         <button class="btn btn-outline btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openQrModal('${esc(c.id)}')">QR</button>
@@ -360,7 +397,7 @@
   function openAddModal() {
     editId = null;
     document.getElementById('modalTitle').textContent = '新規取引先を追加';
-    ['fCompany','fContact','fPhone','fEmail','fClosing'].forEach(id => {
+    ['fCompany','fContact','fPhone','fEmail','fAddress','fClosing','fPayment'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('modalOverlay').classList.add('open');
@@ -376,7 +413,9 @@
     document.getElementById('fContact').value  = c.contact;
     document.getElementById('fPhone').value    = c.phone;
     document.getElementById('fEmail').value    = c.email;
+    document.getElementById('fAddress').value  = c.address;
     document.getElementById('fClosing').value  = c.closing;
+    document.getElementById('fPayment').value  = c.payment;
     document.getElementById('modalOverlay').classList.add('open');
   }
 
@@ -392,7 +431,9 @@
       contact_name: document.getElementById('fContact').value.trim() || null,
       phone:        document.getElementById('fPhone').value.trim()   || null,
       email:        document.getElementById('fEmail').value.trim()   || null,
-      closing_day:  Number(document.getElementById('fClosing').value.trim()) || null,
+      address:      document.getElementById('fAddress').value.trim() || null,
+      closing_day:  Number(document.getElementById('fClosing').value) || null,
+      payment_day:  Number(document.getElementById('fPayment').value) || null,
       tenant_id:    tenantId,
     };
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');
