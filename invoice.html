@@ -830,6 +830,13 @@
       : '（振込先情報を設定してください）';
 
     document.getElementById('invoiceBody').innerHTML = `
+      <div class="invoice-top-parties" style="margin-bottom:18px;padding:14px 18px;background:#faf8f5;border-radius:10px;border-left:4px solid var(--orange);">
+        <div class="party-label">請求先 / BILL TO</div>
+        <div class="party-name" style="font-size:19px;">${esc(f['取引先名'] || '取引先名')}<span class="party-name-suffix">御中</span></div>
+        ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
+        ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
+      </div>
+
       <div class="invoice-header">
         <div class="invoice-title-block">
           <div class="invoice-title">請 求 書</div>
@@ -839,19 +846,14 @@
           <table>
             <tr><td>請求書番号</td><td>${esc(invoiceNo)}</td></tr>
             <tr><td>発行日</td><td>${esc(today)}</td></tr>
-            ${f['締め日'] != null ? `<tr><td>締め日</td><td>毎月${esc(String(f['締め日']))}日締め</td></tr>` : ''}
+            <tr><td>締め日</td><td>${f['締め日'] != null ? '毎月' + esc(String(f['締め日'])) + '日締め' : '<span style="color:#dc2626;font-size:11px">未設定（取引先マスタで設定してください）</span>'}</td></tr>
             <tr><td>お支払い期限</td><td>${esc(dueDate)}</td></tr>
+            <tr id="paidAmountRow" style="display:${currentInvoice && currentInvoice.paid_amount != null ? 'table-row' : 'none'}">
+              <td>入金額</td>
+              <td id="paidAmountCell" style="color:var(--green);font-weight:700;">${currentInvoice && currentInvoice.paid_amount != null ? fmt(currentInvoice.paid_amount) : '—'}</td>
+            </tr>
             ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
           </table>
-        </div>
-      </div>
-
-      <div class="invoice-parties">
-        <div class="invoice-to">
-          <div class="party-label">請求先 / BILL TO</div>
-          <div class="party-name">${esc(f['取引先名'] || '取引先名')}<span class="party-name-suffix">御中</span></div>
-          ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
-          ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
         </div>
       </div>
 
@@ -989,13 +991,19 @@
     const input = document.getElementById('paidAmountInput');
     const val = input ? input.value : '';
     if (val === '' || isNaN(Number(val)) || Number(val) < 0) return;
+    const numVal = Number(val);
     const res = await sbFetch(
       '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum),
-      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: Number(val) }) }
+      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: numVal }) }
     );
     const msg = document.getElementById('paidSaveMsg');
     if (res.ok) {
       if (msg) { msg.textContent = '✓ 保存しました'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; }, 2500); }
+      // 請求書本体の入金額表示を更新
+      const row = document.getElementById('paidAmountRow');
+      const cell = document.getElementById('paidAmountCell');
+      if (row) row.style.display = 'table-row';
+      if (cell) cell.textContent = fmt(numVal);
     } else {
       if (msg) { msg.textContent = '❌ 保存失敗'; msg.style.color = '#f87171'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = '#4ade80'; }, 3000); }
     }
