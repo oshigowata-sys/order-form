@@ -547,6 +547,12 @@ async function confirmIssue() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     closeIssueModal();
     showToast(`✅ 請求書を発行しました（${num}）`);
+    const pdfUrl = 'invoice.html'
+      + '?customer_id='  + encodeURIComponent(r.customerId)
+      + '&period_start=' + encodeURIComponent(periodStart)
+      + '&period_end='   + encodeURIComponent(periodEnd)
+      + '&invoice_num='  + encodeURIComponent(num);
+    window.open(pdfUrl, '_blank');
     await loadAll();
   } catch(e) {
     console.error(e);
