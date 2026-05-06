@@ -689,7 +689,7 @@
   }
 
   // ===== 請求書HTML生成 =====
-  function renderInvoice(order, items) {
+  function renderInvoice(order, items, showDelivery = true) {
     window._orderData = { order, items };
     const s = _settings;
     const f = order.fields || order;
@@ -810,11 +810,15 @@
     `;
 
     document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('deliveryBody').style.display = 'block';
-    document.getElementById('cutLine').style.display = 'flex';
     document.getElementById('invoiceBody').style.display = 'block';
-    document.title = `納品書兼請求書 - ${(f['取引先名'] || '取引先')} - ${invoiceNo}`;
-    renderDeliveryNote(f, items, s);
+    if (showDelivery) {
+      document.getElementById('deliveryBody').style.display = 'block';
+      document.getElementById('cutLine').style.display = 'flex';
+      document.title = `納品書兼請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
+      renderDeliveryNote(f, items, s);
+    } else {
+      document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
+    }
   }
 
   // ===== データ取得（Supabase）=====
@@ -855,7 +859,7 @@
             isFood:   it.products?.is_food || false,
           }))
         );
-        renderInvoice({ fields: f }, allItems);
+        renderInvoice({ fields: f }, allItems, false);
 
       } else {
         // ── 単一受注モード ──
