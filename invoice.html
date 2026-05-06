@@ -582,6 +582,15 @@
         style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:13px;font-family:inherit;outline:none"
         oninput="updateBillingSummary()">
     </div>
+    <div id="paymentInputSection" style="display:none;align-items:center;gap:6px" class="no-print">
+      <span style="width:1px;height:20px;background:rgba(255,255,255,0.15);display:inline-block"></span>
+      <label style="color:rgba(232,213,188,0.7);font-size:11px;white-space:nowrap">入金登録</label>
+      <input type="number" id="paidAmountInput" placeholder="入金額" min="0"
+        style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:13px;font-family:inherit;outline:none">
+      <button onclick="savePaidAmount()"
+        style="padding:5px 12px;background:var(--green);color:white;border:none;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap">保存</button>
+      <span id="paidSaveMsg" style="color:#4ade80;font-size:11px;opacity:0;transition:opacity 0.3s;white-space:nowrap"></span>
+    </div>
     <a href="dashboard.html" class="btn btn-ghost">← 戻る</a>
     <a href="settings.html" class="btn btn-secondary">⚙ 発行者設定</a>
     <button class="btn btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
@@ -618,10 +627,16 @@
   }
 
 
-  function sbFetch(path) {
-    const token = sessionStorage.getItem('_sb_jwt') || SB_ANON;
+  function sbFetch(path, options = {}) {
+    const { headers: extraHeaders, ...rest } = options;
     return fetch(SB_URL + path, {
-      headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + token }
+      ...rest,
+      headers: {
+        'apikey': SB_ANON,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        ...(extraHeaders || {}),
+      }
     });
   }
 
@@ -763,7 +778,7 @@
   }
 
   // ===== 請求書HTML生成 =====
-  function renderInvoice(order, items, showDelivery = true, prevInvoice = null) {
+  function renderInvoice(order, items, showDelivery = true, prevInvoice = null, currentInvoice = null) {
     window._orderData = { order, items };
     const s = _settings;
     const f = order.fields || order;
@@ -824,7 +839,8 @@
           <table>
             <tr><td>請求書番号</td><td>${esc(invoiceNo)}</td></tr>
             <tr><td>発行日</td><td>${esc(today)}</td></tr>
-            <tr><td>支払期限</td><td>${esc(dueDate)}</td></tr>
+            ${f['締め日'] != null ? `<tr><td>締め日</td><td>毎月${esc(String(f['締め日']))}日締め</td></tr>` : ''}
+            <tr><td>お支払い期限</td><td>${esc(dueDate)}</td></tr>
             ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
           </table>
         </div>
@@ -918,9 +934,21 @@
     const prevEl = document.getElementById('prevAmountInput');
     if (prevEl) prevEl.value = prevInvoice ? (prevInvoice.total_incl_tax || '') : '';
 
-    // 入金未登録警告
+    // 入金未登録警告（前回分が未登録の場合）
     const warnEl = document.getElementById('unpaidWarningBar');
     if (warnEl) warnEl.style.display = (prevInvoice && prevInvoice.paid_amount == null) ? 'flex' : 'none';
+
+    // 今回請求書の入金登録セクション
+    if (currentInvoice !== null && targetInvoiceNum) {
+      const section = document.getElementById('paymentInputSection');
+      if (section) {
+        section.style.display = 'flex';
+        const inputEl = document.getElementById('paidAmountInput');
+        if (inputEl && currentInvoice.paid_amount != null) {
+          inputEl.value = currentInvoice.paid_amount;
+        }
+      }
+    }
 
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('invoiceBody').style.display = 'block';
@@ -955,6 +983,24 @@
     if (paidEl) paidEl.style.color = (paidAmount == null) ? '#dc2626' : '';
   }
 
+  // ===== 入金登録（今期請求書） =====
+  async function savePaidAmount() {
+    if (!targetInvoiceNum) return;
+    const input = document.getElementById('paidAmountInput');
+    const val = input ? input.value : '';
+    if (val === '' || isNaN(Number(val)) || Number(val) < 0) return;
+    const res = await sbFetch(
+      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum),
+      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: Number(val) }) }
+    );
+    const msg = document.getElementById('paidSaveMsg');
+    if (res.ok) {
+      if (msg) { msg.textContent = '✓ 保存しました'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; }, 2500); }
+    } else {
+      if (msg) { msg.textContent = '❌ 保存失敗'; msg.style.color = '#f87171'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = '#4ade80'; }, 3000); }
+    }
+  }
+
   // ===== データ取得（Supabase）=====
   async function loadInvoiceData() {
     try {
@@ -977,11 +1023,36 @@
 
         // 全受注の明細を結合
         const firstOrder = orders[0];
+
+        // 取引先詳細・前回請求書・今回請求書を並行取得
+        const [custRes, prevRes, curInvRes] = await Promise.all([
+          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day&limit=1'),
+          sbFetch(
+            '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
+            '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
+            '&select=total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
+          ),
+          targetInvoiceNum
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount,total_incl_tax&limit=1')
+            : Promise.resolve(null),
+        ]);
+
+        let customerExtra = {};
+        if (custRes.ok) { const d = await custRes.json(); customerExtra = d[0] || {}; }
+
+        let prevInvoice = null;
+        if (prevRes.ok) { const d = await prevRes.json(); prevInvoice = d[0] || null; }
+
+        let currentInvoice = null;
+        if (curInvRes && curInvRes.ok) { const d = await curInvRes.json(); currentInvoice = d[0] || null; }
+
         const f = {
           '受注ID':   targetInvoiceNum || '',
           '取引先名': firstOrder.customers?.company_name || '',
           '担当者名': firstOrder.customers?.contact_name || '',
           '受注日':   targetPeriodEnd || '',
+          '住所':     customerExtra.address || '',
+          '締め日':   customerExtra.closing_day != null ? customerExtra.closing_day : null,
         };
         const allItems = orders.flatMap(o =>
           (o.order_items || []).map(it => ({
@@ -993,19 +1064,8 @@
             isFood:   it.products?.is_food || false,
           }))
         );
-        // 前回の請求書を取得（サマリー用）
-        let prevInvoice = null;
-        const prevRes = await sbFetch(
-          '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
-          '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
-          '&select=total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
-        );
-        if (prevRes.ok) {
-          const prevData = await prevRes.json();
-          prevInvoice = prevData[0] || null;
-        }
 
-        renderInvoice({ fields: f }, allItems, false, prevInvoice);
+        renderInvoice({ fields: f }, allItems, false, prevInvoice, currentInvoice);
 
       } else {
         // ── 単一受注モード ──
@@ -1015,7 +1075,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,customers(company_name,contact_name,address,closing_day),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1032,6 +1092,8 @@
           '取引先名': order.customers?.company_name || '',
           '担当者名': order.customers?.contact_name || '',
           '受注日':   order.order_date || '',
+          '住所':     order.customers?.address || '',
+          '締め日':   order.customers?.closing_day != null ? order.customers?.closing_day : null,
         };
         const items = (order.order_items || []).map(it => ({
           '商品名': it.products?.product_name || '',
