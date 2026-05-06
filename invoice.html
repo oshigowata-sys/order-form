@@ -551,9 +551,62 @@
   }
 
   /* 印刷スタイル */
+  /* ===== 御入金金額 入力 ===== */
+  .summary-paid-input {
+    width: 100%;
+    padding: 3px 5px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    outline: none;
+    background: #fffaf6;
+    color: var(--text);
+    margin-top: 2px;
+  }
+  .summary-paid-input:focus { border-color: var(--orange); }
+  .summary-save-btn {
+    margin-top: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+    transition: background 0.2s;
+  }
+  .summary-save-btn:hover { background: #165230; }
+  .summary-save-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* ===== トースト ===== */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #1a1208;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
   @media print {
     .cut-line { background: white; color: #999; }
     .action-bar, .settings-panel, .no-print { display: none !important; }
+    .print-only { display: block !important; }
     body { background: white; }
     .main { padding: 0; max-width: 100%; }
     #invoice-wrap { box-shadow: none; border-radius: 0; }
@@ -603,6 +656,8 @@
 
 </div>
 
+<div class="toast no-print" id="invoiceToast"></div>
+
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
@@ -618,10 +673,27 @@
   }
 
 
-  function sbFetch(path) {
+  let _toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('invoiceToast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  function sbFetch(path, options = {}) {
     const token = sessionStorage.getItem('_sb_jwt') || SB_ANON;
     return fetch(SB_URL + path, {
-      headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + token }
+      ...options,
+      headers: {
+        'apikey': SB_ANON,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {})
+      }
     });
   }
 
@@ -847,7 +919,10 @@
           </div>
           <div class="summary-cell">
             <div class="summary-cell-label">御入金金額</div>
-            <div class="summary-cell-value" id="sumPaid">—</div>
+            <input type="number" id="sumPaidInput" class="summary-paid-input no-print"
+              placeholder="未登録" min="0" oninput="updateBillingSummary()">
+            <div class="summary-cell-value print-only" id="sumPaidPrint" style="display:none">—</div>
+            <button class="summary-save-btn no-print" id="sumPaidSaveBtn" onclick="savePaidAmount()">保存</button>
           </div>
           <div class="summary-cell">
             <div class="summary-cell-label">繰越金額</div>
@@ -912,11 +987,20 @@
     `;
 
     // 合計をグローバルに保存（updateBillingSummary用）
-    window._invoiceTotals = { subtotal, tax, total, prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined };
+    window._invoiceTotals = { subtotal, tax, total };
+    window._prevInvoiceNum = prevInvoice ? (prevInvoice.invoice_number || null) : null;
 
     // 前回請求額を操作バーにセット
     const prevEl = document.getElementById('prevAmountInput');
     if (prevEl) prevEl.value = prevInvoice ? (prevInvoice.total_incl_tax || '') : '';
+
+    // 御入金金額 inputに初期値をセット
+    const paidInputEl = document.getElementById('sumPaidInput');
+    if (paidInputEl) paidInputEl.value = (prevInvoice && prevInvoice.paid_amount != null) ? prevInvoice.paid_amount : '';
+
+    // 前回請求書がない場合は「保存」ボタンを非表示
+    const saveBtn = document.getElementById('sumPaidSaveBtn');
+    if (saveBtn) saveBtn.style.display = window._prevInvoiceNum ? 'block' : 'none';
 
     // 入金未登録警告
     const warnEl = document.getElementById('unpaidWarningBar');
@@ -939,20 +1023,52 @@
     const t = window._invoiceTotals;
     if (!t) return;
     const prevAmount = Number(document.getElementById('prevAmountInput')?.value) || 0;
-    const paidAmount = t.prevPaidAmount;
-    const carryOver  = (paidAmount != null) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
-    const grandTotal = carryOver + t.total;
+    const paidInputEl = document.getElementById('sumPaidInput');
+    const paidAmount  = (paidInputEl && paidInputEl.value !== '') ? Number(paidInputEl.value) : null;
+    const carryOver   = (paidAmount != null) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
+    const grandTotal  = carryOver + t.total;
 
-    document.getElementById('sumPrev').textContent      = fmt(prevAmount);
-    document.getElementById('sumPaid').textContent      = (paidAmount != null) ? fmt(paidAmount) : '未登録';
-    document.getElementById('sumCarry').textContent     = fmt(carryOver);
-    document.getElementById('sumThisTotal').textContent = fmt(t.total);
-    document.getElementById('sumExcl').textContent      = fmt(t.subtotal);
-    document.getElementById('sumTax').textContent       = fmt(t.tax);
+    document.getElementById('sumPrev').textContent       = fmt(prevAmount);
+    document.getElementById('sumCarry').textContent      = fmt(carryOver);
+    document.getElementById('sumThisTotal').textContent  = fmt(t.total);
+    document.getElementById('sumExcl').textContent       = fmt(t.subtotal);
+    document.getElementById('sumTax').textContent        = fmt(t.tax);
     document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
 
-    const paidEl = document.getElementById('sumPaid');
-    if (paidEl) paidEl.style.color = (paidAmount == null) ? '#dc2626' : '';
+    // 印刷用テキスト更新
+    const printEl = document.getElementById('sumPaidPrint');
+    if (printEl) printEl.textContent = (paidAmount != null) ? fmt(paidAmount) : '未登録';
+
+    // 入力フィールドの色
+    if (paidInputEl) paidInputEl.style.borderColor = (paidAmount == null) ? '#fca5a5' : '';
+  }
+
+  async function savePaidAmount() {
+    if (!window._prevInvoiceNum) {
+      showToast('⚠️ 前回請求書が見つかりません'); return;
+    }
+    const paidInputEl = document.getElementById('sumPaidInput');
+    const val = paidInputEl ? paidInputEl.value : '';
+    if (val === '' || isNaN(Number(val)) || Number(val) < 0) {
+      showToast('⚠️ 入金額を正しく入力してください'); return;
+    }
+    const btn = document.getElementById('sumPaidSaveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    try {
+      const res = await sbFetch(
+        '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(window._prevInvoiceNum),
+        { method: 'PATCH', body: JSON.stringify({ paid_amount: Number(val) }) }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const warnEl = document.getElementById('unpaidWarningBar');
+      if (warnEl) warnEl.style.display = 'none';
+      showToast('✅ 入金額を保存しました');
+    } catch(e) {
+      console.error(e);
+      showToast('❌ 保存に失敗しました');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+    }
   }
 
   // ===== データ取得（Supabase）=====
@@ -998,7 +1114,7 @@
         const prevRes = await sbFetch(
           '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
-          '&select=total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
+          '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
         );
         if (prevRes.ok) {
           const prevData = await prevRes.json();
