@@ -482,10 +482,129 @@
     border-top: 1px dashed #ccc;
   }
 
+  /* ===== 御請求サマリー ===== */
+  .billing-summary {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .summary-cells {
+    display: flex;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .summary-cell {
+    flex: 1;
+    padding: 8px 6px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .summary-cell:last-child { border-right: none; }
+  .summary-cell-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-cell-value {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .summary-total-box {
+    border: 2px solid var(--orange);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 130px;
+  }
+  .summary-total-label {
+    font-size: 9px;
+    color: var(--orange);
+    margin-bottom: 5px;
+    white-space: nowrap;
+  }
+  .summary-total-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--orange);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .unpaid-warning {
+    background: #fff4ec;
+    border: 1px solid var(--orange);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 12px;
+    color: #b34500;
+    display: flex;
+    align-items: center;
+  }
+  /* ===== 御入金金額 入力 ===== */
+  .summary-paid-input {
+    width: 100%;
+    padding: 3px 5px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    outline: none;
+    background: #fffaf6;
+    color: var(--text);
+    margin-top: 2px;
+  }
+  .summary-paid-input:focus { border-color: var(--orange); }
+  .summary-save-btn {
+    margin-top: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+    transition: background 0.2s;
+  }
+  .summary-save-btn:hover { background: #165230; }
+  .summary-save-btn:disabled { opacity: 0.6; cursor: default; }
+  /* ===== トースト ===== */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #1a1208;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
   /* 印刷スタイル */
   @media print {
     .cut-line { background: white; color: #999; }
     .action-bar, .settings-panel, .no-print { display: none !important; }
+    .print-only { display: block !important; }
     body { background: white; }
     .main { padding: 0; max-width: 100%; }
     #invoice-wrap { box-shadow: none; border-radius: 0; }
@@ -505,7 +624,16 @@
     <span class="action-bar-title">請求書発行</span>
   </div>
   <div class="action-bar-right">
-    <a href="dashboard.html" class="btn btn-ghost">← ダッシュボードに戻る</a>
+    <div id="unpaidWarningBar" style="display:none" class="unpaid-warning no-print">
+      ⚠️ 前回の入金額が未登録です
+    </div>
+    <div style="display:flex;align-items:center;gap:6px" class="no-print">
+      <label style="color:rgba(232,213,188,0.7);font-size:11px;white-space:nowrap">前回御請求額</label>
+      <input type="number" id="prevAmountInput" placeholder="0" min="0"
+        style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:13px;font-family:inherit;outline:none"
+        oninput="updateBillingSummary()">
+    </div>
+    <a href="dashboard.html" class="btn btn-ghost">← 戻る</a>
     <a href="settings.html" class="btn btn-secondary">⚙ 発行者設定</a>
     <button class="btn btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
   </div>
@@ -526,6 +654,8 @@
 
 </div>
 
+<div class="toast no-print" id="invoiceToast"></div>
+
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
@@ -541,10 +671,27 @@
   }
 
 
-  function sbFetch(path) {
+  let _toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('invoiceToast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  function sbFetch(path, options = {}) {
     const token = sessionStorage.getItem('_sb_jwt') || SB_ANON;
     return fetch(SB_URL + path, {
-      headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + token }
+      ...options,
+      headers: {
+        'apikey': SB_ANON,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {})
+      }
     });
   }
 
@@ -686,7 +833,7 @@
   }
 
   // ===== 請求書HTML生成 =====
-  function renderInvoice(order, items, showDelivery = true) {
+  function renderInvoice(order, items, showDelivery = true, prevInvoice = null) {
     window._orderData = { order, items };
     const s = _settings;
     const f = order.fields || order;
@@ -760,10 +907,41 @@
           ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
           ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
         </div>
-        <div class="invoice-amount-highlight">
-          <div class="amount-label">ご請求金額</div>
-          <div class="amount-value">${fmt(total)}</div>
-          <div class="amount-tax">${taxLabel}</div>
+      </div>
+
+      <div class="billing-summary" id="billingSummary">
+        <div class="summary-cells">
+          <div class="summary-cell">
+            <div class="summary-cell-label">前回御請求額</div>
+            <div class="summary-cell-value" id="sumPrev">—</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-label">御入金金額</div>
+            <input type="number" id="sumPaidInput" class="summary-paid-input no-print"
+              placeholder="未登録" min="0" oninput="updateBillingSummary()">
+            <div class="summary-cell-value print-only" id="sumPaidPrint" style="display:none">—</div>
+            <button class="summary-save-btn no-print" id="sumPaidSaveBtn" onclick="savePaidAmount()">保存</button>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-label">繰越金額</div>
+            <div class="summary-cell-value" id="sumCarry">—</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-label">今回御買上額</div>
+            <div class="summary-cell-value" id="sumThisTotal">—</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-label">税抜御買上額</div>
+            <div class="summary-cell-value" id="sumExcl">—</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-label">消費税</div>
+            <div class="summary-cell-value" id="sumTax">—</div>
+          </div>
+        </div>
+        <div class="summary-total-box">
+          <div class="summary-total-label">今回御請求額</div>
+          <div class="summary-total-value" id="sumGrandTotal">—</div>
         </div>
       </div>
 
@@ -806,6 +984,26 @@
       </div>
     `;
 
+    // 合計をグローバルに保存（updateBillingSummary用）
+    window._invoiceTotals = { subtotal, tax, total };
+    window._prevInvoiceNum = prevInvoice ? (prevInvoice.invoice_number || null) : null;
+
+    // 前回請求額を操作バーにセット
+    const prevEl = document.getElementById('prevAmountInput');
+    if (prevEl) prevEl.value = prevInvoice ? (prevInvoice.total_incl_tax || '') : '';
+
+    // 御入金金額 inputに初期値をセット
+    const paidInputEl = document.getElementById('sumPaidInput');
+    if (paidInputEl) paidInputEl.value = (prevInvoice && prevInvoice.paid_amount != null) ? prevInvoice.paid_amount : '';
+
+    // 前回請求書がない場合は「保存」ボタンを非表示
+    const saveBtn = document.getElementById('sumPaidSaveBtn');
+    if (saveBtn) saveBtn.style.display = window._prevInvoiceNum ? 'block' : 'none';
+
+    // 入金未登録警告
+    const warnEl = document.getElementById('unpaidWarningBar');
+    if (warnEl) warnEl.style.display = (prevInvoice && prevInvoice.paid_amount == null) ? 'flex' : 'none';
+
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('invoiceBody').style.display = 'block';
     if (showDelivery) {
@@ -815,6 +1013,59 @@
       renderDeliveryNote(f, items, s);
     } else {
       document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
+    }
+    updateBillingSummary();
+  }
+
+  function updateBillingSummary() {
+    const t = window._invoiceTotals;
+    if (!t) return;
+    const prevAmount  = Number(document.getElementById('prevAmountInput')?.value) || 0;
+    const paidInputEl = document.getElementById('sumPaidInput');
+    const paidAmount  = (paidInputEl && paidInputEl.value !== '') ? Number(paidInputEl.value) : null;
+    const carryOver   = (paidAmount != null) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
+    const grandTotal  = carryOver + t.total;
+
+    document.getElementById('sumPrev').textContent       = fmt(prevAmount);
+    document.getElementById('sumCarry').textContent      = fmt(carryOver);
+    document.getElementById('sumThisTotal').textContent  = fmt(t.total);
+    document.getElementById('sumExcl').textContent       = fmt(t.subtotal);
+    document.getElementById('sumTax').textContent        = fmt(t.tax);
+    document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
+
+    // 印刷用テキスト更新
+    const printEl = document.getElementById('sumPaidPrint');
+    if (printEl) printEl.textContent = (paidAmount != null) ? fmt(paidAmount) : '未登録';
+
+    // 入力フィールドの色
+    if (paidInputEl) paidInputEl.style.borderColor = (paidAmount == null) ? '#fca5a5' : '';
+  }
+
+  async function savePaidAmount() {
+    if (!window._prevInvoiceNum) {
+      showToast('⚠️ 前回請求書が見つかりません'); return;
+    }
+    const paidInputEl = document.getElementById('sumPaidInput');
+    const val = paidInputEl ? paidInputEl.value : '';
+    if (val === '' || isNaN(Number(val)) || Number(val) < 0) {
+      showToast('⚠️ 入金額を正しく入力してください'); return;
+    }
+    const btn = document.getElementById('sumPaidSaveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    try {
+      const res = await sbFetch(
+        '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(window._prevInvoiceNum),
+        { method: 'PATCH', body: JSON.stringify({ paid_amount: Number(val) }) }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const warnEl = document.getElementById('unpaidWarningBar');
+      if (warnEl) warnEl.style.display = 'none';
+      showToast('✅ 入金額を保存しました');
+    } catch(e) {
+      console.error(e);
+      showToast('❌ 保存に失敗しました');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '保存'; }
     }
   }
 
@@ -856,7 +1107,19 @@
             isFood:   it.products?.is_food || false,
           }))
         );
-        renderInvoice({ fields: f }, allItems, false);
+        // 前回の請求書を取得（サマリー用）
+        let prevInvoice = null;
+        const prevRes = await sbFetch(
+          '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
+          '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
+          '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
+        );
+        if (prevRes.ok) {
+          const prevData = await prevRes.json();
+          prevInvoice = prevData[0] || null;
+        }
+
+        renderInvoice({ fields: f }, allItems, false, prevInvoice);
 
       } else {
         // ── 単一受注モード ──
