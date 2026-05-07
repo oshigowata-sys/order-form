@@ -422,18 +422,18 @@
     document.getElementById('zipStatus').textContent = '検索中...';
     _zipTimer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://zipcloud.ibsrv.net/api/search?zipcode=${zip}`);
+        const res = await fetch(`https://postcode.teraren.com/postcodes/${zip}.json`);
+        if (res.status === 404) { document.getElementById('zipStatus').textContent = '該当なし'; return; }
         const data = await res.json();
-        if (data.results && data.results[0]) {
-          const r = data.results[0];
-          const addr = (r.address1 || '') + (r.address2 || '') + (r.address3 || '');
+        const addr = (data.prefecture || '') + (data.city || '') + (data.suburb || '');
+        if (addr) {
           document.getElementById('fAddress').value = addr;
           document.getElementById('zipStatus').textContent = '✓ 住所を入力しました';
           setTimeout(() => { document.getElementById('zipStatus').textContent = ''; }, 3000);
         } else {
           document.getElementById('zipStatus').textContent = '該当なし';
         }
-      } catch { document.getElementById('zipStatus').textContent = 'エラー'; }
+      } catch { document.getElementById('zipStatus').textContent = '該当なし'; }
     }, 400);
   });
 
