@@ -220,7 +220,13 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">受注詳細</div>
-      <button class="modal-close" onclick="closeDetail()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')"
+          style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
+          🖨 納品書・請求書を発行
+        </button>
+        <button class="modal-close" onclick="closeDetail()">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="info-grid" id="modalInfo"></div>
@@ -243,7 +249,6 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="totals" id="modalTotals"></div>
       <div class="modal-btns" style="display:flex;align-items:center;gap:10px">
         <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:12px" onclick="deleteOrder()">受注を削除</button>
-        <button class="btn btn-primary" onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')">📄 請求書・納品書発行</button>
       </div>
     </div>
   </div>
