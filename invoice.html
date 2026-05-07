@@ -660,6 +660,7 @@
         person:       s.company_person     || '',
         address:      (s.company_zip ? '〒' + s.company_zip + ' ' : '') + (s.company_address || ''),
         tel:          s.company_tel        || '',
+        fax:          s.company_fax        || '',
         email:        s.company_email      || '',
         invoice_num:  s.company_invoice_no || '',
         bank_name:    [s.bank_name, s.bank_branch].filter(Boolean).join(' '),
@@ -725,7 +726,10 @@
     const fromBlock = s.name
       ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
          ${s.person ? `<div style="font-size:12px;margin-top:2px">${esc(s.person)}</div>` : ''}
-         ${s.tel ? `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}</div>` : ''}`
+         ${s.address ? `<div style="font-size:12px;color:var(--text-muted)">${esc(s.address)}</div>` : ''}
+         ${s.tel ? `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}</div>` : ''}
+         ${s.fax ? `<div style="font-size:12px;color:var(--text-muted)">FAX: ${esc(s.fax)}</div>` : ''}
+         ${s.invoice_num ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
 
     document.getElementById('deliveryBody').innerHTML = `
@@ -746,6 +750,7 @@
           <div class="party-label">納品先 / DELIVER TO</div>
           <div class="party-name">${esc(f['取引先名'] || '取引先名')}<span class="party-name-suffix">御中</span></div>
           ${f['担当者名'] ? `<div class="party-address">${esc(f['担当者名'])} 様</div>` : ''}
+          ${f['住所'] ? `<div class="party-address" style="font-size:12px;color:var(--text-muted)">${esc(f['住所'])}</div>` : ''}
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">発行者 / ISSUED BY</div>
@@ -819,6 +824,7 @@
          ${s.person ? `<div>${esc(s.person)}</div>` : ''}
          ${s.address ? `<div>${esc(s.address)}</div>` : ''}
          ${s.tel ? `<div>TEL: ${esc(s.tel)}</div>` : ''}
+         ${s.fax ? `<div>FAX: ${esc(s.fax)}</div>` : ''}
          ${s.email ? `<div>${esc(s.email)}</div>` : ''}
          ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
