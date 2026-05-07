@@ -193,6 +193,13 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">郵便番号 <span style="font-size:11px;color:var(--text-muted);font-weight:400">（入力すると住所を自動入力）</span></label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="form-input" id="fZip" type="text" placeholder="例：0600001" maxlength="8" style="max-width:160px">
+          <span id="zipStatus" style="font-size:12px;color:var(--text-muted)"></span>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">住所</label>
         <input class="form-input" id="fAddress" type="text" placeholder="例：北海道札幌市中央区〇〇1-2-3">
       </div>
@@ -406,12 +413,38 @@
     </tr>`).join('');
   }
 
+  // ── 郵便番号 → 住所自動入力 ──
+  let _zipTimer = null;
+  document.getElementById('fZip').addEventListener('input', function() {
+    clearTimeout(_zipTimer);
+    const zip = this.value.replace(/[^0-9]/g, '');
+    if (zip.length !== 7) { document.getElementById('zipStatus').textContent = ''; return; }
+    document.getElementById('zipStatus').textContent = '検索中...';
+    _zipTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://zipcloud.ibsrv.net/api/search?zipcode=${zip}`);
+        const data = await res.json();
+        if (data.results && data.results[0]) {
+          const r = data.results[0];
+          const addr = (r.address1 || '') + (r.address2 || '') + (r.address3 || '');
+          document.getElementById('fAddress').value = addr;
+          document.getElementById('zipStatus').textContent = '✓ 住所を入力しました';
+          setTimeout(() => { document.getElementById('zipStatus').textContent = ''; }, 3000);
+        } else {
+          document.getElementById('zipStatus').textContent = '該当なし';
+        }
+      } catch { document.getElementById('zipStatus').textContent = 'エラー'; }
+    }, 400);
+  });
+
   function openAddModal() {
     editId = null;
     document.getElementById('modalTitle').textContent = '新規取引先を追加';
     ['fCompany','fContact','fPhone','fEmail','fAddress','fClosing','fPaymentOffset','fPayment'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    document.getElementById('fZip').value = '';
+    document.getElementById('zipStatus').textContent = '';
     document.getElementById('modalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('fCompany').focus(), 100);
   }
@@ -425,7 +458,9 @@
     document.getElementById('fContact').value  = c.contact;
     document.getElementById('fPhone').value    = c.phone;
     document.getElementById('fEmail').value    = c.email;
-    document.getElementById('fAddress').value        = c.address;
+    document.getElementById('fZip').value            = '';
+    document.getElementById('zipStatus').textContent  = '';
+    document.getElementById('fAddress').value         = c.address;
     document.getElementById('fClosing').value        = c.closing;
     document.getElementById('fPaymentOffset').value  = c.paymentOffset;
     document.getElementById('fPayment').value        = c.payment;
