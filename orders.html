@@ -431,7 +431,12 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${o.tax.toLocaleString()}</td>
         <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${o.incl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${profit.toLocaleString()}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button>
+          <button onclick="window.open('invoice.html?order_id=${esc(o.id)}', '_blank')"
+            title="納品書・請求書を発行"
+            style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;vertical-align:middle">🖨</button>
+        </td>
       </tr>`;
     }).join('');
   }
