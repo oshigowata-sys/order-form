@@ -574,7 +574,7 @@
   </div>
   <div class="action-bar-right">
     <div id="unpaidWarningBar" style="display:none" class="unpaid-warning no-print">
-      ⚠️ 前回の入金額が未登録です
+      ⚠️ この請求書の入金が未登録です
     </div>
     <div style="display:flex;align-items:center;gap:6px" class="no-print">
       <label style="color:rgba(232,213,188,0.7);font-size:11px;white-space:nowrap">前回御請求額</label>
@@ -937,23 +937,25 @@
     // 合計をグローバルに保存（updateBillingSummary用）
     window._invoiceTotals = { subtotal, tax, total, prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined };
 
-    // 前回請求額を操作バーにセット
+    // 前回請求額を操作バーにセット（表示のみ・readonly）
     const prevEl = document.getElementById('prevAmountInput');
     if (prevEl) prevEl.value = prevInvoice ? (prevInvoice.total_incl_tax || '') : '';
 
-    // 入金未登録警告（前回分が未登録の場合）
-    const warnEl = document.getElementById('unpaidWarningBar');
-    if (warnEl) warnEl.style.display = (prevInvoice && prevInvoice.paid_amount == null) ? 'flex' : 'none';
+    // 今開いている請求書への入金登録
+    window._currentInvoiceNum = currentInvoice?.invoice_number || null;
 
-    // 前回請求書への入金登録セクション（prevInvoice がある場合のみ表示）
-    window._prevInvoiceNum = prevInvoice?.invoice_number || null;
-    if (prevInvoice !== null) {
+    // 入金未登録警告（現在の請求書が未入金の場合）
+    const warnEl = document.getElementById('unpaidWarningBar');
+    if (warnEl) warnEl.style.display = (currentInvoice && currentInvoice.paid_amount == null) ? 'flex' : 'none';
+
+    // 入金登録セクション（現在の請求書番号がある場合のみ表示）
+    if (currentInvoice?.invoice_number) {
       const section = document.getElementById('paymentInputSection');
       if (section) {
         section.style.display = 'flex';
         const inputEl = document.getElementById('paidAmountInput');
-        if (inputEl && prevInvoice.paid_amount != null) {
-          inputEl.value = prevInvoice.paid_amount;
+        if (inputEl && currentInvoice.paid_amount != null) {
+          inputEl.value = currentInvoice.paid_amount;
         }
       }
     }
@@ -1001,24 +1003,22 @@
 
   // ===== 御入金金額の登録（前回請求書へ保存） =====
   async function savePaidAmount() {
-    const prevNum = window._prevInvoiceNum;
-    if (!prevNum) return;
+    const curNum = window._currentInvoiceNum;
+    if (!curNum) return;
     const input = document.getElementById('paidAmountInput');
     const val = input ? input.value : '';
     if (val === '' || isNaN(Number(val)) || Number(val) < 0) return;
     const numVal = Number(val);
     const res = await sbFetch(
-      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(prevNum),
+      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(curNum),
       { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: numVal }) }
     );
     const msg = document.getElementById('paidSaveMsg');
     if (res.ok) {
       if (msg) { msg.textContent = '✓ 保存しました'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; }, 2500); }
-      // 御入金金額（billing summary）を即時反映
-      if (window._invoiceTotals) {
-        window._invoiceTotals.prevPaidAmount = numVal;
-        updateBillingSummary();
-      }
+      // 入金済みになったので警告バーを非表示
+      const warnEl = document.getElementById('unpaidWarningBar');
+      if (warnEl) warnEl.style.display = 'none';
     } else {
       if (msg) { msg.textContent = '❌ 保存失敗'; msg.style.color = '#f87171'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = '#4ade80'; }, 3000); }
     }
@@ -1047,14 +1047,17 @@
         // 全受注の明細を結合
         const firstOrder = orders[0];
 
-        // 取引先詳細・前回請求書を並行取得
-        const [custRes, prevRes] = await Promise.all([
+        // 取引先詳細・前回請求書・現在の請求書を並行取得
+        const [custRes, prevRes, curRes] = await Promise.all([
           sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day&limit=1'),
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
+          targetInvoiceNum
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount&limit=1')
+            : Promise.resolve(null),
         ]);
 
         let customerExtra = {};
@@ -1062,6 +1065,11 @@
 
         let prevInvoice = null;
         if (prevRes.ok) { const d = await prevRes.json(); prevInvoice = d[0] || null; }
+
+        let currentInvoicePaidAmount = null;
+        if (curRes && curRes.ok) { const d = await curRes.json(); if (d[0]) currentInvoicePaidAmount = d[0].paid_amount; }
+
+        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount } : null;
 
         const f = {
           '受注ID':   targetInvoiceNum || '',
@@ -1082,7 +1090,7 @@
           }))
         );
 
-        renderInvoice({ fields: f }, allItems, false, prevInvoice);
+        renderInvoice({ fields: f }, allItems, false, prevInvoice, currentInvoice);
 
       } else {
         // ── 単一受注モード ──
