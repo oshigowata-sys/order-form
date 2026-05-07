@@ -851,6 +851,7 @@
         </div>
       </div>
 
+      ${!showDelivery ? `
       <div class="billing-summary" id="billingSummary">
         <div class="summary-cells">
           <div class="summary-cell">
@@ -882,7 +883,7 @@
           <div class="summary-total-label">今回御請求額</div>
           <div class="summary-total-value" id="sumGrandTotal">—</div>
         </div>
-      </div>
+      </div>` : ''}
 
       <div class="invoice-table-wrap">
         <table class="invoice-table">
@@ -950,14 +951,22 @@
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('invoiceBody').style.display = 'block';
     if (showDelivery) {
+      // 納品書兼請求書モード：請求サマリ関連UIを非表示
+      const warnBar = document.getElementById('unpaidWarningBar');
+      if (warnBar) warnBar.style.display = 'none';
+      const prevWrap = document.getElementById('prevAmountInput')?.parentElement;
+      if (prevWrap) prevWrap.style.display = 'none';
+      const paySection = document.getElementById('paymentInputSection');
+      if (paySection) paySection.style.display = 'none';
+
       document.getElementById('deliveryBody').style.display = 'block';
       document.getElementById('cutLine').style.display = 'flex';
       document.title = `納品書兼請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
       renderDeliveryNote(f, items, s);
     } else {
       document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
+      updateBillingSummary();
     }
-    updateBillingSummary();
   }
 
   function updateBillingSummary() {
