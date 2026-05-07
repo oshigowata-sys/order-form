@@ -434,8 +434,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td style="white-space:nowrap">
           <button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button>
           <button onclick="window.open('invoice.html?order_id=${esc(o.id)}', '_blank')"
-            title="納品書・請求書を発行"
-            style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;vertical-align:middle">🖨</button>
+            style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;vertical-align:middle;font-family:inherit;white-space:nowrap">納品書発行</button>
         </td>
       </tr>`;
     }).join('');
