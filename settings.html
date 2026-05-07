@@ -126,6 +126,12 @@
               <input type="text" class="form-input" id="companyTel" placeholder="例：011-123-4567" />
             </div>
             <div class="form-group">
+              <label class="form-label">FAX番号</label>
+              <input type="text" class="form-input" id="companyFax" placeholder="例：011-123-4568" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
               <label class="form-label">メールアドレス</label>
               <input type="text" class="form-input" id="companyEmail" placeholder="例：info@example.com" />
             </div>
@@ -349,6 +355,7 @@
       document.getElementById('companyZip').value       = s.company_zip        || '';
       document.getElementById('companyAddress').value   = s.company_address    || '';
       document.getElementById('companyTel').value       = s.company_tel        || '';
+      document.getElementById('companyFax').value       = s.company_fax        || '';
       document.getElementById('companyEmail').value     = s.company_email      || '';
       document.getElementById('companyInvoiceNo').value = s.company_invoice_no || '';
       document.getElementById('companyPerson').value    = s.company_person     || '';
@@ -371,6 +378,7 @@
       company_zip:        document.getElementById('companyZip').value.trim(),
       company_address:    document.getElementById('companyAddress').value.trim(),
       company_tel:        document.getElementById('companyTel').value.trim(),
+      company_fax:        document.getElementById('companyFax').value.trim(),
       company_email:      document.getElementById('companyEmail').value.trim(),
       company_invoice_no: document.getElementById('companyInvoiceNo').value.trim(),
       company_person:     document.getElementById('companyPerson').value.trim(),
@@ -454,7 +462,7 @@
     }
   }
 
-  ['companyName','companyZip','companyAddress','companyTel','companyEmail','companyInvoiceNo','companyPerson',
+  ['companyName','companyZip','companyAddress','companyTel','companyFax','companyEmail','companyInvoiceNo','companyPerson',
    'bankName','bankBranch','bankType','bankNumber','bankHolder','bankNote','paymentDays'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updatePreview);
