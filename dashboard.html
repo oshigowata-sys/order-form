@@ -413,16 +413,23 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     const COLORS = ['#e8630a','#1e6641','#d97706','#c2410c','#2d9a5f','#92400e','#0891b2','#b45309','#065f46','#7c2d12','#6d28d9','#047857','#9a3412','#be185d','#0369a1'];
     const cx = 90, cy = 90, rO = 78, rI = 48;
     let paths = '', angle = -Math.PI / 2;
-    sorted.forEach(([, qty], i) => {
-      const sweep = (qty / total) * 2 * Math.PI;
-      const x1 = cx + rO * Math.cos(angle), y1 = cy + rO * Math.sin(angle);
-      const x2 = cx + rO * Math.cos(angle + sweep), y2 = cy + rO * Math.sin(angle + sweep);
-      const xi1 = cx + rI * Math.cos(angle + sweep), yi1 = cy + rI * Math.sin(angle + sweep);
-      const xi2 = cx + rI * Math.cos(angle), yi2 = cy + rI * Math.sin(angle);
-      const large = sweep > Math.PI ? 1 : 0;
-      paths += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${rO},${rO} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${rI},${rI} 0 ${large} 0 ${xi2.toFixed(1)},${yi2.toFixed(1)} Z" fill="${COLORS[i]}" stroke="#fff" stroke-width="1.5"/>`;
-      angle += sweep;
-    });
+    // 1品だけの場合はSVG arcが破綻するので2つのsemicircleで全円を描く
+    if (sorted.length === 1) {
+      const c = COLORS[0];
+      paths = `<path d="M${cx},${cy - rO} A${rO},${rO} 0 1 1 ${cx},${cy + rO} L${cx},${cy + rI} A${rI},${rI} 0 1 0 ${cx},${cy - rI} Z" fill="${c}"/>` +
+              `<path d="M${cx},${cy + rO} A${rO},${rO} 0 1 1 ${cx},${cy - rO} L${cx},${cy - rI} A${rI},${rI} 0 1 0 ${cx},${cy + rI} Z" fill="${c}"/>`;
+    } else {
+      sorted.forEach(([, qty], i) => {
+        const sweep = (qty / total) * 2 * Math.PI;
+        const x1 = cx + rO * Math.cos(angle), y1 = cy + rO * Math.sin(angle);
+        const x2 = cx + rO * Math.cos(angle + sweep), y2 = cy + rO * Math.sin(angle + sweep);
+        const xi1 = cx + rI * Math.cos(angle + sweep), yi1 = cy + rI * Math.sin(angle + sweep);
+        const xi2 = cx + rI * Math.cos(angle), yi2 = cy + rI * Math.sin(angle);
+        const large = sweep > Math.PI ? 1 : 0;
+        paths += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${rO},${rO} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${rI},${rI} 0 ${large} 0 ${xi2.toFixed(1)},${yi2.toFixed(1)} Z" fill="${COLORS[i]}" stroke="#fff" stroke-width="1.5"/>`;
+        angle += sweep;
+      });
+    }
     const legend = sorted.map(([name, qty], i) => {
       const short = name.length > 14 ? name.slice(0, 14) + '…' : name;
       return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
