@@ -835,12 +835,6 @@
       : '（振込先情報を設定してください）';
 
     document.getElementById('invoiceBody').innerHTML = `
-      <div class="invoice-top-parties" style="margin-bottom:18px;padding:14px 18px;background:#faf8f5;border-radius:10px;border-left:4px solid var(--orange);">
-        <div class="party-label">請求先 / BILL TO</div>
-        <div class="party-name" style="font-size:19px;">${esc(f['取引先名'] || '取引先名')}</div>
-        ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
-      </div>
-
       <div class="invoice-header">
         <div class="invoice-title-block">
           <div class="invoice-title">請 求 書</div>
@@ -854,6 +848,18 @@
             <tr><td>お支払い期限</td><td>${esc(dueDate)}</td></tr>
             ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
           </table>
+        </div>
+      </div>
+
+      <div class="invoice-parties" style="margin-bottom:18px;">
+        <div class="invoice-to">
+          <div class="party-label">請求先 / BILL TO</div>
+          <div class="party-name" style="font-size:19px;">${esc(f['取引先名'] || '取引先名')}</div>
+          ${f['住所'] ? `<div class="party-address">${esc(f['住所'])}</div>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <div class="footer-section-title" style="margin-bottom:6px;">発行者 / ISSUED BY</div>
+          <div class="invoice-from">${fromBlock}</div>
         </div>
       </div>
 
@@ -923,8 +929,6 @@
           ${f['備考'] ? `<div style="margin-top:16px;"><div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div></div>` : ''}
         </div>
         <div style="text-align:right;">
-          <div class="footer-section-title">発行者 / ISSUED BY</div>
-          <div class="invoice-from">${fromBlock}</div>
           <div class="invoice-stamp">発行済</div>
         </div>
       </div>
