@@ -180,6 +180,22 @@
 <script src="config.js"></script>
 <script>
 
+  (function prefillFromQuery() {
+    const params = new URLSearchParams(location.search);
+    const subject = params.get('subject');
+    if (subject === 'password-reset') {
+      const msg = document.getElementById('message');
+      if (msg && !msg.value) {
+        msg.value = 'パスワードリセットのご依頼です。\n\nログインID：\n会社名：\n（ご担当者様の本人確認のため、契約時の情報をご記入ください）';
+      }
+    } else if (subject === 'upgrade') {
+      const msg = document.getElementById('message');
+      if (msg && !msg.value) {
+        msg.value = 'スタンダードプランへのアップグレードを希望します。\n\nご利用中の会社名：\nログインID：';
+      }
+    }
+  })();
+
   async function submit() {
     const errEl = document.getElementById('errorMsg');
     errEl.classList.remove('show');
