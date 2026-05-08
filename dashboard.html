@@ -467,6 +467,15 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   async function patchStatus(orderId, sel) {
     const newStatus = sel.value;
     const prevStatus = sel.dataset.prev || newStatus;
+    const prevIdx = STATUSES.indexOf(prevStatus);
+    const newIdx = STATUSES.indexOf(newStatus);
+    if (prevIdx >= 0 && newIdx >= 0 && newIdx < prevIdx) {
+      const ok = confirm(`ステータスを「${prevStatus}」から「${newStatus}」に戻します。よろしいですか？`);
+      if (!ok) {
+        sel.value = prevStatus;
+        return;
+      }
+    }
     sel.dataset.prev = newStatus;
     sel.className = 'status-sel ' + (STATUS_CLS[newStatus] || '');
     try {
