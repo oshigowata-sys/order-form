@@ -431,7 +431,7 @@
       renderProducts();
     } catch(e) {
       console.error('商品データ取得失敗:', e);
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadProducts()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
     }
   }
 

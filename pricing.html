@@ -249,7 +249,7 @@ async function loadAll() {
   } catch(e) {
     console.error(e);
     document.getElementById('pricingTbody').innerHTML =
-      '<tr><td colspan="5" style="text-align:center;padding:20px;color:#dc2626">データ読み込みエラー。コンソールを確認してください。</td></tr>';
+      '<tr><td colspan="5" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
   } finally {
     setTableLoading(false);
   }
