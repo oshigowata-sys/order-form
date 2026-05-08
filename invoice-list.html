@@ -430,7 +430,7 @@ async function loadAll() {
   } catch(e) {
     console.error(e);
     document.getElementById('unifiedTbody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#dc2626">データ取得に失敗しました</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
   }
 }
 

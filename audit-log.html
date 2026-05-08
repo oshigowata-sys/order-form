@@ -251,7 +251,7 @@
       renderLogs();
     } catch(e) {
       console.error(e);
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">データ取得に失敗しました</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#991b1b">データ取得に失敗しました <button onclick="loadLogs()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
     }
   }
 
