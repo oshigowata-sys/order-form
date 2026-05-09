@@ -7,6 +7,11 @@
 -- - Allow invite registration only through SECURITY DEFINER RPCs that validate tokens.
 -- - Ensure account login IDs and invitation tokens cannot be duplicated.
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+ALTER TABLE accounts
+  ADD COLUMN IF NOT EXISTS password_hash text;
+
 CREATE UNIQUE INDEX IF NOT EXISTS accounts_login_id_unique
   ON accounts (login_id);
 
