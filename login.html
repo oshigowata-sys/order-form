@@ -279,17 +279,22 @@
         ? account.login_id
         : account.login_id + '@meguree.internal';
 
-      await fetch(`${SB_URL}/rest/v1/rpc/sync_auth_user_on_login`, {
+      const syncRes = await fetch(`${SB_URL}/rest/v1/rpc/sync_auth_user_on_login`, {
         method: 'POST',
-        headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_login_id: loginId, p_password: password })
       });
+      if (!syncRes.ok) throw new Error('auth_sync_failed');
+      const syncedEmail = await syncRes.json();
+      if (!syncedEmail) throw new Error('auth_sync_failed');
 
       const session = await sbSignIn(email, password);
       if (session?.access_token) {
         sessionStorage.setItem('_sb_jwt', session.access_token);
         if (session.refresh_token) sessionStorage.setItem('_sb_refresh', session.refresh_token);
         startAutoRefresh();
+      } else {
+        throw new Error('auth_session_failed');
       }
 
       const planRes = await fetch(`${SB_URL}/rest/v1/rpc/get_tenant_plan`, {

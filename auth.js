@@ -133,6 +133,7 @@ async function signOut(redirectUrl) {
 function checkAuth(redirectUrl) {
   if (!sessionStorage.getItem('user')) { location.replace(redirectUrl || 'login.html'); return false; }
   const jwt = sessionStorage.getItem('_sb_jwt');
+  if (!jwt) { signOut(redirectUrl || 'login.html'); return false; }
   if (jwt) {
     try {
       const payload = getJwtPayload();
