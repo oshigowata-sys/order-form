@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeguRee 取扱説明書 | はじめて使う方向け</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #e8630a;
+  --green: #1e6641;
+  --cream: #faf7f2;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --text: #1c1917;
+  --muted: #78716c;
+}
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  line-height: 1.9;
+}
+.header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.header img { height: 34px; }
+.back { color: var(--orange); font-size: 13px; font-weight: 700; text-decoration: none; }
+.hero {
+  background: var(--green);
+  color: #fff;
+  padding: 56px 24px;
+  text-align: center;
+}
+.hero h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 900; margin-bottom: 10px; }
+.hero p { font-size: 15px; color: rgba(255,255,255,0.82); }
+.wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 72px; }
+.notice {
+  background: #fff4ec;
+  border: 1px solid rgba(232,99,10,0.28);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 28px;
+}
+.notice strong { color: var(--orange); }
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  margin-bottom: 20px;
+}
+h2 {
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+}
+h3 { font-size: 17px; font-weight: 800; margin: 22px 0 8px; color: var(--green); }
+p, li { font-size: 15px; }
+ul, ol { padding-left: 22px; }
+li { margin-bottom: 8px; }
+.steps {
+  counter-reset: step;
+  display: grid;
+  gap: 12px;
+}
+.step {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px 16px 52px;
+  position: relative;
+  background: #fff;
+}
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+.term {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+.term:last-child { border-bottom: 1px solid var(--border); }
+.term dt, .term dd { padding: 12px 14px; font-size: 14px; }
+.term dt { background: #f5f0e8; font-weight: 800; }
+.term dd { background: #fff; }
+.checklist { list-style: none; padding-left: 0; }
+.checklist li { padding-left: 30px; position: relative; }
+.checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--orange);
+  border-radius: 3px;
+  background: #fff;
+}
+.small { color: var(--muted); font-size: 13px; }
+.print-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
+footer { background: #1c1917; color: rgba(255,255,255,0.42); text-align: center; padding: 24px; font-size: 12px; }
+@media (max-width: 640px) {
+  .header { padding: 14px 18px; }
+  .header img { height: 28px; }
+  .section { padding: 22px 18px; }
+  .term { grid-template-columns: 1fr; }
+  .term dt { border-bottom: 1px solid var(--border); }
+}
+@media print {
+  .header, footer, .back { display: none; }
+  body { background: #fff; }
+  .hero { background: #fff; color: #000; padding: 20px 0; }
+  .hero p { color: #444; }
+  .wrap { padding: 0; }
+  .section, .notice { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+  <a class="back" href="lp.html">トップへ戻る</a>
+</header>
+
+<section class="hero">
+  <h1>MeguRee 取扱説明書</h1>
+  <p>パソコンが苦手な方でも、毎日の注文管理を迷わず進めるための説明書です。</p>
+</section>
+
+<main class="wrap">
+  <div class="notice">
+    <strong>まず覚えることは3つだけです。</strong><br>
+    1. 注文を見る。 2. 商品と取引先を登録する。 3. 納品書・請求書を出す。<br>
+    難しい設定は、最初に担当者が一緒に行います。
+  </div>
+
+  <section class="section">
+    <h2>1. MeguReeでできること</h2>
+    <ul>
+      <li>FAX・電話・メールで受けた注文を、受注一覧にまとめて管理できます。</li>
+      <li>取引先ごとの商品価格や掛け率を管理できます。</li>
+      <li>注文ごとに「受付」「準備中」「納品済み」などの状態を確認できます。</li>
+      <li>納品書と請求書を作成できます。</li>
+      <li>月ごとの売上や未入金を確認できます。</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>2. よく出てくる言葉</h2>
+    <dl>
+      <div class="term"><dt>取引先</dt><dd>商品を買ってくれるお店や会社のことです。</dd></div>
+      <div class="term"><dt>商品マスタ</dt><dd>販売する商品の名前、価格、税率などを登録する場所です。</dd></div>
+      <div class="term"><dt>掛け率</dt><dd>取引先ごとの販売価格の割合です。例：定価の80%で販売する場合は80%です。</dd></div>
+      <div class="term"><dt>受注</dt><dd>注文を受けることです。</dd></div>
+      <div class="term"><dt>納品書</dt><dd>何をいくつ納品したかを相手に伝える書類です。</dd></div>
+      <div class="term"><dt>請求書</dt><dd>いくら支払ってもらうかを相手に伝える書類です。</dd></div>
+    </dl>
+  </section>
+
+  <section class="section">
+    <h2>3. 最初にやること</h2>
+    <div class="steps">
+      <div class="step">
+        <strong>ログインします。</strong><br>
+        担当者から渡されたログインIDとパスワードを入力して、管理画面に入ります。
+      </div>
+      <div class="step">
+        <strong>会社情報を確認します。</strong><br>
+        会社名、住所、電話番号、FAX番号、インボイス番号などを確認します。
+      </div>
+      <div class="step">
+        <strong>取引先を登録します。</strong><br>
+        よく注文してくれるお店や会社を登録します。
+      </div>
+      <div class="step">
+        <strong>商品を登録します。</strong><br>
+        商品名、販売価格、税率を登録します。
+      </div>
+      <div class="step">
+        <strong>取引先ごとの価格を確認します。</strong><br>
+        掛け率や特別価格がある場合は、価格設定画面で登録します。
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>4. 毎日の使い方</h2>
+    <h3>注文を確認する</h3>
+    <ol>
+      <li>管理画面で「受注一覧」を開きます。</li>
+      <li>新しい注文が入っていないか確認します。</li>
+      <li>注文内容、数量、取引先を確認します。</li>
+      <li>対応が進んだら、状態を変更します。</li>
+    </ol>
+
+    <h3>電話やFAXで来た注文を入れる</h3>
+    <ol>
+      <li>「受注一覧」を開きます。</li>
+      <li>新規作成ボタンを押します。</li>
+      <li>取引先、商品、数量を入力します。</li>
+      <li>内容を確認して保存します。</li>
+    </ol>
+
+    <h3>納品書・請求書を出す</h3>
+    <ol>
+      <li>受注一覧または請求書管理を開きます。</li>
+      <li>対象の取引先や期間を選びます。</li>
+      <li>内容を確認します。</li>
+      <li>印刷またはPDF保存をします。</li>
+    </ol>
+  </section>
+
+  <section class="section">
+    <h2>5. 小売店から注文してもらう方法</h2>
+    <ol>
+      <li>取引先マスタで取引先を登録します。</li>
+      <li>その取引先用の注文URLまたはQRコードを作ります。</li>
+      <li>小売店にURLまたはQRコードを渡します。</li>
+      <li>小売店がスマホやパソコンから注文します。</li>
+      <li>注文内容は受注一覧に入ります。</li>
+    </ol>
+    <p class="small">小売店側はログイン不要です。いつもの注文用紙の代わりに、専用フォームへ入力してもらうイメージです。</p>
+  </section>
+
+  <section class="section">
+    <h2>6. 困ったとき</h2>
+    <h3>ログインできない</h3>
+    <ul>
+      <li>ログインIDとパスワードの入力間違いがないか確認してください。</li>
+      <li>大文字・小文字、半角・全角の違いに注意してください。</li>
+      <li>解決しない場合は、担当者に連絡してください。</li>
+    </ul>
+
+    <h3>保存できない</h3>
+    <ul>
+      <li>インターネットにつながっているか確認してください。</li>
+      <li>必須項目が空欄になっていないか確認してください。</li>
+      <li>時間をおいて、もう一度保存してください。</li>
+    </ul>
+
+    <h3>入力を間違えた</h3>
+    <ul>
+      <li>多くの情報はあとから修正できます。</li>
+      <li>請求書や納品書を出す前に、数量と金額をもう一度確認してください。</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>7. 毎日見るチェックリスト</h2>
+    <ul class="checklist">
+      <li>新しい注文が入っていないか確認した</li>
+      <li>電話・FAX・メールで来た注文を入力した</li>
+      <li>注文の状態を最新にした</li>
+      <li>納品前に数量と金額を確認した</li>
+      <li>請求書を出した後、入金状況を確認した</li>
+    </ul>
+  </section>
+
+  <p class="print-note">このページは印刷して手元に置けます。ブラウザの印刷機能からPDF保存もできます。</p>
+</main>
+
+<footer>© 2026 MeguRee. All rights reserved.</footer>
+</body>
+</html>
