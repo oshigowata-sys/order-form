@@ -37,6 +37,7 @@
   tr:last-child td { border-bottom: none; }
   .status-active { display: inline-block; background: var(--green-pale); color: #4ade80; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
   .status-suspended { display: inline-block; background: rgba(239,68,68,0.15); color: #f87171; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .status-excluded { display: inline-block; background: rgba(139,143,168,0.15); color: var(--text-muted); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
   .invite-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-top: 20px; }
   .invite-box-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
   .invite-url-wrap { display: flex; gap: 10px; align-items: center; }
@@ -103,6 +104,11 @@
 
 <div class="content">
   <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">月売上</div>
+      <div class="summary-value" id="summaryMrr">—</div>
+      <div class="summary-note">稼働中プランのみ集計</div>
+    </div>
     <div class="summary-card">
       <div class="summary-label">契約者</div>
       <div class="summary-value" id="summaryTenants">—</div>
@@ -274,6 +280,64 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editTenantModal">
+  <div class="modal">
+    <div class="modal-title">契約者情報を編集</div>
+    <div class="modal-sub">契約者台帳の情報、プラン、売上集計ステータスを変更します。</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>企業名・屋号</label>
+        <input type="text" id="editCompany" />
+      </div>
+      <div class="form-group">
+        <label>契約者名・担当者名</label>
+        <input type="text" id="editContactName" />
+      </div>
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" id="editEmail" />
+      </div>
+      <div class="form-group">
+        <label>電話番号</label>
+        <input type="tel" id="editPhone" />
+      </div>
+      <div class="form-group">
+        <label>郵便番号</label>
+        <input type="text" id="editPostalCode" />
+      </div>
+      <div class="form-group">
+        <label>プラン</label>
+        <select id="editPlan">
+          <option value="starter">スターター</option>
+          <option value="standard">スタンダード</option>
+          <option value="enterprise">エンタープライズ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ステータス</label>
+        <select id="editStatus">
+          <option value="active">稼働中（売上に含める）</option>
+          <option value="suspended">停止中（売上に含めない）</option>
+          <option value="excluded">売上対象外（テスト・社内用）</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>住所</label>
+        <input type="text" id="editAddress" />
+      </div>
+      <div class="form-group full">
+        <label>メモ</label>
+        <textarea id="editNotes"></textarea>
+      </div>
+    </div>
+    <input type="hidden" id="editTenantId" />
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditTenantModal()">キャンセル</button>
+      <button class="btn-primary" id="editTenantBtn" onclick="saveTenantEdit()">保存する</button>
+    </div>
+  </div>
+</div>
+
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script>
@@ -302,6 +366,7 @@
   let TENANTS = [];
   let todayInquiryCount = 0;
   let todayLeadCount = 0;
+  const PLAN_PRICES = { starter: 5500, standard: 9800, enterprise: 0 };
 
   function todayDateKey() {
     return new Date().toISOString().slice(0, 10);
@@ -313,6 +378,16 @@
 
   function updateTodaySummary() {
     document.getElementById('summaryToday').textContent = todayInquiryCount + todayLeadCount;
+  }
+
+  function yen(n) {
+    return '¥' + Number(n || 0).toLocaleString('ja-JP');
+  }
+
+  function statusLabel(status) {
+    if (status === 'active') return '<span class="status-active">稼働中</span>';
+    if (status === 'excluded') return '<span class="status-excluded">売上対象外</span>';
+    return '<span class="status-suspended">停止中</span>';
   }
 
   async function changePlan(tenantId, plan) {
@@ -330,7 +405,7 @@
   }
 
   async function changeTenantStatus(tenantId, status) {
-    const label = status === 'active' ? '稼働中' : '停止中';
+    const label = status === 'active' ? '稼働中' : status === 'excluded' ? '売上対象外' : '停止中';
     if (!confirm(`この契約者を「${label}」に変更しますか？`)) return;
     try {
       const res = await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, {
@@ -362,6 +437,10 @@
     const tenants = await res.json();
     TENANTS = Array.isArray(tenants) ? tenants : [];
     document.getElementById('summaryTenants').textContent = TENANTS.filter(t => t.status === 'active').length;
+    const mrr = TENANTS
+      .filter(t => t.status === 'active')
+      .reduce((sum, t) => sum + (PLAN_PRICES[t.plan || 'standard'] || 0), 0);
+    document.getElementById('summaryMrr').textContent = yen(mrr);
     const tbody = document.getElementById('tenantTbody');
     if (!TENANTS.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">契約者が登録されていません</td></tr>'; return; }
     tbody.innerHTML = tenants.map(t => `<tr>
@@ -384,14 +463,16 @@
           <option value="enterprise" ${t.plan === 'enterprise' ? 'selected' : ''}>enterprise</option>
         </select>
       </td>
-      <td>${t.status === 'active' ? '<span class="status-active">稼働中</span>' : '<span class="status-suspended">停止中</span>'}</td>
+      <td>${statusLabel(t.status)}</td>
       <td style="color:var(--text-muted);font-size:12px">${(t.created_at||'').slice(0,10)}</td>
       <td>
         <div class="actions">
+          <button class="btn-secondary" onclick="openEditTenantModal('${esc(t.id)}')">編集</button>
           <button class="btn-primary btn-sm" onclick="reissueInvite('${esc(t.id)}')">招待再発行</button>
           ${t.status === 'active'
             ? `<button class="btn-secondary" onclick="changeTenantStatus('${esc(t.id)}','suspended')">停止</button>`
             : `<button class="btn-secondary" onclick="changeTenantStatus('${esc(t.id)}','active')">稼働</button>`}
+          <button class="btn-secondary" onclick="changeTenantStatus('${esc(t.id)}','excluded')">売上対象外</button>
           <button class="btn-danger" onclick="deleteTenant('${esc(t.id)}','${esc(t.name)}')">削除</button>
         </div>
       </td>
@@ -413,6 +494,59 @@
 
   function closeModal() {
     document.getElementById('inviteModal').classList.remove('open');
+  }
+
+  function closeEditTenantModal() {
+    document.getElementById('editTenantModal').classList.remove('open');
+  }
+
+  function openEditTenantModal(tenantId) {
+    const t = TENANTS.find(row => row.id === tenantId);
+    if (!t) { alert('契約者が見つかりません'); return; }
+    document.getElementById('editTenantId').value = t.id;
+    document.getElementById('editCompany').value = t.name || '';
+    document.getElementById('editContactName').value = t.contact_name || '';
+    document.getElementById('editEmail').value = t.email || '';
+    document.getElementById('editPhone').value = t.phone || '';
+    document.getElementById('editPostalCode').value = t.postal_code || '';
+    document.getElementById('editPlan').value = t.plan || 'standard';
+    document.getElementById('editStatus').value = t.status || 'active';
+    document.getElementById('editAddress').value = t.address || '';
+    document.getElementById('editNotes').value = t.notes || '';
+    document.getElementById('editTenantModal').classList.add('open');
+  }
+
+  async function saveTenantEdit() {
+    const tenantId = document.getElementById('editTenantId').value;
+    const company = document.getElementById('editCompany').value.trim();
+    if (!company) { alert('企業名・屋号を入力してください'); document.getElementById('editCompany').focus(); return; }
+    const payload = {
+      name: company,
+      contact_name: document.getElementById('editContactName').value.trim() || null,
+      email: document.getElementById('editEmail').value.trim() || null,
+      phone: document.getElementById('editPhone').value.trim() || null,
+      postal_code: document.getElementById('editPostalCode').value.trim() || null,
+      address: document.getElementById('editAddress').value.trim() || null,
+      plan: document.getElementById('editPlan').value,
+      status: document.getElementById('editStatus').value,
+      notes: document.getElementById('editNotes').value.trim() || null
+    };
+    const btn = document.getElementById('editTenantBtn');
+    btn.disabled = true; btn.textContent = '保存中...';
+    try {
+      const res = await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      closeEditTenantModal();
+      await loadTenants();
+    } catch(e) {
+      console.error(e);
+      alert('契約者情報の保存に失敗しました');
+    } finally {
+      btn.disabled = false; btn.textContent = '保存する';
+    }
   }
 
   async function issueInvite(existingTenantId = null) {
