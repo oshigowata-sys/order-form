@@ -22,10 +22,11 @@
   .admin-name { font-size: 13px; color: var(--text-muted); }
   .logout-btn { font-size: 13px; color: var(--text-muted); cursor: pointer; background: none; border: none; font-family: inherit; }
   .logout-btn:hover { color: var(--text); }
-  .content { padding: 32px; max-width: 1100px; margin: 0 auto; }
+  .content { padding: 32px; max-width: 1180px; margin: 0 auto; }
   .section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
   .btn-primary { background: var(--orange); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
   .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
   .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 28px; }
   .card-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
@@ -45,12 +46,17 @@
   .invite-expire { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 100%; max-width: 440px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 100%; max-width: 720px; max-height: 90vh; overflow: auto; }
   .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .modal-sub { color: var(--text-muted); font-size: 12px; line-height: 1.7; margin-top: -10px; margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
   .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1 / -1; }
   label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
-  input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--text); outline: none; }
-  input:focus { border-color: var(--orange); }
+  input, select, textarea { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--text); outline: none; }
+  textarea { min-height: 82px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { border-color: var(--orange); }
+  select option { background: var(--surface); color: var(--text); }
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
   .btn-cancel { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 20px; border-radius: 10px; font-size: 13px; font-family: inherit; cursor: pointer; }
   .empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
@@ -64,6 +70,21 @@
   .inq-detail { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   select.status-select { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-family: inherit; padding: 4px 8px; cursor: pointer; width: auto; }
   .count-badge { background: var(--orange); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .summary-label { color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .summary-value { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; }
+  .summary-note { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+  .tenant-main { font-weight: 700; margin-bottom: 4px; }
+  .tenant-sub { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+  .tenant-note { color: var(--text-muted); font-size: 12px; line-height: 1.6; max-width: 260px; }
+  .schema-warning { display: none; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.28); color: #fca5a5; border-radius: 10px; padding: 12px 16px; font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
+  .schema-warning.show { display: block; }
+  @media (max-width: 900px) {
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .pw-form { grid-template-columns: 1fr; }
+  }
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -80,21 +101,49 @@
 </div>
 
 <div class="content">
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">契約者</div>
+      <div class="summary-value" id="summaryTenants">—</div>
+      <div class="summary-note">稼働中の契約者</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">未対応問い合わせ</div>
+      <div class="summary-value" id="summaryInquiries">—</div>
+      <div class="summary-note">先に見るべき連絡</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">資料DLリード</div>
+      <div class="summary-value" id="summaryLeads">—</div>
+      <div class="summary-note">累計リード数</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">今日の確認</div>
+      <div class="summary-value" id="summaryToday">0</div>
+      <div class="summary-note">新規問い合わせ + リード</div>
+    </div>
+  </div>
+
+  <div class="schema-warning" id="schemaWarning">
+    契約者の住所・電話番号などを保存するには、`migrations/006_add_tenant_contact_fields.sql` の適用が必要です。未適用の場合も、企業名・メール・プランでの招待発行は継続できます。
+  </div>
+
   <div class="card">
     <div class="card-header">
-      <div class="card-title">契約者一覧</div>
-      <button class="btn-primary" onclick="openInviteModal()">＋ 招待URLを発行</button>
+      <div class="card-title">契約者台帳</div>
+      <button class="btn-primary" onclick="openInviteModal()">＋ 契約者を登録して招待URLを発行</button>
     </div>
     <table>
       <thead><tr>
-        <th>会社名</th>
-        <th>メール</th>
+        <th>契約者</th>
+        <th>連絡先</th>
+        <th>住所</th>
         <th>プラン</th>
         <th>ステータス</th>
         <th>契約日</th>
         <th>操作</th>
       </tr></thead>
-      <tbody id="tenantTbody"><tr><td colspan="6" class="empty">読み込み中...</td></tr></tbody>
+      <tbody id="tenantTbody"><tr><td colspan="7" class="empty">読み込み中...</td></tr></tbody>
     </table>
   </div>
 
@@ -184,10 +233,45 @@
 
 <div class="modal-overlay" id="inviteModal">
   <div class="modal">
-    <div class="modal-title">招待URLを発行</div>
-    <div class="form-group">
-      <label>メールアドレス（任意）</label>
-      <input type="email" id="inviteEmail" placeholder="送り先のメールアドレス" />
+    <div class="modal-title">契約者を登録して招待URLを発行</div>
+    <div class="modal-sub">契約者台帳に必要な情報を先に登録します。入力後、アカウント作成用URLが発行されます。</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>企業名・屋号</label>
+        <input type="text" id="inviteCompany" placeholder="例：ひかる商店" />
+      </div>
+      <div class="form-group">
+        <label>契約者名・担当者名</label>
+        <input type="text" id="inviteContactName" placeholder="例：嶋田 洋" />
+      </div>
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" id="inviteEmail" placeholder="例：info@example.com" />
+      </div>
+      <div class="form-group">
+        <label>電話番号</label>
+        <input type="tel" id="invitePhone" placeholder="例：011-123-4567" />
+      </div>
+      <div class="form-group">
+        <label>郵便番号</label>
+        <input type="text" id="invitePostalCode" placeholder="例：060-0001" />
+      </div>
+      <div class="form-group">
+        <label>プラン</label>
+        <select id="invitePlan">
+          <option value="starter">スターター</option>
+          <option value="standard" selected>スタンダード</option>
+          <option value="enterprise">エンタープライズ</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>住所</label>
+        <input type="text" id="inviteAddress" placeholder="例：北海道札幌市中央区..." />
+      </div>
+      <div class="form-group full">
+        <label>メモ</label>
+        <textarea id="inviteNotes" placeholder="例：初回テスト導入。電話で操作説明予定。"></textarea>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -221,6 +305,22 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  let TENANTS = [];
+  let todayInquiryCount = 0;
+  let todayLeadCount = 0;
+
+  function todayDateKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function isToday(iso) {
+    return (iso || '').slice(0, 10) === todayDateKey();
+  }
+
+  function updateTodaySummary() {
+    document.getElementById('summaryToday').textContent = todayInquiryCount + todayLeadCount;
+  }
+
   async function changePlan(tenantId, plan) {
     try {
       const res = await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, {
@@ -238,11 +338,23 @@
   async function loadTenants() {
     const res = await sbFetch('/rest/v1/tenants?select=*&order=created_at.desc');
     const tenants = await res.json();
+    TENANTS = Array.isArray(tenants) ? tenants : [];
+    document.getElementById('summaryTenants').textContent = TENANTS.filter(t => t.status === 'active').length;
     const tbody = document.getElementById('tenantTbody');
-    if (!tenants.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">契約者が登録されていません</td></tr>'; return; }
+    if (!TENANTS.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">契約者が登録されていません</td></tr>'; return; }
     tbody.innerHTML = tenants.map(t => `<tr>
-      <td style="font-weight:600">${esc(t.name)}</td>
-      <td style="color:var(--text-muted)">${esc(t.email) || '—'}</td>
+      <td>
+        <div class="tenant-main">${esc(t.name) || '（未登録）'}</div>
+        <div class="tenant-sub">${esc(t.contact_name) || '担当者未登録'}</div>
+      </td>
+      <td>
+        <div>${esc(t.email) || '—'}</div>
+        <div class="tenant-sub">${esc(t.phone) || '電話番号未登録'}</div>
+      </td>
+      <td>
+        <div class="tenant-sub">${esc(t.postal_code ? '〒' + t.postal_code : '')}</div>
+        <div class="tenant-note">${esc(t.address) || '住所未登録'}</div>
+      </td>
       <td>
         <select style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer" onchange="changePlan('${esc(t.id)}', this.value)">
           <option value="starter" ${t.plan === 'starter' ? 'selected' : ''}>starter</option>
@@ -257,7 +369,14 @@
   }
 
   function openInviteModal() {
+    document.getElementById('inviteCompany').value = '';
+    document.getElementById('inviteContactName').value = '';
     document.getElementById('inviteEmail').value = '';
+    document.getElementById('invitePhone').value = '';
+    document.getElementById('invitePostalCode').value = '';
+    document.getElementById('inviteAddress').value = '';
+    document.getElementById('invitePlan').value = 'standard';
+    document.getElementById('inviteNotes').value = '';
     document.getElementById('inviteModal').classList.add('open');
     document.getElementById('inviteResult').style.display = 'none';
   }
@@ -271,19 +390,56 @@
     btn.disabled = true; btn.textContent = '発行中...';
     try {
       let tId = existingTenantId;
+      let inviteEmail = document.getElementById('inviteEmail')?.value?.trim() || null;
       if (!tId) {
-        const email = document.getElementById('inviteEmail').value.trim() || null;
+        const company = document.getElementById('inviteCompany').value.trim();
+        if (!company) {
+          alert('企業名・屋号を入力してください');
+          document.getElementById('inviteCompany').focus();
+          return;
+        }
+        const fullPayload = {
+          name: company,
+          contact_name: document.getElementById('inviteContactName').value.trim() || null,
+          email: inviteEmail,
+          phone: document.getElementById('invitePhone').value.trim() || null,
+          postal_code: document.getElementById('invitePostalCode').value.trim() || null,
+          address: document.getElementById('inviteAddress').value.trim() || null,
+          plan: document.getElementById('invitePlan').value,
+          notes: document.getElementById('inviteNotes').value.trim() || null,
+          status: 'active'
+        };
+        const fallbackPayload = {
+          name: fullPayload.name,
+          email: fullPayload.email,
+          plan: fullPayload.plan,
+          status: 'active'
+        };
         const tRes = await sbFetch('/rest/v1/tenants', {
           method: 'POST',
-          body: JSON.stringify({ name: '（未登録）', email, status: 'active' })
+          body: JSON.stringify(fullPayload)
         });
-        const tData = await tRes.json();
+        let finalRes = tRes;
+        if (!tRes.ok) {
+          const err = await tRes.text();
+          console.warn('tenant full payload failed:', err);
+          document.getElementById('schemaWarning').classList.add('show');
+          finalRes = await sbFetch('/rest/v1/tenants', {
+            method: 'POST',
+            body: JSON.stringify(fallbackPayload)
+          });
+        }
+        if (!finalRes.ok) throw new Error('tenant insert failed: HTTP ' + finalRes.status);
+        const tData = await finalRes.json();
         tId = tData[0]?.id;
+      } else {
+        const tenant = TENANTS.find(t => t.id === existingTenantId);
+        inviteEmail = tenant?.email || null;
       }
 
       const invRes = await sbFetch('/rest/v1/invitations', {
         method: 'POST',
-        body: JSON.stringify({ tenant_id: tId, email: document.getElementById('inviteEmail')?.value?.trim() || null })
+        body: JSON.stringify({ tenant_id: tId, email: inviteEmail })
       });
       const invData = await invRes.json();
       const token = invData[0]?.token;
@@ -306,7 +462,6 @@
 
   async function reissueInvite(tenantId) {
     if (!confirm('この契約者に招待URLを再発行しますか？')) return;
-    document.getElementById('inviteModal').classList.add('open');
     await issueInvite(tenantId);
   }
 
@@ -369,6 +524,9 @@
     const tbody = document.getElementById('inqTbody');
     const allRes = await sbFetch('/rest/v1/inquiries?select=id&status=eq.new');
     const newCount = (await allRes.json()).length;
+    document.getElementById('summaryInquiries').textContent = newCount;
+    todayInquiryCount = rows.filter(r => isToday(r.created_at)).length;
+    updateTodaySummary();
     document.getElementById('inqCount').textContent = newCount > 0 ? newCount + ' 件未対応' : rows.length + ' 件';
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">問い合わせはありません</td></tr>'; return; }
     tbody.innerHTML = rows.map(r => `<tr>
@@ -409,6 +567,9 @@
     const res = await sbFetch('/rest/v1/leads?select=*&order=created_at.desc');
     const rows = await res.json();
     const tbody = document.getElementById('leadTbody');
+    document.getElementById('summaryLeads').textContent = rows.length;
+    todayLeadCount = rows.filter(r => isToday(r.created_at)).length;
+    updateTodaySummary();
     document.getElementById('leadCount').textContent = rows.length + ' 件';
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">リードはありません</td></tr>'; return; }
     tbody.innerHTML = rows.map(r => `<tr>
