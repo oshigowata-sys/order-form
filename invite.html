@@ -145,13 +145,17 @@
           p_password: pw
         })
       });
-      if (!accRes.ok) throw new Error('HTTP ' + accRes.status);
-      const result = await accRes.json();
+      const result = await accRes.json().catch(() => null);
+      if (!accRes.ok) throw new Error(result?.message || result?.hint || ('HTTP ' + accRes.status));
       if (!result?.success) {
         if (result?.error === 'login_id_exists') {
           errEl.textContent = 'このログインIDはすでに使用されています';
         } else if (result?.error === 'invalid_or_expired') {
           errEl.textContent = '招待URLが無効、または有効期限切れです';
+        } else if (result?.error === 'pgcrypto_missing') {
+          errEl.textContent = '登録に必要なDB設定が不足しています。管理者にお問い合わせください。';
+        } else if (result?.error?.startsWith('schema_') || result?.error === 'permission_denied' || result?.error === 'db_error') {
+          errEl.textContent = `登録に失敗しました。管理者にお問い合わせください。（${result.error}${result.detail ? ': ' + result.detail : ''}）`;
         } else {
           errEl.textContent = '登録に失敗しました。入力内容をご確認ください。';
         }
