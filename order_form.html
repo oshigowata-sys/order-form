@@ -807,6 +807,26 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
   }
 
+  function normalizeImageUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      if (u.hostname.includes('drive.google.com')) {
+        const fileMatch = u.pathname.match(/\/file\/d\/([^/]+)/);
+        const id = fileMatch ? fileMatch[1] : u.searchParams.get('id');
+        if (id) return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w600`;
+      }
+      if (u.hostname.includes('dropbox.com')) {
+        u.searchParams.set('dl', '1');
+        return u.toString();
+      }
+    } catch(e) {
+      return raw;
+    }
+    return raw;
+  }
+
   // ===== Category color palette =====
   const CAT_COLORS = ['#e8630a','#1e6641','#d4870c','#2a7d8f','#8b5a2b','#6b4c8c','#c0392b','#2980b9'];
   const _catColorMap = {};
@@ -832,7 +852,7 @@
         products = data.map(p => ({
           id: p.id, name: p.product_name || '', price: p.price || 0,
           category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
-          imageUrl: p.image_url || '',
+          imageUrl: normalizeImageUrl(p.image_url),
         }));
         sessionCache.products = products;
       }
@@ -863,7 +883,7 @@
             <div class="category-body">
               ${items.map(p => `
                 <div class="product-row" id="prow-${esc(p.id)}">
-                  ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" onerror="this.style.display='none'" />` : ''}
+                  ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
                   <div class="product-info">
                     <span class="product-name">${esc(p.name)}</span>
                     <div class="product-meta">
