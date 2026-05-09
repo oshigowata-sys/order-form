@@ -7,7 +7,10 @@ function getJwtPayload() {
   const token = sessionStorage.getItem('_sb_jwt');
   if (!token) return null;
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    return JSON.parse(atob(base64));
   } catch {
     return null;
   }
@@ -91,7 +94,8 @@ function _getTokenExpiry() {
   const token = sessionStorage.getItem('_sb_jwt');
   if (!token) return 0;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = getJwtPayload();
+    if (!payload) return 0;
     return payload.exp * 1000;
   } catch { return 0; }
 }
