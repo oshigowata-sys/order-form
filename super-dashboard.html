@@ -344,7 +344,11 @@
   const BASE_URL = location.origin + location.pathname.replace('super-dashboard.html', '');
 
   const superAdmin = JSON.parse(sessionStorage.getItem('superAdmin') || 'null');
-  if (!superAdmin) location.replace('super-login.html');
+  const superPayload = getJwtPayload();
+  if (!superAdmin || !superPayload || superPayload.user_metadata?.role !== 'super_admin') {
+    signOut('super-login.html');
+    throw new Error('super_admin_auth_required');
+  }
   document.getElementById('adminName').textContent = superAdmin?.name || '';
 
   function logout() {
@@ -352,9 +356,10 @@
   }
 
   function sbFetch(path, opts = {}) {
+    const token = getStrictAccessToken('super-login.html');
     return fetch(SB_URL + path, {
       ...opts,
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers || {}) }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers || {}) }
     });
   }
 

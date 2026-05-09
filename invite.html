@@ -94,9 +94,6 @@
   const params = new URLSearchParams(location.search);
   const token = params.get('token');
 
-  let invitationId = null;
-  let tenantId = null;
-
   async function sbFetch(path, opts = {}) {
     return fetch(SB_URL + path, {
       ...opts,
@@ -104,19 +101,16 @@
     });
   }
 
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-
   async function init() {
     if (!token) { showExpired(); return; }
-    const res = await sbFetch(`/rest/v1/invitations?token=eq.${encodeURIComponent(token)}&select=*&limit=1`);
+    const res = await sbFetch('/rest/v1/rpc/get_invitation_by_token', {
+      method: 'POST',
+      body: JSON.stringify({ p_token: token })
+    });
+    if (!res.ok) { showExpired(); return; }
     const data = await res.json();
     const inv = data[0];
-    if (!inv || inv.used_at || new Date(inv.expires_at) < new Date()) { showExpired(); return; }
-    invitationId = inv.id;
-    tenantId = inv.tenant_id;
+    if (!inv || new Date(inv.expires_at) < new Date()) { showExpired(); return; }
     document.getElementById('loadingView').style.display = 'none';
     document.getElementById('formView').style.display = 'block';
   }
@@ -142,35 +136,30 @@
     btn.disabled = true; btn.textContent = '登録中...';
 
     try {
-      // login_id の重複チェック
-      const chk = await sbFetch(`/rest/v1/accounts?login_id=eq.${encodeURIComponent(loginId)}&select=id&limit=1`);
-      const chkData = await chk.json();
-      if (chkData.length > 0) { errEl.textContent = 'このログインIDはすでに使用されています'; errEl.classList.add('show'); btn.disabled = false; btn.textContent = 'アカウントを作成する'; return; }
-
-      // テナントの会社名を更新
-      if (tenantId) {
-        await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, { method: 'PATCH', body: JSON.stringify({ name: company }) });
-      }
-
-      // アカウント作成
-      const pwHash = await sha256(pw);
-      const accRes = await sbFetch('/rest/v1/accounts', {
+      const accRes = await sbFetch('/rest/v1/rpc/register_invited_account', {
         method: 'POST',
-        body: JSON.stringify({ login_id: loginId, name: company, role: 'admin', password: pwHash, tenant_id: tenantId })
+        body: JSON.stringify({
+          p_token: token,
+          p_company_name: company,
+          p_login_id: loginId,
+          p_password: pw
+        })
       });
       if (!accRes.ok) throw new Error('HTTP ' + accRes.status);
-
-      // settingsレコード初期作成
-      await sbFetch('/rest/v1/settings', {
-        method: 'POST',
-        body: JSON.stringify({ tenant_id: tenantId, company_name: company })
-      });
-
-      // 招待を使用済みに
-      await sbFetch(`/rest/v1/invitations?id=eq.${invitationId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ used_at: new Date().toISOString() })
-      });
+      const result = await accRes.json();
+      if (!result?.success) {
+        if (result?.error === 'login_id_exists') {
+          errEl.textContent = 'このログインIDはすでに使用されています';
+        } else if (result?.error === 'invalid_or_expired') {
+          errEl.textContent = '招待URLが無効、または有効期限切れです';
+        } else {
+          errEl.textContent = '登録に失敗しました。入力内容をご確認ください。';
+        }
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'アカウントを作成する';
+        return;
+      }
 
       document.getElementById('formView').style.display = 'none';
       document.getElementById('successView').style.display = 'block';

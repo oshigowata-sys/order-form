@@ -3,6 +3,30 @@ function getAccessToken() {
   return sessionStorage.getItem('_sb_jwt') || _SB_KEY;
 }
 
+function getJwtPayload() {
+  const token = sessionStorage.getItem('_sb_jwt');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+function getStrictAccessToken(redirectUrl) {
+  const token = sessionStorage.getItem('_sb_jwt');
+  if (!token) {
+    signOut(redirectUrl);
+    throw new Error('missing_jwt');
+  }
+  const payload = getJwtPayload();
+  if (!payload || payload.exp * 1000 < Date.now()) {
+    signOut(redirectUrl);
+    throw new Error('expired_jwt');
+  }
+  return token;
+}
+
 async function sbSignIn(email, password) {
   const res = await fetch(`${_SB_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -111,8 +135,8 @@ function checkAuth(redirectUrl) {
   const jwt = sessionStorage.getItem('_sb_jwt');
   if (jwt) {
     try {
-      const payload = JSON.parse(atob(jwt.split('.')[1]));
-      if (payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
+      const payload = getJwtPayload();
+      if (!payload || payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
     } catch { /* malformed JWT — ignore, user key still valid */ }
   }
   return true;
