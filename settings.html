@@ -384,11 +384,7 @@
       company_person:     document.getElementById('companyPerson').value.trim(),
     };
     try {
-      const res = await sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      await saveSettings(data);
       flashSave('saveMsgCompany');
       updatePreview();
     } catch(e) {
@@ -407,16 +403,42 @@
       payment_days: parseInt(document.getElementById('paymentDays').value) || 30,
     };
     try {
-      const res = await sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      await saveSettings(data);
       flashSave('saveMsgBank');
       updatePreview();
     } catch(e) {
       alert('保存に失敗しました: ' + e.message);
     }
+  }
+
+  async function saveSettings(data) {
+    const patchRes = await fetch(SB_URL + `/rest/v1/settings?tenant_id=eq.${tenantId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!patchRes.ok) throw new Error('HTTP ' + patchRes.status);
+    const updated = await patchRes.json();
+    if (Array.isArray(updated) && updated.length > 0) return updated[0];
+
+    const insertRes = await fetch(SB_URL + '/rest/v1/settings', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify({ tenant_id: tenantId, ...data }),
+    });
+    if (!insertRes.ok) throw new Error('HTTP ' + insertRes.status);
+    const inserted = await insertRes.json();
+    return inserted?.[0] || null;
   }
 
   function flashSave(id) {
