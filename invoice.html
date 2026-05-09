@@ -646,15 +646,33 @@
   const targetPeriodStart = params.get('period_start');
   const targetPeriodEnd   = params.get('period_end');
   const targetInvoiceNum  = params.get('invoice_num');
+  const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const tenantId = currentUser.tenantId;
 
   // ===== 設定の読込（Supabase） =====
   let _settings = {};
 
   async function loadSettings() {
     try {
-      const res = await sbFetch('/rest/v1/settings?id=eq.1&select=*&limit=1');
-      const data = await res.json();
+      const [settingsRes, banksRes] = await Promise.all([
+        sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&select=*&limit=1`),
+        sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc,created_at.asc`)
+      ]);
+      const data = settingsRes.ok ? await settingsRes.json() : [];
+      const banksData = banksRes.ok ? await banksRes.json() : [];
       const s = (data && data[0]) || {};
+      const legacyBank = (s.bank_name || s.bank_number || s.bank_holder)
+        ? [{ bank_name: s.bank_name || '', bank_branch: s.bank_branch || '', bank_type: s.bank_type || '普通', bank_number: s.bank_number || '', bank_holder: s.bank_holder || '', bank_note: s.bank_note || '' }]
+        : [];
+      const bankAccounts = (Array.isArray(banksData) && banksData.length > 0 ? banksData : legacyBank)
+        .map(b => ({
+          bank_name: b.bank_name || '',
+          bank_branch: b.bank_branch || '',
+          bank_type: b.bank_type || '普通',
+          bank_number: b.bank_number || '',
+          bank_holder: b.bank_holder || '',
+          bank_note: b.bank_note || ''
+        }));
       _settings = {
         name:         s.company_name       || '',
         person:       s.company_person     || '',
@@ -663,16 +681,26 @@
         fax:          s.company_fax        || '',
         email:        s.company_email      || '',
         invoice_num:  s.company_invoice_no || '',
-        bank_name:    [s.bank_name, s.bank_branch].filter(Boolean).join(' '),
-        bank_num:     [s.bank_type, s.bank_number].filter(Boolean).join('  '),
-        bank_holder:  s.bank_holder        || '',
-        bank_note:    s.bank_note          || '',
+        bank_accounts: bankAccounts,
         payment_days: s.payment_days       || 30,
       };
     } catch(e) {
       console.error('設定読込エラー', e);
     }
     return _settings;
+  }
+
+  function renderBankBlock(bankAccounts) {
+    const banks = (bankAccounts || []).filter(b => b.bank_name || b.bank_branch || b.bank_number || b.bank_holder || b.bank_note);
+    if (banks.length === 0) return '（振込先情報を設定してください）';
+    return banks.map((bank, index) => {
+      const lines = [];
+      if (bank.bank_name || bank.bank_branch) lines.push(esc([bank.bank_name, bank.bank_branch].filter(Boolean).join(' ')));
+      if (bank.bank_type || bank.bank_number) lines.push(esc([bank.bank_type || '普通', bank.bank_number].filter(Boolean).join('  ')));
+      if (bank.bank_holder) lines.push('口座名義: ' + esc(bank.bank_holder));
+      if (bank.bank_note) lines.push(`<span style="font-size:11px;color:var(--text-muted);">${esc(bank.bank_note)}</span>`);
+      return `<div${index > 0 ? ' style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"' : ''}>${lines.join('<br>')}</div>`;
+    }).join('');
   }
 
   // ===== 請求書番号生成 =====
@@ -778,6 +806,12 @@
           </tfoot>
         </table>
       </div>
+      <div class="invoice-footer">
+        <div>
+          <div class="footer-section-title">振込先 / BANK TRANSFER</div>
+          <div class="bank-info">${renderBankBlock(s.bank_accounts)}</div>
+        </div>
+      </div>
     `;
   }
 
@@ -830,9 +864,7 @@
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
 
     // 振込先情報
-    const bankBlock = s.bank_name
-      ? `${esc(s.bank_name)}<br>${esc(s.bank_num)}<br>口座名義: ${esc(s.bank_holder || '')}${s.bank_note ? '<br><span style="font-size:11px;color:var(--text-muted);">' + esc(s.bank_note) + '</span>' : ''}`
-      : '（振込先情報を設定してください）';
+    const bankBlock = renderBankBlock(s.bank_accounts);
 
     document.getElementById('invoiceBody').innerHTML = `
       <div class="invoice-header">
