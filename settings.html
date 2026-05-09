@@ -54,6 +54,14 @@
     .save-msg{font-size:13px;font-weight:600;color:var(--green);display:none;align-items:center;gap:6px}
     .save-msg.show{display:flex}
     .divider{height:1px;background:var(--border);margin:4px 0}
+    .bank-list{display:flex;flex-direction:column;gap:12px}
+    .bank-account{border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:14px}
+    .bank-account-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .bank-account-title{font-size:13px;font-weight:700;color:var(--text)}
+    .btn-secondary{display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--text);padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid var(--border);cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+    .btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
+    .btn-danger{background:#fff;color:#dc2626;border:1px solid #fecaca;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+    .btn-danger:hover{background:#fef2f2}
     .preview-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
     .preview-card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
     .preview-card-body{padding:20px 24px}
@@ -156,37 +164,8 @@
           <div class="settings-card-title">振込先情報</div>
         </div>
         <div class="settings-card-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">銀行名</label>
-              <input type="text" class="form-input" id="bankName" placeholder="例：北洋銀行" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">支店名</label>
-              <input type="text" class="form-input" id="bankBranch" placeholder="例：札幌駅前支店" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">口座種別</label>
-              <select class="form-input" id="bankType">
-                <option value="普通">普通</option>
-                <option value="当座">当座</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">口座番号</label>
-              <input type="text" class="form-input" id="bankNumber" placeholder="例：1234567" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">口座名義（カタカナ）</label>
-            <input type="text" class="form-input" id="bankHolder" placeholder="例：カ）メグリー" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">備考（振込手数料など）</label>
-            <input type="text" class="form-input" id="bankNote" placeholder="例：振込手数料はご負担ください" />
-          </div>
+          <div class="bank-list" id="bankAccounts"></div>
+          <button class="btn-secondary" type="button" onclick="addBankAccount()">+ 振込先を追加</button>
           <div class="form-group">
             <label class="form-label">支払期限（受注日から何日後）</label>
             <input type="number" class="form-input" id="paymentDays" placeholder="例：30" value="30" style="max-width:120px" />
@@ -264,6 +243,7 @@
 <script>
   checkAuth();
   const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+  let bankAccounts = [];
 
   const ORDER_FORM_URL = location.origin + location.pathname.replace('settings.html', '') + 'order_form.html?tenant=' + tenantId;
   document.getElementById('orderFormUrl').textContent = ORDER_FORM_URL;
@@ -359,16 +339,127 @@
       document.getElementById('companyEmail').value     = s.company_email      || '';
       document.getElementById('companyInvoiceNo').value = s.company_invoice_no || '';
       document.getElementById('companyPerson').value    = s.company_person     || '';
-      document.getElementById('bankName').value         = s.bank_name          || '';
-      document.getElementById('bankBranch').value       = s.bank_branch        || '';
-      document.getElementById('bankType').value         = s.bank_type          || '普通';
-      document.getElementById('bankNumber').value       = s.bank_number        || '';
-      document.getElementById('bankHolder').value       = s.bank_holder        || '';
-      document.getElementById('bankNote').value         = s.bank_note          || '';
       document.getElementById('paymentDays').value      = s.payment_days       || 30;
+      await loadBankAccounts(s);
     } catch(e) {
       console.error('設定読込エラー', e);
+      bankAccounts = [blankBankAccount()];
+      renderBankAccounts();
     }
+    updatePreview();
+  }
+
+  function blankBankAccount() {
+    return { bank_name: '', bank_branch: '', bank_type: '普通', bank_number: '', bank_holder: '', bank_note: '' };
+  }
+
+  async function loadBankAccounts(settingsRow) {
+    const res = await sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc,created_at.asc`);
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        bankAccounts = rows.map(normalizeBankAccount);
+        renderBankAccounts();
+        return;
+      }
+    }
+
+    if (settingsRow?.bank_name || settingsRow?.bank_number || settingsRow?.bank_holder) {
+      bankAccounts = [normalizeBankAccount({
+        bank_name: settingsRow.bank_name,
+        bank_branch: settingsRow.bank_branch,
+        bank_type: settingsRow.bank_type,
+        bank_number: settingsRow.bank_number,
+        bank_holder: settingsRow.bank_holder,
+        bank_note: settingsRow.bank_note,
+      })];
+    } else {
+      bankAccounts = [blankBankAccount()];
+    }
+    renderBankAccounts();
+  }
+
+  function normalizeBankAccount(row = {}) {
+    return {
+      bank_name: row.bank_name || '',
+      bank_branch: row.bank_branch || '',
+      bank_type: row.bank_type || '普通',
+      bank_number: row.bank_number || '',
+      bank_holder: row.bank_holder || '',
+      bank_note: row.bank_note || '',
+    };
+  }
+
+  function renderBankAccounts() {
+    const wrap = document.getElementById('bankAccounts');
+    wrap.innerHTML = bankAccounts.map((bank, index) => `
+      <div class="bank-account">
+        <div class="bank-account-head">
+          <div class="bank-account-title">振込先 ${index + 1}</div>
+          ${bankAccounts.length > 1 ? `<button class="btn-danger" type="button" onclick="removeBankAccount(${index})">削除</button>` : ''}
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">銀行名</label>
+            <input type="text" class="form-input" data-bank-index="${index}" data-bank-field="bank_name" value="${escAttr(bank.bank_name)}" placeholder="例：北洋銀行" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">支店名</label>
+            <input type="text" class="form-input" data-bank-index="${index}" data-bank-field="bank_branch" value="${escAttr(bank.bank_branch)}" placeholder="例：札幌駅前支店" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">口座種別</label>
+            <select class="form-input" data-bank-index="${index}" data-bank-field="bank_type">
+              <option value="普通" ${bank.bank_type === '普通' ? 'selected' : ''}>普通</option>
+              <option value="当座" ${bank.bank_type === '当座' ? 'selected' : ''}>当座</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">口座番号</label>
+            <input type="text" class="form-input" data-bank-index="${index}" data-bank-field="bank_number" value="${escAttr(bank.bank_number)}" placeholder="例：1234567" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">口座名義（カタカナ）</label>
+          <input type="text" class="form-input" data-bank-index="${index}" data-bank-field="bank_holder" value="${escAttr(bank.bank_holder)}" placeholder="例：カ）メグリー" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">備考（振込手数料など）</label>
+          <input type="text" class="form-input" data-bank-index="${index}" data-bank-field="bank_note" value="${escAttr(bank.bank_note)}" placeholder="例：振込手数料はご負担ください" />
+        </div>
+      </div>
+    `).join('');
+
+    wrap.querySelectorAll('[data-bank-field]').forEach(el => {
+      el.addEventListener('input', onBankInput);
+      el.addEventListener('change', onBankInput);
+    });
+  }
+
+  function escAttr(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function onBankInput(e) {
+    const index = Number(e.target.dataset.bankIndex);
+    const field = e.target.dataset.bankField;
+    if (!bankAccounts[index]) return;
+    bankAccounts[index][field] = e.target.value;
+    updatePreview();
+  }
+
+  function addBankAccount() {
+    bankAccounts.push(blankBankAccount());
+    renderBankAccounts();
+    updatePreview();
+  }
+
+  function removeBankAccount(index) {
+    bankAccounts.splice(index, 1);
+    if (bankAccounts.length === 0) bankAccounts.push(blankBankAccount());
+    renderBankAccounts();
     updatePreview();
   }
 
@@ -393,17 +484,23 @@
   }
 
   async function saveBank() {
-    const data = {
-      bank_name:    document.getElementById('bankName').value.trim(),
-      bank_branch:  document.getElementById('bankBranch').value.trim(),
-      bank_type:    document.getElementById('bankType').value,
-      bank_number:  document.getElementById('bankNumber').value.trim(),
-      bank_holder:  document.getElementById('bankHolder').value.trim(),
-      bank_note:    document.getElementById('bankNote').value.trim(),
-      payment_days: parseInt(document.getElementById('paymentDays').value) || 30,
-    };
     try {
-      await saveSettings(data);
+      const banks = bankAccounts
+        .map(normalizeBankAccount)
+        .filter(b => b.bank_name || b.bank_branch || b.bank_number || b.bank_holder || b.bank_note);
+      const firstBank = banks[0] || blankBankAccount();
+      await saveSettings({
+        bank_name: firstBank.bank_name,
+        bank_branch: firstBank.bank_branch,
+        bank_type: firstBank.bank_type,
+        bank_number: firstBank.bank_number,
+        bank_holder: firstBank.bank_holder,
+        bank_note: firstBank.bank_note,
+        payment_days: parseInt(document.getElementById('paymentDays').value) || 30,
+      });
+      await saveBankAccounts(banks);
+      bankAccounts = banks.length > 0 ? banks : [blankBankAccount()];
+      renderBankAccounts();
       flashSave('saveMsgBank');
       updatePreview();
     } catch(e) {
@@ -441,6 +538,42 @@
     return inserted?.[0] || null;
   }
 
+  async function saveBankAccounts(banks) {
+    const delRes = await fetch(SB_URL + `/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+    });
+    if (!delRes.ok) throw new Error('HTTP ' + delRes.status);
+    if (banks.length === 0) return;
+
+    const payload = banks.map((bank, index) => ({
+      tenant_id: tenantId,
+      bank_name: bank.bank_name,
+      bank_branch: bank.bank_branch,
+      bank_type: bank.bank_type || '普通',
+      bank_number: bank.bank_number,
+      bank_holder: bank.bank_holder,
+      bank_note: bank.bank_note,
+      display_order: index,
+    }));
+    const insRes = await fetch(SB_URL + '/rest/v1/tenant_bank_accounts', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + getAccessToken(),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!insRes.ok) throw new Error('HTTP ' + insRes.status);
+  }
+
   function flashSave(id) {
     const el = document.getElementById(id);
     el.classList.add('show');
@@ -464,28 +597,28 @@
     if (email)     addrParts.push(email);
     if (invoiceNo) addrParts.push('登録番号: ' + invoiceNo);
     addrEl.textContent = addrParts.join('  ') || '（住所・連絡先未設定）';
-    const bankName   = document.getElementById('bankName').value;
-    const bankBranch = document.getElementById('bankBranch').value;
-    const bankType   = document.getElementById('bankType').value;
-    const bankNumber = document.getElementById('bankNumber').value;
-    const bankHolder = document.getElementById('bankHolder').value;
-    const bankNote   = document.getElementById('bankNote').value;
     const bankEl = document.getElementById('previewBank');
-    if (!bankName && !bankNumber) {
+    const banks = bankAccounts.filter(b => b.bank_name || b.bank_branch || b.bank_number || b.bank_holder || b.bank_note);
+    if (banks.length === 0) {
       bankEl.textContent = '（振込先未設定）';
     } else {
-      const lines = [];
-      if (bankName || bankBranch) lines.push([bankName, bankBranch].filter(Boolean).join(' '));
-      if (bankType || bankNumber) lines.push(bankType + '  ' + bankNumber);
-      if (bankHolder) lines.push('口座名義: ' + bankHolder);
-      if (bankNote)   lines.push(bankNote);
       bankEl.textContent = '';
-      lines.forEach(l => { const d = document.createElement('div'); d.textContent = l; bankEl.appendChild(d); });
+      banks.forEach((bank, index) => {
+        const block = document.createElement('div');
+        if (index > 0) block.style.marginTop = '8px';
+        const lines = [];
+        if (bank.bank_name || bank.bank_branch) lines.push([bank.bank_name, bank.bank_branch].filter(Boolean).join(' '));
+        if (bank.bank_type || bank.bank_number) lines.push((bank.bank_type || '普通') + '  ' + bank.bank_number);
+        if (bank.bank_holder) lines.push('口座名義: ' + bank.bank_holder);
+        if (bank.bank_note) lines.push(bank.bank_note);
+        lines.forEach(l => { const d = document.createElement('div'); d.textContent = l; block.appendChild(d); });
+        bankEl.appendChild(block);
+      });
     }
   }
 
   ['companyName','companyZip','companyAddress','companyTel','companyFax','companyEmail','companyInvoiceNo','companyPerson',
-   'bankName','bankBranch','bankType','bankNumber','bankHolder','bankNote','paymentDays'].forEach(id => {
+   'paymentDays'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updatePreview);
   });
