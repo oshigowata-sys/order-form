@@ -89,6 +89,8 @@ async function sbRefreshSession() {
 }
 
 let _refreshTimer = null;
+let _idleTimer = null;
+const _IDLE_MS = 60 * 60 * 1000;
 
 function _getTokenExpiry() {
   const token = sessionStorage.getItem('_sb_jwt');
@@ -146,9 +148,6 @@ function checkAuth(redirectUrl) {
   }
   return true;
 }
-
-let _idleTimer = null;
-const _IDLE_MS = 30 * 60 * 1000;
 
 function _resetIdleTimer() {
   clearTimeout(_idleTimer);

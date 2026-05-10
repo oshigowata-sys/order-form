@@ -612,7 +612,7 @@
 </div>
 
 <script src="config.js"></script>
-<script src="auth.js?v=20260509-authfix"></script>
+<script src="auth.js?v=20260510-idletimer"></script>
 <script>
   checkAuth();
   function esc(str) {
@@ -705,6 +705,7 @@
 
   // ===== 請求書番号生成 =====
   function generateInvoiceNo(orderId) {
+    if (orderId && /^INV-/.test(orderId)) return orderId;
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
