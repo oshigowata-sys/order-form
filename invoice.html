@@ -578,13 +578,13 @@
     </div>
     <div style="display:flex;align-items:center;gap:6px" class="no-print">
       <label style="color:rgba(232,213,188,0.7);font-size:11px;white-space:nowrap">前回御請求額</label>
-      <input type="number" id="prevAmountInput" placeholder="0" min="0" readonly
+      <input type="text" id="prevAmountInput" inputmode="numeric" placeholder="0" readonly
         style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.7);font-size:13px;font-family:inherit;outline:none;cursor:default">
     </div>
     <div id="paymentInputSection" style="display:none;align-items:center;gap:6px" class="no-print">
       <span style="width:1px;height:20px;background:rgba(255,255,255,0.15);display:inline-block"></span>
       <label style="color:rgba(232,213,188,0.7);font-size:11px;white-space:nowrap">御入金金額</label>
-      <input type="number" id="paidAmountInput" placeholder="入金額" min="0"
+      <input type="text" id="paidAmountInput" inputmode="numeric" placeholder="入金額" oninput="onYenInput(this)"
         style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:13px;font-family:inherit;outline:none">
       <button onclick="savePaidAmount()"
         style="padding:5px 12px;background:var(--green);color:white;border:none;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap">保存</button>
@@ -615,6 +615,13 @@
 <script src="auth.js?v=20260510-idletimer"></script>
 <script>
   checkAuth();
+  function yenDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
+  function formatYen(s) {
+    const d = yenDigits(s);
+    return d === '' ? '' : Number(d).toLocaleString('en-US');
+  }
+  function onYenInput(el) { el.value = formatYen(el.value); }
+
   function esc(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -972,7 +979,7 @@
 
     // 前回請求額を操作バーにセット（表示のみ・readonly）
     const prevEl = document.getElementById('prevAmountInput');
-    if (prevEl) prevEl.value = prevInvoice ? (prevInvoice.total_incl_tax || '') : '';
+    if (prevEl) prevEl.value = prevInvoice && prevInvoice.total_incl_tax != null ? formatYen(prevInvoice.total_incl_tax) : '';
 
     // 今開いている請求書への入金登録
     window._currentInvoiceNum = currentInvoice?.invoice_number || null;
@@ -988,7 +995,7 @@
         section.style.display = 'flex';
         const inputEl = document.getElementById('paidAmountInput');
         if (inputEl && currentInvoice.paid_amount != null) {
-          inputEl.value = currentInvoice.paid_amount;
+          inputEl.value = formatYen(currentInvoice.paid_amount);
         }
       }
     }
@@ -1017,7 +1024,7 @@
   function updateBillingSummary() {
     const t = window._invoiceTotals;
     if (!t) return;
-    const prevAmount = Number(document.getElementById('prevAmountInput')?.value) || 0;
+    const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
     const paidAmount = t.prevPaidAmount;
     const carryOver  = (paidAmount != null) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
     const grandTotal = carryOver + t.total;
@@ -1039,7 +1046,7 @@
     const curNum = window._currentInvoiceNum;
     if (!curNum) return;
     const input = document.getElementById('paidAmountInput');
-    const val = input ? input.value : '';
+    const val = input ? yenDigits(input.value) : '';
     if (val === '' || isNaN(Number(val)) || Number(val) < 0) return;
     const numVal = Number(val);
     const res = await sbFetch(

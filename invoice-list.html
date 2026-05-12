@@ -242,7 +242,7 @@ tr.row-inprogress td{color:var(--text-muted)}
       </div>
       <div>
         <label class="form-label">入金額（円）</label>
-        <input type="number" class="form-input" id="paymentAmount" placeholder="例：88000" min="0">
+        <input type="text" class="form-input" id="paymentAmount" inputmode="numeric" placeholder="例：88,000" oninput="onYenInput(this)">
       </div>
     </div>
     <div class="modal-footer">
@@ -605,6 +605,13 @@ async function confirmIssue() {
 // ── 入金登録 ──
 let _paymentTarget = null;
 
+function yenDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
+function formatYen(s) {
+  const d = yenDigits(s);
+  return d === '' ? '' : Number(d).toLocaleString('en-US');
+}
+function onYenInput(el) { el.value = formatYen(el.value); }
+
 function openPaymentModal(r) {
   _paymentTarget = r;
   document.getElementById('paymentCustomerName').textContent = r.customer;
@@ -612,7 +619,7 @@ function openPaymentModal(r) {
     `${r.periodStart.replace(/-/g,'/')}〜${r.periodEnd.replace(/-/g,'/')}`;
   document.getElementById('paymentTotalAmount').textContent =
     '¥' + (r.excl + r.tax).toLocaleString();
-  document.getElementById('paymentAmount').value = r.paidAmount != null ? r.paidAmount : '';
+  document.getElementById('paymentAmount').value = r.paidAmount != null ? formatYen(r.paidAmount) : '';
   document.getElementById('paymentModalOverlay').classList.add('open');
   setTimeout(() => document.getElementById('paymentAmount').focus(), 100);
 }
@@ -624,7 +631,7 @@ function closePaymentModal() {
 
 async function confirmPayment() {
   if (!_paymentTarget) return;
-  const val = document.getElementById('paymentAmount').value;
+  const val = yenDigits(document.getElementById('paymentAmount').value);
   if (val === '' || isNaN(Number(val)) || Number(val) < 0) {
     showToast('⚠️ 入金額を正しく入力してください'); return;
   }
