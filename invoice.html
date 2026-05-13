@@ -560,7 +560,7 @@
     .invoice { padding: 18px 32px; }
     .invoice-table tbody tr:hover { background: transparent; }
     .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .paid-input-inline { border: none !important; padding: 0 !important; }
+    #sumPaid { cursor: default !important; }
     @page { margin: 6mm; size: A4; }
   }
 </style>
@@ -904,18 +904,9 @@
           </div>
           <div class="summary-cell">
             <div class="summary-cell-label">御入金金額</div>
-            <div class="summary-cell-value" id="sumPaid" style="text-align:right;">
-              <span style="display:inline-flex;align-items:baseline;gap:0;">
-                <span style="font-size:inherit;font-weight:inherit;font-family:inherit;line-height:1;">¥</span>
-                <input type="text" id="sumPaidInput" inputmode="numeric" placeholder="0" size="1" oninput="onYenInput(this);onPaidInputChange()"
-                  class="paid-input-inline"
-                  style="text-align:right;background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;outline:none;padding:2px 0;width:auto;">
-              </span>
-              <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;">
-                <span id="paidSaveMsg" style="font-size:14px;font-weight:600;opacity:0;transition:opacity 0.3s;color:var(--green)"></span>
-                <button id="sumPaidSaveBtn" onclick="savePaidAmount()"
-                  style="display:none;padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:14px;font-family:inherit;font-weight:600;cursor:pointer">保存</button>
-              </div>
+            <div class="summary-cell-value" id="sumPaid" onclick="startEditPaid()" title="クリックで編集" style="cursor:pointer;">—</div>
+            <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;min-height:18px;">
+              <span id="paidSaveMsg" style="font-size:12px;font-weight:600;opacity:0;transition:opacity 0.3s;color:var(--green)"></span>
             </div>
           </div>
           <div class="summary-cell">
@@ -1005,80 +996,114 @@
     }
   }
 
+  // 御入金金額の現在値（メモリ保持・編集中はnull可）
+  let _paidAmountValue = null;
+
   function updateBillingSummary() {
     const t = window._invoiceTotals;
     if (!t) return;
     const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
-    const paidInputEl = document.getElementById('sumPaidInput');
-    const paidFromInput = paidInputEl ? Number(yenDigits(paidInputEl.value)) : NaN;
-    const paidAmount = !isNaN(paidFromInput) && paidInputEl && paidInputEl.value !== ''
-      ? paidFromInput
-      : t.prevPaidAmount;
+    // 編集中（input が存在）なら入力値を、そうでなければメモリ値 or 前回保存値
+    const sumPaidEl = document.getElementById('sumPaid');
+    const editingInput = sumPaidEl ? sumPaidEl.querySelector('input') : null;
+    let paidAmount;
+    if (editingInput) {
+      const v = Number(yenDigits(editingInput.value));
+      paidAmount = !isNaN(v) ? v : null;
+    } else if (_paidAmountValue != null) {
+      paidAmount = _paidAmountValue;
+    } else {
+      paidAmount = t.prevPaidAmount;
+    }
+    if (paidAmount != null && !isNaN(paidAmount)) _paidAmountValue = paidAmount;
+
     const carryOver  = (paidAmount != null && !isNaN(paidAmount)) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
     const grandTotal = carryOver + t.total;
 
     document.getElementById('sumPrev').textContent      = fmt(prevAmount);
-    // 御入金金額：input に初期値をセット（編集可能セル）
-    if (paidInputEl && paidInputEl.value === '' && paidAmount != null && !isNaN(paidAmount)) {
-      paidInputEl.value = formatYen(paidAmount);
-    }
-    if (paidInputEl) {
-      paidInputEl.size = Math.max((paidInputEl.value || '').length, 1);
+    // 御入金金額：編集中でなければ他セルと同じ span 表示
+    if (sumPaidEl && !editingInput) {
+      sumPaidEl.textContent = (paidAmount != null && !isNaN(paidAmount)) ? fmt(paidAmount) : '—';
+      sumPaidEl.style.color = (paidAmount == null || isNaN(paidAmount)) ? '#dc2626' : '';
     }
     document.getElementById('sumCarry').textContent     = fmt(carryOver);
     document.getElementById('sumThisTotal').textContent = fmt(t.total);
     document.getElementById('sumExcl').textContent      = fmt(t.subtotal);
     document.getElementById('sumTax').textContent       = fmt(t.tax);
     document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
-
-    if (paidInputEl) paidInputEl.style.color = (paidAmount == null || isNaN(paidAmount)) ? '#dc2626' : '';
   }
 
-  // 入金額入力時：保存ボタン表示＆繰越/今回ご請求額の即時再計算
+  // ===== クリックで編集モードに切り替え =====
+  function startEditPaid() {
+    const cell = document.getElementById('sumPaid');
+    if (!cell || cell.querySelector('input')) return;
+    const current = _paidAmountValue != null ? Number(_paidAmountValue).toLocaleString('en-US') : '';
+    cell.style.cursor = 'text';
+    cell.innerHTML = `<span style="display:inline-flex;align-items:baseline;gap:0;">¥<input type="text" id="sumPaidInput" inputmode="numeric" value="${current}" oninput="onYenInput(this);onPaidInputChange();" onblur="endEditPaid()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font:inherit;color:inherit;outline:none;padding:0;margin:0;text-align:left;box-sizing:content-box;min-width:0;"></span>`;
+    const input = cell.querySelector('input');
+    const setWidth = () => { input.style.width = Math.max(input.value.length, 1) + 'ch'; };
+    setWidth();
+    input.focus();
+    input.select();
+  }
+
+  // 入力中：繰越/今回御請求額の即時再計算＋幅追従
   function onPaidInputChange() {
     const t = window._invoiceTotals;
     if (!t) return;
     const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
     const paidEl = document.getElementById('sumPaidInput');
-    const paidVal = paidEl ? Number(yenDigits(paidEl.value)) : NaN;
+    if (!paidEl) return;
+    paidEl.style.width = Math.max((paidEl.value || '').length, 1) + 'ch';
+    const paidVal = Number(yenDigits(paidEl.value));
     const paidAmount = !isNaN(paidVal) ? paidVal : 0;
     const carryOver  = Math.max(0, prevAmount - paidAmount);
     const grandTotal = carryOver + t.total;
     document.getElementById('sumCarry').textContent      = fmt(carryOver);
     document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
-    // 保存ボタンを表示
-    const btn = document.getElementById('sumPaidSaveBtn');
-    if (btn) btn.style.display = 'inline-block';
+  }
+
+  // ===== 編集終了：保存して span 表示に戻す =====
+  async function endEditPaid() {
+    const input = document.getElementById('sumPaidInput');
+    if (!input) return;
+    const raw = yenDigits(input.value);
+    const numVal = raw === '' ? null : Number(raw);
+    const isValid = numVal != null && !isNaN(numVal) && numVal >= 0;
+    // 値が前回保存値と同じなら DB アクセス不要
+    const prevSaved = window._invoiceTotals ? window._invoiceTotals.prevPaidAmount : null;
+    if (isValid && numVal !== prevSaved) {
+      _paidAmountValue = numVal;
+      await savePaidAmount(numVal);
+    } else if (!isValid) {
+      // 不正値は前回値に戻す
+      _paidAmountValue = prevSaved;
+    }
+    updateBillingSummary();
   }
 
   // ===== 御入金金額の登録（前回請求書へ保存） =====
-  async function savePaidAmount() {
+  async function savePaidAmount(numVal) {
     const prevNum = window._prevInvoiceNum;
     const msg = document.getElementById('paidSaveMsg');
-    if (!prevNum) {
-      if (msg) { msg.textContent = '前回請求書がありません'; msg.style.color = '#dc2626'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--green)'; }, 3000); }
-      return;
-    }
-    const input = document.getElementById('sumPaidInput');
-    const val = input ? yenDigits(input.value) : '';
-    if (val === '' || isNaN(Number(val)) || Number(val) < 0) {
-      if (msg) { msg.textContent = '⚠ 金額を確認してください'; msg.style.color = '#dc2626'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--green)'; }, 3000); }
-      return;
-    }
-    const numVal = Number(val);
+    const showMsg = (text, color) => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = color;
+      msg.style.opacity = '1';
+      setTimeout(() => { msg.style.opacity = '0'; }, 2500);
+    };
+    if (!prevNum) { showMsg('前回請求書がありません', '#dc2626'); return; }
+    if (numVal == null || isNaN(numVal) || numVal < 0) { showMsg('⚠ 金額を確認してください', '#dc2626'); return; }
     const res = await sbFetch(
       '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(prevNum),
       { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: numVal }) }
     );
     if (res.ok) {
-      // window._invoiceTotals の prevPaidAmount を更新し再描画
       if (window._invoiceTotals) window._invoiceTotals.prevPaidAmount = numVal;
-      updateBillingSummary();
-      if (msg) { msg.textContent = '✓ 保存しました'; msg.style.color = 'var(--green)'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; }, 2500); }
-      const btn = document.getElementById('sumPaidSaveBtn');
-      if (btn) btn.style.display = 'none';
+      showMsg('✓ 保存しました', 'var(--green)');
     } else {
-      if (msg) { msg.textContent = '❌ 保存失敗'; msg.style.color = '#dc2626'; msg.style.opacity = '1'; setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--green)'; }, 3000); }
+      showMsg('❌ 保存失敗', '#dc2626');
     }
   }
 
