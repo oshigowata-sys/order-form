@@ -175,10 +175,10 @@ tr.row-inprogress td{color:var(--text-muted)}
         <button class="filter-btn" data-filter="issued">発行済み</button>
         <select id="monthFilter" onchange="onMonthFilterChange(this.value)"
           style="padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);cursor:pointer;outline:none;font-weight:600">
-          <option value="all">📅 全期間</option>
+          <option value="all">全期間</option>
         </select>
         <div style="margin-left:auto">
-          <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名で検索" oninput="onSearchInput(this.value)">
+          <input type="text" id="searchInput" class="search-input" placeholder="取引先名で検索" oninput="onSearchInput(this.value)">
         </div>
       </div>
       <div class="table-wrapper">
@@ -338,7 +338,7 @@ function populateMonthFilter() {
   });
   const sorted = Array.from(months).sort().reverse();
   const prev = currentMonth;
-  sel.innerHTML = '<option value="all">📅 全期間</option>' +
+  sel.innerHTML = '<option value="all">全期間</option>' +
     sorted.map(ym => `<option value="${ym}">${formatMonthLabel(ym)} 請求</option>`).join('');
   // 現在の選択が選択肢に存在しなければ "all" に戻す
   if (prev !== 'all' && !sorted.includes(prev)) {
