@@ -444,6 +444,47 @@
       margin-left: 2px;
     }
 
+    /* カート明細（商品名 × 個数・金額） */
+    .summary-items {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .summary-items-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 6px 0;
+    }
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      margin-bottom: 6px;
+    }
+    .summary-item:last-child { margin-bottom: 0; }
+    .summary-item-name {
+      flex: 1;
+      min-width: 0;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .summary-item-qty {
+      flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 11.5px;
+    }
+    .summary-item-amount {
+      flex-shrink: 0;
+      color: var(--text);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
     .summary-lines {
       padding: 14px 20px;
       border-bottom: 1px solid var(--border);
@@ -696,6 +737,9 @@
             <span class="num" id="summaryCount">0</span><span class="summary-count-unit">点選択中</span>
           </div>
         </div>
+        <div class="summary-items" id="summaryItems">
+          <div class="summary-items-empty">商品が選択されていません</div>
+        </div>
         <div class="summary-lines">
           <div class="summary-line">
             <span>小計（税抜）</span>
@@ -897,6 +941,7 @@
                       id="qty-${esc(p.id)}"
                       data-id="${esc(p.id)}" data-price="${Number(p.price)}"
                       data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
+                      data-name="${esc(p.name)}"
                       oninput="syncQty(this)">
                     <button class="stepper-btn plus" onclick="stepQty('${esc(p.id)}',1)">+</button>
                   </div>
@@ -932,7 +977,8 @@
   function getOrderItems() {
     return Array.from(document.querySelectorAll('.qty-input'))
       .map(el => ({
-        id: el.dataset.id, price: Number(el.dataset.price),
+        id: el.dataset.id, name: el.dataset.name || '',
+        price: Number(el.dataset.price),
         taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
         qty: parseInt(el.value) || 0
       }))
@@ -950,6 +996,23 @@
       totalQty += i.qty;
     });
     const total = subtotal + tax8 + tax10;
+
+    // カート明細の表示
+    const itemsEl = document.getElementById('summaryItems');
+    if (itemsEl) {
+      if (items.length === 0) {
+        itemsEl.innerHTML = '<div class="summary-items-empty">商品が選択されていません</div>';
+      } else {
+        itemsEl.innerHTML = items.map(i => {
+          const amt = i.price * i.qty;
+          return `<div class="summary-item">
+            <span class="summary-item-name" title="${esc(i.name)}">${esc(i.name)}</span>
+            <span class="summary-item-qty">× ${i.qty}</span>
+            <span class="summary-item-amount">¥${amt.toLocaleString()}</span>
+          </div>`;
+        }).join('');
+      }
+    }
 
     document.getElementById('summaryCount').textContent = totalQty;
     document.getElementById('summarySubtotal').textContent = '¥' + subtotal.toLocaleString();
