@@ -517,6 +517,66 @@
     font-weight: 700;
     font-family: 'Space Grotesk', sans-serif;
   }
+  /* 編集可能セル（御入金金額） */
+  .summary-cell-editable {
+    background: rgba(232, 99, 10, 0.05);
+    position: relative;
+  }
+  .summary-cell-editable .summary-cell-label::after {
+    content: ' ✎';
+    color: var(--orange);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .paid-input-inline {
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(232,99,10,0.4);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    outline: none;
+    padding: 0;
+  }
+  .paid-input-inline:focus {
+    border-bottom-color: var(--orange);
+    border-bottom-width: 1.5px;
+  }
+  .paid-input-inline::placeholder {
+    color: rgba(122, 106, 85, 0.4);
+    font-weight: 400;
+  }
+  .paid-actions {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 24px;
+  }
+  .paid-actions button {
+    display: none;
+    padding: 2px 10px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .paid-actions span {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: var(--green);
+    min-height: 12px;
+  }
   .summary-total-box {
     border: 2px solid var(--orange);
     border-radius: 8px;
@@ -561,6 +621,9 @@
     .invoice-table tbody tr:hover { background: transparent; }
     .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .paid-input-inline { border: none !important; padding: 0 !important; }
+    .summary-cell-editable { background: transparent !important; }
+    .summary-cell-editable .summary-cell-label::after { content: '' !important; }
+    .paid-actions { display: none !important; }
     @page { margin: 6mm; size: A4; }
   }
 </style>
@@ -899,17 +962,15 @@
             <div class="summary-cell-label">前回御請求額</div>
             <div class="summary-cell-value" id="sumPrev">—</div>
           </div>
-          <div class="summary-cell">
+          <div class="summary-cell summary-cell-editable">
             <div class="summary-cell-label">御入金金額</div>
             <div class="summary-cell-value" id="sumPaid">
               <input type="text" id="sumPaidInput" inputmode="numeric" placeholder="0" oninput="onYenInput(this);onPaidInputChange()"
-                class="paid-input-inline"
-                style="width:100%;text-align:right;background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;outline:none;padding:2px 0;">
-              <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;">
-                <span id="paidSaveMsg" style="font-size:14px;font-weight:600;opacity:0;transition:opacity 0.3s;color:var(--green)"></span>
-                <button id="sumPaidSaveBtn" onclick="savePaidAmount()"
-                  style="display:none;padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:14px;font-family:inherit;font-weight:600;cursor:pointer">保存</button>
-              </div>
+                class="paid-input-inline">
+            </div>
+            <div class="paid-actions no-print">
+              <button id="sumPaidSaveBtn" onclick="savePaidAmount()">保存</button>
+              <span id="paidSaveMsg"></span>
             </div>
           </div>
           <div class="summary-cell">
