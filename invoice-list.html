@@ -228,30 +228,6 @@ tr.row-inprogress td{color:var(--text-muted)}
   </div>
 </div>
 
-<!-- 入金登録モーダル -->
-<div class="overlay" id="paymentModalOverlay" onclick="if(event.target===this)closePaymentModal()">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">入金登録</div>
-      <button class="modal-close" onclick="closePaymentModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="margin-bottom:12px;font-size:14px">取引先：<strong id="paymentCustomerName"></strong></div>
-      <div style="margin-bottom:16px;font-size:14px;color:var(--text-muted)">
-        期間：<span id="paymentPeriod"></span>　御請求額：<strong id="paymentTotalAmount" style="color:var(--text)"></strong>
-      </div>
-      <div>
-        <label class="form-label">入金額（円）</label>
-        <input type="text" class="form-input" id="paymentAmount" inputmode="numeric" placeholder="例：88,000" oninput="onYenInput(this)">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closePaymentModal()">キャンセル</button>
-      <button class="btn btn-primary" id="paymentConfirmBtn" onclick="confirmPayment()">登録する</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
@@ -471,7 +447,7 @@ function renderAll() {
       const unpaidBadge = r.paidAmount == null
         ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700">入金未登録</span>' : '';
       badge          = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
-      action         = `<button class="btn btn-green btn-sm" onclick="openPdf(${idx})">PDF</button> <button class="btn btn-outline btn-sm payment-btn" data-idx="${idx}">入金登録</button>`;
+      action         = `<button class="btn btn-green btn-sm" onclick="openPdf(${idx})">PDF</button>`;
       ordersCell     = '—';
       issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—';
     } else {
@@ -498,9 +474,6 @@ function renderAll() {
   });
   tbody.querySelectorAll('.interim-btn').forEach(btn => {
     btn.onclick = () => openIssueModal(_renderedRows[parseInt(btn.dataset.idx)], true);
-  });
-  tbody.querySelectorAll('.payment-btn').forEach(btn => {
-    btn.onclick = () => openPaymentModal(_renderedRows[parseInt(btn.dataset.idx)]);
   });
 }
 
@@ -599,58 +572,6 @@ async function confirmIssue() {
     showToast('❌ 発行に失敗しました。もう一度お試しください。');
   } finally {
     btn.disabled = false; btn.textContent = '発行する';
-  }
-}
-
-// ── 入金登録 ──
-let _paymentTarget = null;
-
-function yenDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
-function formatYen(s) {
-  const d = yenDigits(s);
-  return d === '' ? '' : Number(d).toLocaleString('en-US');
-}
-function onYenInput(el) { el.value = formatYen(el.value); }
-
-function openPaymentModal(r) {
-  _paymentTarget = r;
-  document.getElementById('paymentCustomerName').textContent = r.customer;
-  document.getElementById('paymentPeriod').textContent =
-    `${r.periodStart.replace(/-/g,'/')}〜${r.periodEnd.replace(/-/g,'/')}`;
-  document.getElementById('paymentTotalAmount').textContent =
-    '¥' + (r.excl + r.tax).toLocaleString();
-  document.getElementById('paymentAmount').value = r.paidAmount != null ? formatYen(r.paidAmount) : '';
-  document.getElementById('paymentModalOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('paymentAmount').focus(), 100);
-}
-
-function closePaymentModal() {
-  document.getElementById('paymentModalOverlay').classList.remove('open');
-  _paymentTarget = null;
-}
-
-async function confirmPayment() {
-  if (!_paymentTarget) return;
-  const val = yenDigits(document.getElementById('paymentAmount').value);
-  if (val === '' || isNaN(Number(val)) || Number(val) < 0) {
-    showToast('⚠️ 入金額を正しく入力してください'); return;
-  }
-  const btn = document.getElementById('paymentConfirmBtn');
-  btn.disabled = true; btn.textContent = '登録中...';
-  try {
-    const res = await sbFetch(
-      `/rest/v1/invoices?invoice_number=eq.${encodeURIComponent(_paymentTarget.invoiceNumber)}`,
-      { method: 'PATCH', body: JSON.stringify({ paid_amount: Number(val) }) }
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    closePaymentModal();
-    showToast('✅ 入金額を登録しました');
-    await loadAll();
-  } catch(e) {
-    console.error(e);
-    showToast('❌ 登録に失敗しました');
-  } finally {
-    btn.disabled = false; btn.textContent = '登録する';
   }
 }
 
