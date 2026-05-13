@@ -386,6 +386,26 @@ async function loadAll() {
     // 発行済みセット（customer_id:period_end）
     const invoicedSet = new Set(invoices.map(i => `${i.customer_id}:${i.period_end}`));
 
+    // 発行済み請求書の受注件数集計（顧客×期間で該当ordersをカウント）
+    const invoicePeriodsByCustomer = {};
+    invoices.forEach(inv => {
+      if (!invoicePeriodsByCustomer[inv.customer_id]) invoicePeriodsByCustomer[inv.customer_id] = [];
+      invoicePeriodsByCustomer[inv.customer_id].push({
+        start: inv.period_start, end: inv.period_end, key: `${inv.customer_id}:${inv.period_end}`
+      });
+    });
+    const issuedOrdersCount = {};
+    orders.forEach(o => {
+      const cid = o.customers?.id;
+      if (!cid) return;
+      const periods = invoicePeriodsByCustomer[cid] || [];
+      periods.forEach(p => {
+        if (o.order_date >= p.start && o.order_date <= p.end) {
+          issuedOrdersCount[p.key] = (issuedOrdersCount[p.key] || 0) + 1;
+        }
+      });
+    });
+
     // 発行済み行
     const issuedRows = invoices.map(inv => ({
       status: 'issued',
@@ -393,7 +413,7 @@ async function loadAll() {
       customerId: inv.customer_id || '',
       periodStart: inv.period_start || '',
       periodEnd: inv.period_end || '',
-      orders: 0,
+      orders: issuedOrdersCount[`${inv.customer_id}:${inv.period_end}`] || 0,
       excl: inv.total_excl_tax || 0,
       tax: inv.tax_amount || 0,
       invoiceNumber: inv.invoice_number || '',
@@ -483,19 +503,19 @@ function renderAll() {
       badge          = '<span class="badge badge-pending">未発行</span>';
       action         = `<button class="btn btn-primary btn-sm issue-btn" data-idx="${idx}">発行</button>`;
       ordersCell     = `${r.orders}件`;
-      issuedDateCell = '—';
+      issuedDateCell = '未発行';
     } else if (r.status === 'issued') {
       const unpaidBadge = r.paidAmount == null
         ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700">入金未登録</span>' : '';
       badge          = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
-      action         = `<button class="btn btn-green btn-sm" onclick="openPdf(${idx})">PDF</button>`;
-      ordersCell     = '—';
-      issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—';
+      action         = `<button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button>`;
+      ordersCell     = `${r.orders}件`;
+      issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '未発行';
     } else {
       badge          = '<span class="badge badge-inprogress">進行中</span>';
-      action         = `<button class="btn btn-outline btn-sm interim-btn" data-idx="${idx}" style="border-color:var(--orange);color:var(--orange)">途中発行</button>`;
-      ordersCell     = r.orders > 0 ? `${r.orders}件` : '—';
-      issuedDateCell = '—';
+      action         = `<button class="btn btn-primary btn-sm interim-btn" data-idx="${idx}">途中発行</button>`;
+      ordersCell     = `${r.orders}件`;
+      issuedDateCell = '未発行';
     }
 
     const rowClass = r.status === 'in_progress' ? ' class="row-inprogress"' : '';
