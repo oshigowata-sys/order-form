@@ -23,7 +23,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
 .nav-label:first-child{margin-top:0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
 .nav-item:hover{background:rgba(255,255,255,0.06)}
 .nav-item.active{background:var(--orange);color:#fff}
 .nav-item .icon{font-size:16px;width:20px;text-align:center}
@@ -31,10 +31,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .topbar-left{}
 .page-title{font-size:18px;font-weight:700}
-.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
 .period-select{display:flex;align-items:center;gap:8px}
-.period-select label{font-size:13px;color:var(--text-muted);font-weight:500}
-.period-select select{padding:7px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Noto Sans JP',sans-serif;background:var(--surface);color:var(--text);cursor:pointer;outline:none;transition:border-color 0.2s}
+.period-select label{font-size:14px;color:var(--text-muted);font-weight:500}
+.period-select select{padding:7px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Noto Sans JP',sans-serif;background:var(--surface);color:var(--text);cursor:pointer;outline:none;transition:border-color 0.2s}
 .period-select select:focus{border-color:var(--orange)}
 .content{padding:28px 32px;flex:1}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
@@ -42,10 +42,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 16px 0 80px;opacity:.08;background:var(--orange)}
 .kpi-card.green::before{background:var(--green)}
 .kpi-card.yellow::before{background:var(--yellow)}
-.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
+.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
-.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
 .section-col{display:flex;flex-direction:column;gap:20px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
@@ -55,9 +55,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .chart-container{height:200px;position:relative;border-bottom:1px solid var(--border)}
 .plan-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(247,243,238,0.92);backdrop-filter:blur(3px);z-index:10;text-align:center;padding:16px}
 .plan-lock-icon{font-size:28px;line-height:1}
-.plan-lock-title{font-size:13px;font-weight:700;color:var(--text)}
-.plan-lock-sub{font-size:11px;color:var(--text-muted);line-height:1.5}
-.plan-lock-btn{padding:7px 16px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.plan-lock-title{font-size:14px;font-weight:700;color:var(--text)}
+.plan-lock-sub{font-size:14px;color:var(--text-muted);line-height:1.5}
+.plan-lock-btn{padding:7px 16px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
 .plan-lock-btn:hover{opacity:0.85}
 .upgrade-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
 .upgrade-modal-overlay.open{display:flex}
@@ -65,43 +65,43 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .upgrade-modal-header{background:linear-gradient(135deg,#e8630a,#f97316);padding:24px 28px;color:white}
 .upgrade-modal-title{font-size:17px;font-weight:700;margin-bottom:4px}
-.upgrade-modal-sub{font-size:13px;opacity:0.85}
+.upgrade-modal-sub{font-size:14px;opacity:0.85}
 .upgrade-modal-body{padding:24px 28px}
-.upgrade-feature{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:13px}
+.upgrade-feature{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px}
 .upgrade-feature-icon{color:var(--green);font-size:16px;flex-shrink:0;margin-top:1px}
 .upgrade-modal-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
-.btn-upgrade{background:var(--orange);color:white;padding:10px 22px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.btn-upgrade{background:var(--orange);color:white;padding:10px 22px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
 .btn-upgrade:hover{opacity:0.85}
-.btn-later{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.btn-later{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
 .btn-later:hover{border-color:var(--orange);color:var(--orange)}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
-th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+th{padding:10px 16px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg)}
-td{padding:13px 16px;font-size:13px;vertical-align:middle}
-.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:500}
+td{padding:13px 16px;font-size:14px;vertical-align:middle}
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:14px;font-weight:500}
 .badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.3)}
 .badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.3)}
 .badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3)}
-.status-sel{border-radius:20px;font-size:11px;font-weight:600;padding:3px 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
+.status-sel{border-radius:20px;font-size:14px;font-weight:600;padding:3px 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
 .status-sel.s-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
 .status-sel.s-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
 .status-sel.s-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .status-sel.saved{box-shadow:0 0 0 2px var(--green)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;text-decoration:none}
 .btn:hover{opacity:0.85}
 .btn-primary{background:var(--orange);color:#fff}
-.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
 
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
-.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
 .topbar-user{display:flex;align-items:center;gap:10px}
-.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
-.topbar-user-role{font-size:11px;color:var(--text-muted)}
-.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:14px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -151,7 +151,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
   <div class="content">
     <div id="errorBanner" style="display:none;margin-bottom:16px;padding:12px 16px;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;align-items:center;justify-content:space-between;gap:12px">
       <span id="errorBannerMsg">データ取得に失敗しました</span>
-      <button onclick="loadDashboard()" style="padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button>
+      <button onclick="loadDashboard()" style="padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button>
     </div>
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
@@ -188,12 +188,12 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       <div class="upgrade-modal-sub">より詳しい分析でビジネスを加速させましょう</div>
     </div>
     <div class="upgrade-modal-body">
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">📈</span><div><strong>月次売上推移グラフ</strong><br><span style="color:var(--text-muted);font-size:12px">過去6ヶ月の売上を視覚的に把握</span></div></div>
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">📊</span><div><strong>商品別注文数グラフ</strong><br><span style="color:var(--text-muted);font-size:12px">売れ筋商品を一目で確認</span></div></div>
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">🏢</span><div><strong>取引先数 無制限</strong><br><span style="color:var(--text-muted);font-size:12px">スターター：8社まで → 無制限</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📈</span><div><strong>月次売上推移グラフ</strong><br><span style="color:var(--text-muted);font-size:14px">過去6ヶ月の売上を視覚的に把握</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📊</span><div><strong>商品別注文数グラフ</strong><br><span style="color:var(--text-muted);font-size:14px">売れ筋商品を一目で確認</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">🏢</span><div><strong>取引先数 無制限</strong><br><span style="color:var(--text-muted);font-size:14px">スターター：8社まで → 無制限</span></div></div>
       <div style="margin-top:16px;padding:14px 16px;background:var(--orange-pale);border-radius:10px;border:1px solid rgba(232,99,10,0.2)">
-        <div style="font-size:12px;color:var(--orange);font-weight:700;margin-bottom:4px">スタンダードプラン</div>
-        <div style="font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">¥9,800<span style="font-size:13px;font-weight:400;color:var(--text-muted)">/月（税別）</span></div>
+        <div style="font-size:14px;color:var(--orange);font-weight:700;margin-bottom:4px">スタンダードプラン</div>
+        <div style="font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">¥9,800<span style="font-size:14px;font-weight:400;color:var(--text-muted)">/月（税別）</span></div>
       </div>
     </div>
     <div class="upgrade-modal-footer">
@@ -412,7 +412,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 15);
     const el = document.getElementById('pieChart');
     if (sorted.length === 0) {
-      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">データなし</div>';
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px">データなし</div>';
       return;
     }
     const total = sorted.reduce((s, [, v]) => s + v, 0);
@@ -440,8 +440,8 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
       const short = name.length > 14 ? name.slice(0, 14) + '…' : name;
       return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
         <div style="width:9px;height:9px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
-        <span style="font-size:11px;color:var(--text);flex:1;overflow:hidden;white-space:nowrap">${short}</span>
-        <span style="font-size:11px;font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${qty}</span>
+        <span style="font-size:14px;color:var(--text);flex:1;overflow:hidden;white-space:nowrap">${short}</span>
+        <span style="font-size:14px;font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${qty}</span>
       </div>`;
     }).join('');
     el.innerHTML = `<div style="display:flex;align-items:center;gap:12px;height:100%">
@@ -462,9 +462,9 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle}
     document.getElementById('recentOrders').innerHTML =
       `<thead><tr><th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th><th style="text-align:right">注文合計</th></tr></thead>
       <tbody>${sorted.length ? sorted.map(o=>`<tr>
-        <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px">${esc(o.id)}</td>
+        <td style="font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:14px">${esc(o.id)}</td>
         <td style="font-weight:500">${esc(o.customer)}</td>
-        <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
+        <td style="color:var(--text-muted);font-size:14px">${esc(o.date)}</td>
         <td><select class="status-sel ${STATUS_CLS[o.status]||''}" onchange="patchStatus('${esc(o.uuid)}',this)">${STATUSES.map(s=>`<option value="${s}"${o.status===s?' selected':''}>${s}</option>`).join('')}</select></td>
         <td style="font-weight:700;text-align:right;font-family:'Space Grotesk',sans-serif">¥${o.total.toLocaleString()}</td>
       </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">この月の受注はありません</td></tr>'}</tbody>`;

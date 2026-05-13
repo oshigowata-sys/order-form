@@ -23,33 +23,33 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
 .nav-label:first-child{margin-top:0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
 .nav-item:hover{background:rgba(255,255,255,0.06)}
 .nav-item.active{background:var(--orange);color:#fff}
 .nav-item .icon{font-size:16px;width:20px;text-align:center}
 .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .page-title{font-size:18px;font-weight:700}
-.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
 .content{padding:28px 32px;flex:1}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
 .filter-tabs{display:flex;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border);align-items:center}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:7px 14px}
-.search-box input{border:none;background:none;outline:none;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);width:200px}
+.search-box input{border:none;background:none;outline:none;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);width:200px}
 .search-box input::placeholder{color:var(--text-muted)}
 .search-box:focus-within{border-color:var(--orange)}
-.tab{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;color:var(--text-muted)}
+.tab{padding:6px 14px;border-radius:100px;font-size:14px;font-weight:500;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;color:var(--text-muted)}
 .tab.active{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
 .tab:hover:not(.active){border-color:var(--orange);color:var(--orange)}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
-th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+th{padding:10px 14px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg)}
-td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:14px;font-weight:600}
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
 .badge-new::before{background:var(--orange)}
@@ -57,7 +57,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .badge-processing::before{background:var(--yellow)}
 .badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .badge-shipped::before{background:var(--green)}
-.status-sel{border-radius:20px;font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
+.status-sel{border-radius:20px;font-size:14px;font-weight:600;padding:4px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
 .status-sel.s-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
 .status-sel.s-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
 .status-sel.s-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
@@ -69,21 +69,21 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .kpi-card.green::before{background:var(--green)}
 .kpi-card.yellow::before{background:var(--yellow)}
 .kpi-card.blue::before{background:#3b82f6}
-.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
 .kpi-value.green{color:var(--green)}
-.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
 .topbar-user{display:flex;align-items:center;gap:10px}
-.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
-.topbar-user-role{font-size:11px;color:var(--text-muted)}
-.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:14px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
 .num-right{text-align:right}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
 .btn:hover{opacity:0.85}
 .btn-primary{background:var(--orange);color:#fff}
 .btn-outline{background:var(--surface);border:1.5px solid var(--orange);color:var(--orange)}
-.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
 /* モーダル */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
@@ -94,15 +94,15 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .modal-close:hover{background:var(--bg)}
 .modal-body{padding:24px 28px}
 .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.info-item label{font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+.info-item label{font-size:14px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
 .info-item span{font-size:14px;font-weight:600}
-.items-section-title{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
-.badge-food{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
-.badge-regular{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
+.items-section-title{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.badge-food{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);font-size:14px;padding:2px 7px;border-radius:4px;display:inline-block}
+.badge-regular{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);font-size:14px;padding:2px 7px;border-radius:4px;display:inline-block}
 .modal-footer{padding:16px 28px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
-.totals{display:flex;gap:24px;font-size:13px}
+.totals{display:flex;gap:24px;font-size:14px}
 .totals-item{text-align:right}
-.totals-item label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px}
+.totals-item label{display:block;font-size:14px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px}
 .totals-item span{font-weight:700;font-size:15px;font-family:'Space Grotesk',sans-serif}
 .totals-item span.highlight{color:var(--orange)}
 .totals-item span.green{color:var(--green)}
@@ -110,21 +110,21 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
 /* 新規受注入力モーダル */
 .form-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .form-group2{display:flex;flex-direction:column;gap:5px}
-.form-label2{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase}
-.form-input2{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
+.form-label2{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase}
+.form-input2{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
 .form-input2:focus{border-color:var(--orange);background:#fff}
 .add-item-row{display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:flex-end;margin-bottom:14px}
 .entry-items-table{width:100%;border-collapse:collapse;margin-top:8px}
-.entry-items-table th{font-size:11px;font-weight:700;color:var(--text-muted);padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.5px}
-.entry-items-table td{padding:9px 10px;font-size:13px;border-bottom:1px solid var(--border)}
+.entry-items-table th{font-size:14px;font-weight:700;color:var(--text-muted);padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:0.5px}
+.entry-items-table td{padding:9px 10px;font-size:14px;border-bottom:1px solid var(--border)}
 .entry-items-table tr:last-child td{border-bottom:none}
 .entry-total{text-align:right;padding:12px 0 4px;font-size:15px;font-weight:700}
 .btn-danger-sm{background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:2px 6px}
-.entry-error{color:#dc2626;font-size:12px;margin-top:4px;display:none}
+.entry-error{color:#dc2626;font-size:14px;margin-top:4px;display:none}
 .entry-error.show{display:block}
 
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
-.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
 </style>
 <link rel="stylesheet" href="mobile.css">
@@ -222,7 +222,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
       <div class="modal-title" id="modalTitle">受注詳細</div>
       <div style="display:flex;align-items:center;gap:10px">
         <button onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')"
-          style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
+          style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
           🖨 納品書・請求書を発行
         </button>
         <button class="modal-close" onclick="closeDetail()">✕</button>
@@ -242,13 +242,13 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
           <option value="出荷済み">出荷済み</option>
         </select>
         <button class="btn btn-primary btn-sm" id="detailStatusBtn" onclick="updateOrderStatus()">保存</button>
-        <span id="detailStatusMsg" style="font-size:12px;color:var(--green);display:none">✓ 変更しました</span>
+        <span id="detailStatusMsg" style="font-size:14px;color:var(--green);display:none">✓ 変更しました</span>
       </div>
     </div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
       <div class="modal-btns" style="display:flex;align-items:center;gap:10px">
-        <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:12px" onclick="deleteOrder()">受注を削除</button>
+        <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:14px" onclick="deleteOrder()">受注を削除</button>
       </div>
     </div>
   </div>
@@ -299,7 +299,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         </table>
         <div class="entry-total" id="newOrderTotal" style="display:none"></div>
       </div>
-      <div class="entry-error" id="orderError" style="font-size:13px;margin-top:8px"></div>
+      <div class="entry-error" id="orderError" style="font-size:14px;margin-top:8px"></div>
     </div>
     <div class="modal-footer">
       <div></div>
@@ -388,7 +388,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     } catch(e) {
       console.error('受注データ取得失敗:', e);
       document.getElementById('ordersTbody').innerHTML =
-        '<tr><td colspan="9" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadOrders()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
+        '<tr><td colspan="9" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadOrders()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
     }
   }
 
@@ -423,9 +423,9 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
     tbody.innerHTML = list.map(o => {
       const profit = o.excl - o.cost;
       return `<tr>
-        <td><button onclick="openDetail('${esc(o.id)}')" style="background:none;border:none;padding:0;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px">${esc(o.code)}</button></td>
+        <td><button onclick="openDetail('${esc(o.id)}')" style="background:none;border:none;padding:0;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--orange);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:2px">${esc(o.code)}</button></td>
         <td style="font-weight:500">${esc(o.customer)}</td>
-        <td style="color:var(--text-muted);font-size:12px">${esc(o.date)}</td>
+        <td style="color:var(--text-muted);font-size:14px">${esc(o.date)}</td>
         <td><select class="status-sel ${STATUS_CLS[o.status]||''}" onchange="patchStatus('${esc(o.id)}',this)">${STATUSES.map(s=>`<option value="${s}"${o.status===s?' selected':''}>${s}</option>`).join('')}</select></td>
         <td class="num-right" style="font-family:'Space Grotesk',sans-serif">¥${o.excl.toLocaleString()}</td>
         <td class="num-right" style="color:var(--text-muted);font-family:'Space Grotesk',sans-serif">¥${o.tax.toLocaleString()}</td>
@@ -434,7 +434,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         <td style="white-space:nowrap">
           <button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button>
           <button onclick="window.open('invoice.html?order_id=${esc(o.id)}', '_blank')"
-            style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;vertical-align:middle;font-family:inherit;white-space:nowrap">納品書発行</button>
+            style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;vertical-align:middle;font-family:inherit;white-space:nowrap">納品書発行</button>
         </td>
       </tr>`;
     }).join('');
@@ -545,7 +545,7 @@ td{padding:13px 14px;font-size:13px;vertical-align:middle;white-space:nowrap}
         excl  += sub;
         tax   += Math.round(sub * taxRate);
         return `<tr>
-          <td style="font-size:12px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
+          <td style="font-size:14px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
           <td style="font-weight:500;white-space:normal">${esc(it.products?.product_name || '—')}</td>
           <td class="num-right">${qty}</td>
           <td class="num-right">¥${price.toLocaleString()}</td>

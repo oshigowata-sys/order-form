@@ -22,35 +22,35 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .sidebar-nav{padding:16px 12px;flex:1}
 .nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin-bottom:8px;margin-top:16px}
 .nav-label:first-child{margin-top:0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
 .nav-item:hover{background:rgba(255,255,255,0.06)}
 .nav-item.active{background:var(--orange);color:#fff}
 .nav-item .icon{font-size:16px;width:20px;text-align:center}
 .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
 .page-title{font-size:18px;font-weight:700}
-.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
 .content{padding:28px 32px;flex:1}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
-.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
 .search-input:focus{border-color:var(--orange);background:#fff}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
-th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+th{padding:10px 16px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 tbody tr{background:var(--bg);border-bottom:1px solid var(--border);transition:background 0.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:#f0ebe3}
-td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
+td{padding:13px 16px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .num-right{text-align:right}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
 .btn:hover{opacity:0.85}
 .btn-primary{background:var(--orange);color:#fff}
 .btn-green{background:var(--green);color:#fff}
 .btn-outline{background:none;border:1.5px solid var(--border);color:var(--text-muted)}
-.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
 /* status badges */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:14px;font-weight:600}
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .badge-issued{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
 .badge-issued::before{background:var(--green)}
@@ -60,7 +60,7 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .badge-inprogress::before{background:#9ca3af}
 /* filter bar */
 .filter-bar{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border)}
-.filter-btn{padding:5px 14px;border:1.5px solid var(--border);border-radius:20px;background:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;transition:all 0.15s}
+.filter-btn{padding:5px 14px;border:1.5px solid var(--border);border-radius:20px;background:none;cursor:pointer;font-size:14px;font-weight:600;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;transition:all 0.15s}
 .filter-btn:hover{border-color:var(--orange);color:var(--orange)}
 .filter-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
 /* KPI */
@@ -70,18 +70,18 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .kpi-card.green::after{background:var(--green)}
 .kpi-card.yellow::after{background:#d97706}
 .kpi-card.blue::after{background:#3b82f6}
-.kpi-label{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
 .kpi-value.warn{color:var(--orange)}
 .kpi-value.green{color:var(--green)}
-.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:3px}
 /* topbar user */
 .topbar-user{display:flex;align-items:center;gap:10px}
-.topbar-user-name{font-size:13px;font-weight:600;color:var(--text)}
-.topbar-user-role{font-size:11px;color:var(--text-muted)}
-.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:14px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
-.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:13px;font-weight:500;transition:all 0.2s;text-decoration:none}
+.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
 /* modal */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding-top:80px;backdrop-filter:blur(4px)}
@@ -93,12 +93,12 @@ td{padding:13px 16px;font-size:13px;vertical-align:middle;white-space:nowrap}
 .modal-close:hover{background:var(--bg)}
 .modal-body{padding:20px 24px}
 .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--bg)}
-.form-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:5px}
-.form-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;width:100%}
+.form-label{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:5px}
+.form-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;width:100%}
 .form-input:focus{border-color:var(--orange);background:#fff}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 /* toast */
-.toast{position:fixed;bottom:28px;right:28px;background:#1a1208;color:#fff;padding:13px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;font-family:'Noto Sans JP',sans-serif}
+.toast{position:fixed;bottom:28px;right:28px;background:#1a1208;color:#fff;padding:13px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;font-family:'Noto Sans JP',sans-serif}
 .toast.show{opacity:1;transform:translateY(0)}
 /* in-progress row muted */
 tr.row-inprogress td{color:var(--text-muted)}
@@ -203,10 +203,10 @@ tr.row-inprogress td{color:var(--text-muted)}
       <button class="modal-close" onclick="closeIssueModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div id="interimWarning" style="display:none;background:#fff4ec;border:1px solid var(--orange);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#b34500;line-height:1.6">
+      <div id="interimWarning" style="display:none;background:#fff4ec;border:1px solid var(--orange);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:14px;color:#b34500;line-height:1.6">
         ⚠️ <strong>途中発行</strong>です。本日以降に届いた注文は今月末に再度発行が必要になります。
       </div>
-      <div style="margin-bottom:16px;font-size:13px">
+      <div style="margin-bottom:16px;font-size:14px">
         取引先：<strong id="issueCustomerName"></strong>
       </div>
       <div class="form-row">
@@ -219,7 +219,7 @@ tr.row-inprogress td{color:var(--text-muted)}
           <input type="date" class="form-input" id="issuePeriodEnd">
         </div>
       </div>
-      <div id="issuePreview" style="padding:12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text-muted)"></div>
+      <div id="issuePreview" style="padding:12px;background:var(--bg);border-radius:8px;font-size:14px;color:var(--text-muted)"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeIssueModal()">キャンセル</button>
@@ -236,8 +236,8 @@ tr.row-inprogress td{color:var(--text-muted)}
       <button class="modal-close" onclick="closePaymentModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:12px;font-size:13px">取引先：<strong id="paymentCustomerName"></strong></div>
-      <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted)">
+      <div style="margin-bottom:12px;font-size:14px">取引先：<strong id="paymentCustomerName"></strong></div>
+      <div style="margin-bottom:16px;font-size:14px;color:var(--text-muted)">
         期間：<span id="paymentPeriod"></span>　御請求額：<strong id="paymentTotalAmount" style="color:var(--text)"></strong>
       </div>
       <div>
@@ -430,7 +430,7 @@ async function loadAll() {
   } catch(e) {
     console.error(e);
     document.getElementById('unifiedTbody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:13px">再読み込み</button></td></tr>';
+      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
   }
 }
 
@@ -484,10 +484,10 @@ function renderAll() {
     const rowClass = r.status === 'in_progress' ? ' class="row-inprogress"' : '';
     return `<tr${rowClass}>
       <td style="font-weight:600">${esc(r.customer)}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${period}</td>
+      <td style="font-size:14px;color:var(--text-muted)">${period}</td>
       <td class="num-right" style="font-family:'Space Grotesk',sans-serif">${ordersCell}</td>
       <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${issuedDateCell}</td>
+      <td style="font-size:14px;color:var(--text-muted)">${issuedDateCell}</td>
       <td>${badge}</td>
       <td>${action}</td>
     </tr>`;
