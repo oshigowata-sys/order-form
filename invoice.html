@@ -609,7 +609,10 @@
     const d = yenDigits(s);
     return d === '' ? '' : Number(d).toLocaleString('en-US');
   }
-  function onYenInput(el) { el.value = formatYen(el.value); }
+  function onYenInput(el) {
+    el.value = formatYen(el.value);
+    el.size = Math.max((el.value || '').length, 1);
+  }
 
   function esc(str) {
     if (str === null || str === undefined) return '';
@@ -902,11 +905,11 @@
           <div class="summary-cell">
             <div class="summary-cell-label">御入金金額</div>
             <div class="summary-cell-value" id="sumPaid" style="text-align:right;">
-              <span style="display:inline-flex;align-items:baseline;gap:1px;">
+              <span style="display:inline-flex;align-items:baseline;gap:0;">
                 <span style="font-size:inherit;font-weight:inherit;font-family:inherit;line-height:1;">¥</span>
-                <input type="text" id="sumPaidInput" inputmode="numeric" placeholder="0" oninput="onYenInput(this);onPaidInputChange()"
+                <input type="text" id="sumPaidInput" inputmode="numeric" placeholder="0" size="1" oninput="onYenInput(this);onPaidInputChange()"
                   class="paid-input-inline"
-                  style="width:9ch;text-align:right;background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;outline:none;padding:2px 0;">
+                  style="text-align:right;background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;outline:none;padding:2px 0;width:auto;">
               </span>
               <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;">
                 <span id="paidSaveMsg" style="font-size:14px;font-weight:600;opacity:0;transition:opacity 0.3s;color:var(--green)"></span>
@@ -1018,6 +1021,9 @@
     // 御入金金額：input に初期値をセット（編集可能セル）
     if (paidInputEl && paidInputEl.value === '' && paidAmount != null && !isNaN(paidAmount)) {
       paidInputEl.value = formatYen(paidAmount);
+    }
+    if (paidInputEl) {
+      paidInputEl.size = Math.max((paidInputEl.value || '').length, 1);
     }
     document.getElementById('sumCarry').textContent     = fmt(carryOver);
     document.getElementById('sumThisTotal').textContent = fmt(t.total);
