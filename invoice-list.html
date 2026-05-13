@@ -173,6 +173,10 @@ tr.row-inprogress td{color:var(--text-muted)}
         <button class="filter-btn active" data-filter="all">全件</button>
         <button class="filter-btn" data-filter="pending">未発行</button>
         <button class="filter-btn" data-filter="issued">発行済み</button>
+        <select id="monthFilter" onchange="onMonthFilterChange(this.value)"
+          style="padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);cursor:pointer;outline:none;font-weight:600">
+          <option value="all">📅 全期間</option>
+        </select>
         <div style="margin-left:auto">
           <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名で検索" oninput="onSearchInput(this.value)">
         </div>
@@ -306,10 +310,43 @@ let _allRows = [];
 let _renderedRows = [];
 let currentFilter = 'all';
 let currentSearch = '';
+let currentMonth = 'all';
 
 function onSearchInput(val) {
   currentSearch = val.trim();
   renderAll();
+}
+
+function onMonthFilterChange(val) {
+  currentMonth = val;
+  renderAll();
+}
+
+// 月ラベル整形: "2026-04" → "2026年4月"
+function formatMonthLabel(ym) {
+  const [y, m] = ym.split('-');
+  return `${y}年${parseInt(m, 10)}月`;
+}
+
+// _allRows から月別の選択肢を生成してセレクトに反映
+function populateMonthFilter() {
+  const sel = document.getElementById('monthFilter');
+  if (!sel) return;
+  const months = new Set();
+  _allRows.forEach(r => {
+    if (r.periodEnd) months.add(r.periodEnd.slice(0, 7));
+  });
+  const sorted = Array.from(months).sort().reverse();
+  const prev = currentMonth;
+  sel.innerHTML = '<option value="all">📅 全期間</option>' +
+    sorted.map(ym => `<option value="${ym}">${formatMonthLabel(ym)} 請求</option>`).join('');
+  // 現在の選択が選択肢に存在しなければ "all" に戻す
+  if (prev !== 'all' && !sorted.includes(prev)) {
+    currentMonth = 'all';
+    sel.value = 'all';
+  } else {
+    sel.value = prev;
+  }
 }
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -426,6 +463,7 @@ async function loadAll() {
     _allRows = [...pendingRows, ...issuedRows, ...inProgressRows];
 
     updateKPIs(pendingRows, issuedRows);
+    populateMonthFilter();
     renderAll();
   } catch(e) {
     console.error(e);
@@ -446,6 +484,9 @@ function renderAll() {
   let rows = _allRows;
   if (currentFilter === 'pending') rows = rows.filter(r => r.status === 'pending');
   else if (currentFilter === 'issued') rows = rows.filter(r => r.status === 'issued');
+  if (currentMonth !== 'all') {
+    rows = rows.filter(r => r.periodEnd && r.periodEnd.slice(0, 7) === currentMonth);
+  }
   const q = currentSearch.toLowerCase();
   if (q) rows = rows.filter(r => r.customer.toLowerCase().includes(q));
 
