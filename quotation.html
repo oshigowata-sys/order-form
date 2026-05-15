@@ -304,13 +304,20 @@ async function init() {
     const [settingsRes, customersRes, productsRes, pricingRes, banksRes] = await Promise.all([
       sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&limit=1`),
       sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=*&order=company_name.asc`),
-      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=*&order=name.asc`),
-      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=customer_id,product_id,unit_price`),
+      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=*&order=product_name.asc`),
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=customer_id,product_id,rate`),
       sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc`)
     ]);
-    if (!settingsRes.ok || !customersRes.ok || !productsRes.ok) throw new Error('マスタ取得失敗');
-    const [settings] = await settingsRes.json();
-    _settings = settings || {};
+    if (!settingsRes.ok) console.error('settings fetch failed:', settingsRes.status, await settingsRes.clone().text());
+    if (!customersRes.ok) console.error('customers fetch failed:', customersRes.status, await customersRes.clone().text());
+    if (!productsRes.ok) console.error('products fetch failed:', productsRes.status, await productsRes.clone().text());
+    if (!pricingRes.ok) console.error('pricing fetch failed:', pricingRes.status, await pricingRes.clone().text());
+    if (!banksRes.ok) console.error('tenant_bank_accounts fetch failed:', banksRes.status, await banksRes.clone().text());
+
+    if (!customersRes.ok || !productsRes.ok) throw new Error('取引先・商品マスタの取得に失敗しました（コンソールを確認）');
+
+    const settingsJson = settingsRes.ok ? await settingsRes.json() : [];
+    _settings = settingsJson[0] || {};
     _customers = await customersRes.json();
     _products = await productsRes.json();
     _pricing = pricingRes.ok ? await pricingRes.json() : [];
@@ -405,19 +412,19 @@ function onIssuedDateChange() {
   renderPreview();
 }
 
-// 掛け率管理から単価を取得（なければ商品マスタの list_price → cost_price の順）
+// 単価 = 商品の基本単価（products.price＝下代） × 取引先別掛け率（pricing.rate）
+// 掛け率未設定なら基本単価そのまま
 function lookupPrice(customerId, productId, productData) {
+  const prod = productData || _products.find(x => x.id === productId);
+  if (!prod) return 0;
+  const basePrice = Number(prod.price || prod.list_price || 0);
   if (customerId) {
     const p = _pricing.find(x => x.customer_id === customerId && x.product_id === productId);
-    if (p && p.unit_price != null) return Number(p.unit_price);
+    if (p && p.rate != null) {
+      return Math.round(basePrice * Number(p.rate));
+    }
   }
-  const prod = productData || _products.find(x => x.id === productId);
-  if (prod) {
-    if (prod.list_price != null && prod.list_price !== '') return Number(prod.list_price);
-    if (prod.cost_price != null && prod.cost_price !== '') return Number(prod.cost_price);
-    if (prod.unit_price != null && prod.unit_price !== '') return Number(prod.unit_price);
-  }
-  return null;
+  return basePrice;
 }
 
 // ===== 明細 =====
@@ -488,7 +495,7 @@ function renderProductPicker(q) {
   const filtered = _products.filter(p => {
     if (!q) return true;
     return (
-      (p.name || '').toLowerCase().includes(q) ||
+      (p.product_name || '').toLowerCase().includes(q) ||
       (p.product_code || '').toLowerCase().includes(q) ||
       (p.jan_code || '').toLowerCase().includes(q)
     );
@@ -501,10 +508,10 @@ function renderProductPicker(q) {
   list.innerHTML = filtered.slice(0, 100).map(p => `
     <div class="product-row" onclick="addProductFromPicker('${p.id}')">
       <div class="product-row-info">
-        <div class="product-row-name">${esc(p.name)}</div>
+        <div class="product-row-name">${esc(p.product_name)}</div>
         <div class="product-row-meta">${esc(p.product_code || '')}${p.jan_code ? ' / JAN: ' + esc(p.jan_code) : ''}${p.is_food ? ' / 食品' : ''}</div>
       </div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${p.list_price != null && p.list_price !== '' ? fmt(p.list_price) : ''}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${p.price != null && p.price !== '' ? fmt(p.price) : ''}</div>
     </div>
   `).join('');
 }
@@ -517,7 +524,7 @@ function addProductFromPicker(productId) {
   _items.push({
     product_id: p.id,
     product_code: p.product_code || '',
-    product_name: p.name || '',
+    product_name: p.product_name || '',
     quantity: 1,
     unit_price: price,
     is_food: !!p.is_food
@@ -543,10 +550,8 @@ function renderPreview() {
   const c = _selectedCustomer || {};
   const customerName = c.company_name || c.name || '取引先を選択してください';
   const customerAddress = c.address || '';
-  const customerInvoiceNum = c.invoice_number || '';
-  const customerTel = c.tel || '';
-  const customerFax = c.fax || '';
-  const customerPerson = c.contact_person || c.person || '';
+  const customerTel = c.phone || c.tel || '';
+  const customerPerson = c.contact_name || c.person || '';
 
   const s = _settings;
   const fromBlock = s.name ? `
@@ -599,8 +604,6 @@ function renderPreview() {
         ${customerPerson ? `<div class="party-address">${esc(customerPerson)} 様</div>` : ''}
         ${customerAddress ? `<div class="party-address">${esc(customerAddress)}</div>` : ''}
         ${customerTel ? `<div class="party-address">TEL: ${esc(customerTel)}</div>` : ''}
-        ${customerFax ? `<div class="party-address">FAX: ${esc(customerFax)}</div>` : ''}
-        ${customerInvoiceNum ? `<div class="party-address" style="margin-top:4px">適格請求書番号: ${esc(customerInvoiceNum)}</div>` : ''}
       </div>
       <div style="text-align:right">
         <div class="footer-section-title" style="margin-bottom:6px">発行者 / ISSUED BY</div>
@@ -694,11 +697,9 @@ async function saveQuotation() {
     const customer = _customers.find(c => c.id === customerId) || null;
     const customerSnapshot = customer ? {
       name: customer.company_name || '',
-      person: customer.contact_person || '',
+      person: customer.contact_name || '',
       address: customer.address || '',
-      tel: customer.tel || '',
-      fax: customer.fax || '',
-      invoice_number: customer.invoice_number || ''
+      phone: customer.phone || ''
     } : {};
 
     let qid = quotationId;
