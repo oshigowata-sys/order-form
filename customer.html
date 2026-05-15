@@ -370,6 +370,7 @@
         paymentOffset:  r.payment_month_offset != null ? r.payment_month_offset : '',
         payment:        r.payment_day        != null ? r.payment_day        : '',
       }));
+      customers.sort((a, b) => a.company.localeCompare(b.company, 'ja'));
       render();
     } catch(e) {
       console.error('顧客データ取得失敗:', e);
