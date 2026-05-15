@@ -158,7 +158,9 @@
           p_token: token,
           p_company_name: company,
           p_login_id: loginId,
-          p_password: pw
+          p_password: pw,
+          p_terms_version: TERMS_VERSION,
+          p_privacy_version: PRIVACY_VERSION
         })
       });
       const result = await accRes.json().catch(() => null);

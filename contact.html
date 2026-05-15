@@ -259,7 +259,7 @@
       const res = await fetch(SB_URL + '/rest/v1/inquiries', {
         method: 'POST',
         headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ company_type: companyType, company_name: companyName, company_size: companySize, contact_name: contactName, email, phone, industry, order_method: orderMethod, monthly_orders: monthlyOrders, desired_start: desiredStart, message })
+        body: JSON.stringify({ company_type: companyType, company_name: companyName, company_size: companySize, contact_name: contactName, email, phone, industry, order_method: orderMethod, monthly_orders: monthlyOrders, desired_start: desiredStart, message, consented_at: new Date().toISOString(), consented_terms_version: TERMS_VERSION, consented_privacy_version: PRIVACY_VERSION })
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       document.getElementById('formArea').style.display = 'none';
