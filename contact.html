@@ -37,6 +37,10 @@
   .btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
   .btn:hover { opacity: 0.9; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .consent-group { margin-bottom: 18px; }
+  .consent-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; line-height: 1.6; color: var(--text); }
+  .consent-label input { width: auto; margin: 0; flex-shrink: 0; margin-top: 3px; cursor: pointer; padding: 0; background: none; border: none; }
+  .consent-label a { color: var(--orange); text-decoration: underline; }
   .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
   .error.show { display: block; }
   .success-screen { display: none; text-align: center; padding: 40px 0; }
@@ -166,7 +170,14 @@
         <textarea id="message" placeholder="ご質問・ご要望などがあればご記入ください（任意）"></textarea>
       </div>
 
-      <button class="btn" id="submitBtn" onclick="submit()">送信する</button>
+      <div class="consent-group">
+        <label class="consent-label">
+          <input type="checkbox" id="consentCheck" onchange="updateSubmitState()" />
+          <span><a href="terms.html" target="_blank" rel="noopener">利用規約</a>および<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>（外国にある第三者への個人データの提供を含む）に同意します</span>
+        </label>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="submit()" disabled>送信する</button>
     </div>
 
     <div class="success-screen" id="successScreen">
@@ -179,6 +190,11 @@
 
 <script src="config.js"></script>
 <script>
+
+  function updateSubmitState() {
+    const checked = document.getElementById('consentCheck').checked;
+    document.getElementById('submitBtn').disabled = !checked;
+  }
 
   (function prefillFromQuery() {
     const params = new URLSearchParams(location.search);
@@ -219,6 +235,11 @@
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errEl.textContent = 'メールアドレスの形式が正しくありません';
+      errEl.classList.add('show');
+      return;
+    }
+    if (!document.getElementById('consentCheck').checked) {
+      errEl.textContent = '利用規約・プライバシーポリシーへの同意が必要です';
       errEl.classList.add('show');
       return;
     }
