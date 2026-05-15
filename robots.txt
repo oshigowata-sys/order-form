@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://oshigowata-sys.github.io/order-form/sitemap.xml
+Sitemap: https://oshigowata-sys.github.io/order-form/sitemap.txt
