@@ -148,9 +148,10 @@
         <th>プラン</th>
         <th>ステータス</th>
         <th>契約日</th>
+        <th>同意</th>
         <th>操作</th>
       </tr></thead>
-      <tbody id="tenantTbody"><tr><td colspan="7" class="empty">読み込み中...</td></tr></tbody>
+      <tbody id="tenantTbody"><tr><td colspan="8" class="empty">読み込み中...</td></tr></tbody>
     </table>
   </div>
 
@@ -189,9 +190,10 @@
         <th>規模</th>
         <th>連絡先</th>
         <th>受信日</th>
+        <th>同意</th>
         <th>操作</th>
       </tr></thead>
-      <tbody id="inqTbody"><tr><td colspan="7" class="empty">読み込み中...</td></tr></tbody>
+      <tbody id="inqTbody"><tr><td colspan="8" class="empty">読み込み中...</td></tr></tbody>
     </table>
   </div>
 
@@ -395,6 +397,15 @@
     return '<span class="status-suspended">停止中</span>';
   }
 
+  function consentLabel(consent) {
+    if (!consent || !consent.consented_at) {
+      return '<span style="color:var(--text-muted);font-size:14px">未取得</span>';
+    }
+    const date = (consent.consented_at || '').slice(0, 10);
+    const tooltip = `規約: ${consent.consented_terms_version || '—'} / 個情: ${consent.consented_privacy_version || '—'}`;
+    return `<span style="color:#4ade80;font-size:14px" title="${esc(tooltip)}">✓ ${date}</span>`;
+  }
+
   async function changePlan(tenantId, plan) {
     try {
       const res = await sbFetch(`/rest/v1/tenants?id=eq.${tenantId}`, {
@@ -444,16 +455,31 @@
   }
 
   async function loadTenants() {
-    const res = await sbFetch('/rest/v1/tenants?select=*&order=created_at.desc');
-    const tenants = await res.json();
+    const [tRes, aRes] = await Promise.all([
+      sbFetch('/rest/v1/tenants?select=*&order=created_at.desc'),
+      sbFetch('/rest/v1/accounts?select=tenant_id,role,consented_at,consented_terms_version,consented_privacy_version')
+    ]);
+    const tenants = await tRes.json();
+    const accounts = aRes.ok ? await aRes.json() : [];
     TENANTS = Array.isArray(tenants) ? tenants : [];
+
+    // テナントごとに admin の最初の同意を採用
+    const consentMap = {};
+    (Array.isArray(accounts) ? accounts : []).forEach(a => {
+      if (a.role !== 'admin' || !a.consented_at) return;
+      const existing = consentMap[a.tenant_id];
+      if (!existing || new Date(a.consented_at) < new Date(existing.consented_at)) {
+        consentMap[a.tenant_id] = a;
+      }
+    });
+
     document.getElementById('summaryTenants').textContent = TENANTS.filter(t => t.status === 'active').length;
     const mrr = TENANTS
       .filter(t => t.status === 'active')
       .reduce((sum, t) => sum + (PLAN_PRICES[t.plan || 'standard'] || 0), 0);
     document.getElementById('summaryMrr').textContent = yen(mrr);
     const tbody = document.getElementById('tenantTbody');
-    if (!TENANTS.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">契約者が登録されていません</td></tr>'; return; }
+    if (!TENANTS.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">契約者が登録されていません</td></tr>'; return; }
     tbody.innerHTML = tenants.map(t => `<tr>
       <td>
         <div class="tenant-main">${esc(t.name) || '（未登録）'}</div>
@@ -476,6 +502,7 @@
       </td>
       <td>${statusLabel(t.status)}</td>
       <td style="color:var(--text-muted);font-size:14px">${(t.created_at||'').slice(0,10)}</td>
+      <td>${consentLabel(consentMap[t.id])}</td>
       <td>
         <div class="actions">
           <button class="btn-secondary" onclick="openEditTenantModal('${esc(t.id)}')">編集</button>
@@ -698,7 +725,7 @@
     todayInquiryCount = rows.filter(r => isToday(r.created_at)).length;
     updateTodaySummary();
     document.getElementById('inqCount').textContent = rows.length + ' 件';
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">問い合わせはありません</td></tr>'; return; }
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">問い合わせはありません</td></tr>'; return; }
     tbody.innerHTML = rows.map(r => `<tr>
       <td>
         <div style="font-weight:600">${esc(r.company_name)}</div>
@@ -715,6 +742,7 @@
         <div class="inq-detail">${esc(r.phone) || '—'}</div>
       </td>
       <td style="color:var(--text-muted);font-size:14px">${(r.created_at||'').slice(0,10)}</td>
+      <td>${consentLabel({consented_at: r.consented_at, consented_terms_version: r.consented_terms_version, consented_privacy_version: r.consented_privacy_version})}</td>
       <td>
         <div class="actions">
           <button class="btn-primary btn-sm" onclick="createTenantFromInquiry('${esc(r.id)}')">契約者化</button>
