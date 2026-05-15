@@ -263,7 +263,8 @@
         <select id="invitePlan">
           <option value="starter">スターター</option>
           <option value="standard" selected>スタンダード</option>
-          <option value="enterprise">エンタープライズ</option>
+          <option value="premium">プレミアム</option>
+          <option value="monitor">モニター</option>
         </select>
       </div>
       <div class="form-group full">
@@ -312,7 +313,8 @@
         <select id="editPlan">
           <option value="starter">スターター</option>
           <option value="standard">スタンダード</option>
-          <option value="enterprise">エンタープライズ</option>
+          <option value="premium">プレミアム</option>
+          <option value="monitor">モニター</option>
         </select>
       </div>
       <div class="form-group">
@@ -373,7 +375,7 @@
   let TENANTS = [];
   let todayInquiryCount = 0;
   let todayLeadCount = 0;
-  const PLAN_PRICES = { starter: 5500, standard: 9800, enterprise: 0 };
+  const PLAN_PRICES = { starter: 9800, standard: 19800, premium: 29800, monitor: 9800, enterprise: 29800 };
 
   function todayDateKey() {
     return new Date().toISOString().slice(0, 10);
@@ -497,7 +499,8 @@
         <select style="font-size:14px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer" onchange="changePlan('${esc(t.id)}', this.value)">
           <option value="starter" ${t.plan === 'starter' ? 'selected' : ''}>starter</option>
           <option value="standard" ${(t.plan === 'standard' || !t.plan) ? 'selected' : ''}>standard</option>
-          <option value="enterprise" ${t.plan === 'enterprise' ? 'selected' : ''}>enterprise</option>
+          <option value="premium" ${(t.plan === 'premium' || t.plan === 'enterprise') ? 'selected' : ''}>premium</option>
+          <option value="monitor" ${t.plan === 'monitor' ? 'selected' : ''}>monitor</option>
         </select>
       </td>
       <td>${statusLabel(t.status)}</td>
