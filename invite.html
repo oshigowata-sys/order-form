@@ -27,6 +27,10 @@
   input:focus { border-color: var(--orange); background: #fff; }
   .btn { width: 100%; padding: 14px; background: var(--orange); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 8px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .consent-group { margin-bottom: 18px; }
+  .consent-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; line-height: 1.6; color: var(--text); }
+  .consent-label input { width: auto; margin: 0; flex-shrink: 0; margin-top: 3px; cursor: pointer; padding: 0; background: none; border: none; }
+  .consent-label a { color: var(--orange); text-decoration: underline; }
   .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
   .error.show { display: block; }
   .success { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 20px; text-align: center; display: none; }
@@ -76,7 +80,13 @@
         <label>パスワード（確認）</label>
         <input type="password" id="passwordConfirm" placeholder="もう一度入力" autocomplete="new-password" />
       </div>
-      <button class="btn" id="submitBtn" onclick="register()">アカウントを作成する</button>
+      <div class="consent-group">
+        <label class="consent-label">
+          <input type="checkbox" id="consentCheck" onchange="updateSubmitState()" />
+          <span><a href="terms.html" target="_blank" rel="noopener">利用規約</a>および<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>（外国にある第三者への個人データの提供を含む）に同意します</span>
+        </label>
+      </div>
+      <button class="btn" id="submitBtn" onclick="register()" disabled>アカウントを作成する</button>
     </div>
 
     <div id="successView" class="success" style="display:none">
@@ -120,6 +130,11 @@
     document.getElementById('expiredView').style.display = 'block';
   }
 
+  function updateSubmitState() {
+    const checked = document.getElementById('consentCheck').checked;
+    document.getElementById('submitBtn').disabled = !checked;
+  }
+
   async function register() {
     const company = document.getElementById('companyName').value.trim();
     const loginId = document.getElementById('loginId').value.trim();
@@ -131,6 +146,7 @@
     if (!company || !loginId || !pw) { errEl.textContent = 'すべての項目を入力してください'; errEl.classList.add('show'); return; }
     if (pw.length < 6) { errEl.textContent = 'パスワードは6文字以上にしてください'; errEl.classList.add('show'); return; }
     if (pw !== pwConf) { errEl.textContent = 'パスワードが一致しません'; errEl.classList.add('show'); return; }
+    if (!document.getElementById('consentCheck').checked) { errEl.textContent = '利用規約・プライバシーポリシーへの同意が必要です'; errEl.classList.add('show'); return; }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true; btn.textContent = '登録中...';
