@@ -130,32 +130,30 @@ tr.row-expired td{color:var(--text-muted)}
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">有効な見積書</div>
-        <div class="kpi-value warn" id="kpiValid">—</div>
-        <div class="kpi-sub">期限内</div>
-      </div>
-      <div class="kpi-card gray">
-        <div class="kpi-label">期限切れ</div>
-        <div class="kpi-value gray" id="kpiExpired">—</div>
-        <div class="kpi-sub">件</div>
+        <div class="kpi-label">累計件数</div>
+        <div class="kpi-value warn" id="kpiTotal">—</div>
+        <div class="kpi-sub">全期間</div>
       </div>
       <div class="kpi-card yellow">
-        <div class="kpi-label">有効分合計（税込）</div>
-        <div class="kpi-value" id="kpiValidAmount">—</div>
-        <div class="kpi-sub">期限内合計</div>
+        <div class="kpi-label">直近30日発行</div>
+        <div class="kpi-value" id="kpiRecent">—</div>
+        <div class="kpi-sub">件</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-label">累計件数</div>
-        <div class="kpi-value green" id="kpiTotal">—</div>
+        <div class="kpi-label">累計合計（税込）</div>
+        <div class="kpi-value green" id="kpiAmount">—</div>
         <div class="kpi-sub">全期間</div>
+      </div>
+      <div class="kpi-card gray">
+        <div class="kpi-label">取引先数</div>
+        <div class="kpi-value gray" id="kpiCustomers">—</div>
+        <div class="kpi-sub">ユニーク</div>
       </div>
     </div>
 
     <div class="card">
       <div class="filter-bar">
-        <button class="filter-btn active" data-filter="all">全件</button>
-        <button class="filter-btn" data-filter="valid">有効</button>
-        <button class="filter-btn" data-filter="expired">期限切れ</button>
+        <div style="font-size:14px;color:var(--text-muted)">有効期限：次回見積まで（自動）</div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
           <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・見積番号で検索" oninput="onSearchInput(this.value)">
           <a class="btn-new" href="quotation.html?mode=new">＋ 新規見積書</a>
@@ -167,12 +165,10 @@ tr.row-expired td{color:var(--text-muted)}
             <th>見積番号</th>
             <th>取引先名</th>
             <th>発行日</th>
-            <th>有効期限</th>
             <th class="num-right">税込合計</th>
-            <th>ステータス</th>
             <th></th>
           </tr></thead>
-          <tbody id="quotationTbody"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr></tbody>
+          <tbody id="quotationTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -234,7 +230,6 @@ function showToast(msg) {
 // ── データ ──
 let _allRows = [];
 let _renderedRows = [];
-let currentFilter = 'all';
 let currentSearch = '';
 
 function onSearchInput(val) {
@@ -242,32 +237,21 @@ function onSearchInput(val) {
   renderAll();
 }
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
-    renderAll();
-  });
-});
-
 async function loadAll() {
   document.getElementById('quotationTbody').innerHTML =
-    '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr>';
+    '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr>';
   try {
-    const res = await sbFetch(`/rest/v1/quotations?tenant_id=eq.${tenantId}&select=id,quotation_number,customer_id,customer_snapshot,issued_date,expiry_date,total_incl_tax,customers(company_name)&order=issued_date.desc,quotation_number.desc`);
+    const res = await sbFetch(`/rest/v1/quotations?tenant_id=eq.${tenantId}&select=id,quotation_number,customer_id,customer_snapshot,issued_date,total_incl_tax,customers(company_name)&order=issued_date.desc,quotation_number.desc`);
     if (!res.ok) throw new Error('データ取得失敗');
     const rows = await res.json();
 
-    const today = new Date().toISOString().slice(0, 10);
     _allRows = rows.map(r => ({
       id: r.id,
       quotationNumber: r.quotation_number,
       customer: r.customers?.company_name || (r.customer_snapshot?.name) || '（取引先未設定）',
+      customerId: r.customer_id || '',
       issuedDate: r.issued_date,
-      expiryDate: r.expiry_date,
-      total: Number(r.total_incl_tax || 0),
-      status: r.expiry_date >= today ? 'valid' : 'expired'
+      total: Number(r.total_incl_tax || 0)
     }));
 
     updateKPIs();
@@ -275,52 +259,49 @@ async function loadAll() {
   } catch (e) {
     console.error(e);
     document.getElementById('quotationTbody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
+      '<tr><td colspan="5" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
   }
 }
 
 function updateKPIs() {
-  const validRows = _allRows.filter(r => r.status === 'valid');
-  const expiredRows = _allRows.filter(r => r.status === 'expired');
-  document.getElementById('kpiValid').textContent = validRows.length;
-  document.getElementById('kpiExpired').textContent = expiredRows.length;
-  document.getElementById('kpiValidAmount').textContent = fmt(validRows.reduce((s, r) => s + r.total, 0));
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const recentCount = _allRows.filter(r => r.issuedDate && r.issuedDate >= cutoffStr).length;
+  const totalAmount = _allRows.reduce((s, r) => s + r.total, 0);
+  const customerSet = new Set(_allRows.filter(r => r.customerId).map(r => r.customerId));
   document.getElementById('kpiTotal').textContent = _allRows.length;
+  document.getElementById('kpiRecent').textContent = recentCount;
+  document.getElementById('kpiAmount').textContent = fmt(totalAmount);
+  document.getElementById('kpiCustomers').textContent = customerSet.size;
 }
 
 function renderAll() {
   const tbody = document.getElementById('quotationTbody');
   let rows = _allRows;
-  if (currentFilter === 'valid') rows = rows.filter(r => r.status === 'valid');
-  else if (currentFilter === 'expired') rows = rows.filter(r => r.status === 'expired');
   const q = currentSearch.toLowerCase();
   if (q) rows = rows.filter(r => r.customer.toLowerCase().includes(q) || r.quotationNumber.toLowerCase().includes(q));
 
   _renderedRows = rows;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">該当する見積書はありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">該当する見積書はありません</td></tr>';
     return;
   }
 
-  tbody.innerHTML = rows.map(r => {
-    const badge = r.status === 'valid'
-      ? '<span class="badge badge-valid">有効</span>'
-      : '<span class="badge badge-expired">期限切れ</span>';
-    const rowClass = r.status === 'expired' ? ' class="row-expired"' : '';
-    return `<tr${rowClass}>
+  tbody.innerHTML = rows.map(r => `
+    <tr>
       <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${esc(r.quotationNumber)}</td>
       <td style="font-weight:600">${esc(r.customer)}</td>
       <td style="font-size:14px;color:var(--text-muted)">${r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—'}</td>
-      <td style="font-size:14px;color:var(--text-muted)">${r.expiryDate ? r.expiryDate.replace(/-/g,'/') : '—'}</td>
       <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">${fmt(r.total)}</td>
-      <td>${badge}</td>
       <td>
         <a class="btn btn-primary btn-sm" href="quotation.html?id=${encodeURIComponent(r.id)}">開く</a>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('${r.id}','${esc(r.quotationNumber).replace(/'/g,"\\'")}')">削除</button>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>
+  `).join('');
 }
 
 async function confirmDelete(id, number) {

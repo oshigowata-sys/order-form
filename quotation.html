@@ -52,11 +52,13 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 /* 明細編集 */
 .items-section{margin-top:20px;border-top:1px solid var(--border);padding-top:20px}
 .items-section-title{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.items-table-wrap{max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:10px}
 .items-table{width:100%;border-collapse:collapse;font-size:14px}
-.items-table th{padding:8px 10px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);background:var(--bg);border-bottom:1px solid var(--border)}
+.items-table th{padding:8px 8px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap}
 .items-table th.num{text-align:right}
-.items-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.items-table td{padding:8px 8px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
 .items-table td.num{text-align:right;font-family:'Space Grotesk',sans-serif}
+.items-table td.snapshot{color:var(--text-muted);font-family:'Space Grotesk',sans-serif;white-space:nowrap}
 .items-table input.qty,.items-table input.price{width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);text-align:right}
 .items-table input.qty:focus,.items-table input.price:focus{border-color:var(--orange);background:white;outline:none}
 .btn-add-item{background:rgba(232,99,10,0.1);border:1.5px dashed var(--orange);color:var(--orange);padding:10px;border-radius:10px;font-weight:600;cursor:pointer;width:100%;margin-top:10px;font-family:inherit;font-size:14px}
@@ -174,7 +176,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
       </div>
       <div class="form-group">
         <label class="form-label">有効期限</label>
-        <input type="date" class="form-input" id="expiryDate">
+        <div class="form-input" style="background:var(--bg);color:var(--text-muted);cursor:not-allowed">次回見積まで</div>
+        <input type="hidden" id="expiryDate">
       </div>
       <div class="form-group">
         <label class="form-label">見積番号</label>
@@ -328,11 +331,11 @@ async function init() {
     if (mode === 'edit' && quotationId) {
       await loadExistingQuotation();
     } else {
-      // 新規モード初期化
+      // 新規モード初期化（有効期限は「次回見積まで」運用：DB用に+10年のダミー日付）
       document.getElementById('modeLabel').textContent = '新規見積書';
       const today = todayStr();
       document.getElementById('issuedDate').value = today;
-      document.getElementById('expiryDate').value = addDaysStr(today, 30);
+      document.getElementById('expiryDate').value = addDaysStr(today, 3650);
       renderPreview();
     }
   } catch (e) {
@@ -380,7 +383,10 @@ async function loadExistingQuotation() {
       product_name: it.product_name || '',
       quantity: Number(it.quantity || 0),
       unit_price: Number(it.unit_price || 0),
-      is_food: !!it.is_food
+      is_food: !!it.is_food,
+      list_price: it.list_price != null ? Number(it.list_price) : null,
+      case_quantity: it.case_quantity != null ? Number(it.case_quantity) : null,
+      jan_code: it.jan_code || ''
     }));
   document.getElementById('deleteBtn').style.display = 'inline-flex';
   document.getElementById('printBtn').style.display = 'inline-flex';
@@ -402,13 +408,10 @@ function onCustomerChange() {
 }
 
 function onIssuedDateChange() {
-  const issued = document.getElementById('issuedDate').value;
-  if (!issued) return;
-  // 有効期限が未設定 or 発行日以前なら自動で+30日
-  const expiry = document.getElementById('expiryDate').value;
-  if (!expiry || expiry < issued) {
-    document.getElementById('expiryDate').value = addDaysStr(issued, 30);
-  }
+  // 有効期限は「次回見積まで」固定運用。expiry_date には十分先の日付（発行日+10年）を入れて
+  // DB上の NOT NULL 制約を満たすが、画面・印刷では「次回見積まで」と表示する。
+  const issued = document.getElementById('issuedDate').value || todayStr();
+  document.getElementById('expiryDate').value = addDaysStr(issued, 3650);
   renderPreview();
 }
 
@@ -430,38 +433,45 @@ function lookupPrice(customerId, productId, productData) {
 // ===== 明細 =====
 function renderItems() {
   const container = document.getElementById('itemsContainer');
-  const empty = document.getElementById('emptyItems');
   document.getElementById('itemsCount').textContent = `${_items.length} 件`;
   if (!_items.length) {
     container.innerHTML = '<div class="empty-items" id="emptyItems">明細がありません。下の「＋ 商品を追加」から追加してください。</div>';
     return;
   }
   container.innerHTML = `
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>商品名</th>
-          <th class="num" style="width:90px">数量</th>
-          <th class="num" style="width:120px">単価</th>
-          <th class="num" style="width:120px">金額</th>
-          <th style="width:60px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        ${_items.map((it, i) => `
+    <div class="items-table-wrap">
+      <table class="items-table">
+        <thead>
           <tr>
-            <td>
-              <div style="font-weight:600">${esc(it.product_name)}</div>
-              ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
-            </td>
-            <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-            <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
-            <td class="num" style="font-weight:600">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
-            <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
+            <th class="num" style="width:80px">上代</th>
+            <th>商品名</th>
+            <th class="num" style="width:70px">入数</th>
+            <th class="num" style="width:80px">数量</th>
+            <th class="num" style="width:100px">卸価格</th>
+            <th class="num" style="width:110px">金額</th>
+            <th class="snapshot" style="width:130px">JANコード</th>
+            <th style="width:60px"></th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${_items.map((it, i) => `
+            <tr>
+              <td class="snapshot num">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
+              <td>
+                <div style="font-weight:600">${esc(it.product_name)}</div>
+                ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
+              </td>
+              <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
+              <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
+              <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
+              <td class="num" style="font-weight:600">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
+              <td class="snapshot">${esc(it.jan_code || '—')}</td>
+              <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -527,7 +537,11 @@ function addProductFromPicker(productId) {
     product_name: p.product_name || '',
     quantity: 1,
     unit_price: price,
-    is_food: !!p.is_food
+    is_food: !!p.is_food,
+    // 商品マスタからのスナップショット（発行後に商品マスタが変わっても見積書の値は固定）
+    list_price: p.list_price != null && p.list_price !== '' ? Number(p.list_price) : null,
+    case_quantity: p.case_quantity != null && p.case_quantity !== '' ? Number(p.case_quantity) : null,
+    jan_code: p.jan_code || ''
   });
   closeProductPicker();
   renderItems();
@@ -572,15 +586,16 @@ function renderPreview() {
         const rate = it.is_food ? '8%' : '10%';
         return `
           <tr>
-            <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:90px">${esc(it.product_code || '—')}</td>
+            <td style="text-align:right;width:80px">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
             <td>${esc(it.product_name || '-')}</td>
-            <td style="text-align:right;width:52px">${qty.toLocaleString()}</td>
-            <td style="text-align:right;width:90px">${fmt(price)}</td>
-            <td style="text-align:right;width:90px">${fmt(sub)}</td>
-            <td style="text-align:center;width:46px;font-size:11px;color:var(--text-muted)">${rate}</td>
+            <td style="text-align:right;width:55px">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
+            <td style="text-align:right;width:50px">${qty.toLocaleString()}</td>
+            <td style="text-align:right;width:85px">${fmt(price)}</td>
+            <td style="text-align:right;width:100px">${fmt(sub)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
+            <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${esc(it.jan_code || '—')}</td>
           </tr>`;
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
+    : '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
 
   document.getElementById('quotationBody').innerHTML = `
     <div class="quotation-header">
@@ -592,7 +607,7 @@ function renderPreview() {
         <table>
           <tr><td>見積番号</td><td>${esc(number)}</td></tr>
           <tr><td>発行日</td><td>${esc(formatDateJa(issued))}</td></tr>
-          <tr><td>有効期限</td><td>${esc(formatDateJa(expiry))}</td></tr>
+          <tr><td>有効期限</td><td>次回見積まで</td></tr>
         </table>
       </div>
     </div>
@@ -620,20 +635,21 @@ function renderPreview() {
       <table class="quotation-table">
         <thead>
           <tr>
-            <th style="width:90px">商品コード</th>
+            <th style="text-align:right;width:80px">上代</th>
             <th>商品名</th>
-            <th style="text-align:right;width:52px">数量</th>
-            <th style="text-align:right;width:90px">単価</th>
-            <th style="text-align:right;width:90px">金額</th>
-            <th style="text-align:center;width:46px">税率</th>
+            <th style="text-align:right;width:55px">入数</th>
+            <th style="text-align:right;width:50px">数量</th>
+            <th style="text-align:right;width:85px">卸価格</th>
+            <th style="text-align:right;width:100px">金額</th>
+            <th style="width:110px">JANコード</th>
           </tr>
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
-          <tr><td colspan="2">小計</td><td colspan="4" style="text-align:right">${fmt(subtotal)}</td></tr>
-          ${tax8 > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="4" style="text-align:right">${fmt(tax8)}</td></tr>` : ''}
-          ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="4" style="text-align:right">${fmt(tax10)}</td></tr>` : ''}
-          <tr class="total-row"><td colspan="2">合計（税込）</td><td colspan="4" style="text-align:right">${fmt(total)}</td></tr>
+          <tr><td colspan="3">小計</td><td colspan="4" style="text-align:right">${fmt(subtotal)}</td></tr>
+          ${tax8 > 0 ? `<tr><td colspan="3">消費税（8%）</td><td colspan="4" style="text-align:right">${fmt(tax8)}</td></tr>` : ''}
+          ${tax10 > 0 ? `<tr><td colspan="3">消費税（10%）</td><td colspan="4" style="text-align:right">${fmt(tax10)}</td></tr>` : ''}
+          <tr class="total-row"><td colspan="3">合計（税込）</td><td colspan="4" style="text-align:right">${fmt(total)}</td></tr>
         </tfoot>
       </table>
     </div>
@@ -776,6 +792,9 @@ async function saveQuotation() {
         unit_price: Number(it.unit_price || 0),
         subtotal: Number(it.quantity || 0) * Number(it.unit_price || 0),
         is_food: !!it.is_food,
+        list_price: it.list_price != null ? Math.round(Number(it.list_price)) : null,
+        case_quantity: it.case_quantity != null ? Math.round(Number(it.case_quantity)) : null,
+        jan_code: it.jan_code || null,
         display_order: i
       }));
       const itemRes = await sbFetch(`/rest/v1/quotation_items`, {
