@@ -366,6 +366,7 @@
         contact: r.contact_name  || '',
         phone:   r.phone         || '',
         email:   r.email         || '',
+        postalCode:     r.postal_code        || '',
         address:        r.address            || '',
         closing:        r.closing_day        != null ? r.closing_day        : '',
         paymentOffset:  r.payment_month_offset != null ? r.payment_month_offset : '',
@@ -460,7 +461,7 @@
     document.getElementById('fContact').value  = c.contact;
     document.getElementById('fPhone').value    = c.phone;
     document.getElementById('fEmail').value    = c.email;
-    document.getElementById('fZip').value            = '';
+    document.getElementById('fZip').value            = c.postalCode || '';
     document.getElementById('zipStatus').textContent  = '';
     document.getElementById('fAddress').value         = c.address;
     document.getElementById('fClosing').value        = c.closing;
@@ -481,6 +482,7 @@
       contact_name: document.getElementById('fContact').value.trim() || null,
       phone:        document.getElementById('fPhone').value.trim()   || null,
       email:        document.getElementById('fEmail').value.trim()   || null,
+      postal_code:  document.getElementById('fZip').value.trim().replace(/[^0-9]/g, '') || null,
       address:      document.getElementById('fAddress').value.trim() || null,
       closing_day:           Number(document.getElementById('fClosing').value)        || null,
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
