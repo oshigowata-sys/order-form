@@ -713,11 +713,47 @@
   }
 
   // ===== 支払期限計算 =====
-  function calcDueDate(orderDate, days) {
-    const d = orderDate ? new Date(orderDate) : new Date();
-    if (isNaN(d)) return new Date();
-    d.setDate(d.getDate() + Number(days || 30));
-    return d;
+  // 取引先マスタの closing_day（締め日）/ payment_month_offset（支払月オフセット）/ payment_day（支払日）から算出。
+  //   1. 受注日が含まれる「締め月」を決定（受注日が締め日を過ぎていれば翌月）
+  //   2. 支払月 = 締め月 + payment_month_offset
+  //   3. 支払日：31 を指定されたら月末扱い。月によって28/30も末日として正しく解決される
+  // 取引先情報が不完全な場合は従来の「30日後」フォールバック
+  function calcDueDate(orderDate, customerExtra) {
+    const od = orderDate ? new Date(orderDate) : new Date();
+    if (isNaN(od)) return new Date();
+
+    const hasClosing = customerExtra && customerExtra.closing_day != null;
+    const hasPayDay  = customerExtra && customerExtra.payment_day  != null;
+    if (!hasClosing || !hasPayDay) {
+      const fb = new Date(od);
+      fb.setDate(fb.getDate() + 30);
+      return fb;
+    }
+
+    const cd     = Number(customerExtra.closing_day);
+    const offset = Number(customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : 1);
+    const pd     = Number(customerExtra.payment_day);
+
+    // 締め月の決定
+    let closingMonth = od.getMonth();
+    let closingYear  = od.getFullYear();
+    const lastDayClosing = new Date(closingYear, closingMonth + 1, 0).getDate();
+    const actualClosingDay = (cd === 31) ? lastDayClosing : Math.min(cd, lastDayClosing);
+    if (od.getDate() > actualClosingDay) {
+      closingMonth += 1;
+      if (closingMonth > 11) { closingMonth = 0; closingYear += 1; }
+    }
+
+    // 支払月＝締め月＋オフセット
+    let payMonth = closingMonth + offset;
+    let payYear  = closingYear;
+    while (payMonth > 11) { payMonth -= 12; payYear += 1; }
+
+    // 支払日：31を月末として解決、それ以外もその月の最終日でクランプ
+    const lastDayPay = new Date(payYear, payMonth + 1, 0).getDate();
+    const payDay = (pd === 31) ? lastDayPay : Math.min(pd, lastDayPay);
+
+    return new Date(payYear, payMonth, payDay);
   }
 
   // ===== 金額フォーマット =====
@@ -823,7 +859,11 @@
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-    const dueDate = calcDueDate(f['受注日'], s.payment_days).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    const dueDate = calcDueDate(f['受注日'], {
+      closing_day:          f['締め日'],
+      payment_month_offset: f['支払月オフセット'],
+      payment_day:          f['支払日']
+    }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // 明細から合計を再計算（8%/10% 自動判定）
     const subtotal = items.reduce((sum, it) => sum + (Number(it['小計'] || it['subtotal'] || 0)), 0);
@@ -876,7 +916,7 @@
           <table>
             <tr><td>請求書番号</td><td>${esc(invoiceNo)}</td></tr>
             <tr><td>発行日</td><td>${esc(today)}</td></tr>
-            <tr><td>締め日</td><td>${f['締め日'] != null ? '毎月' + esc(String(f['締め日'])) + '日締め' : '<span style="color:#dc2626;font-size:11px">未設定（取引先マスタで設定してください）</span>'}</td></tr>
+            <tr><td>締め日</td><td>${f['締め日'] != null ? (Number(f['締め日']) === 31 ? '毎月月末締め' : '毎月' + esc(String(f['締め日'])) + '日締め') : '<span style="color:#dc2626;font-size:11px">未設定（取引先マスタで設定してください）</span>'}</td></tr>
             <tr><td>お支払い期限</td><td>${esc(dueDate)}</td></tr>
             ${f['受注ID'] ? `<tr><td>受注ID</td><td>${esc(f['受注ID'])}</td></tr>` : ''}
           </table>
@@ -1132,7 +1172,7 @@
 
         // 取引先詳細・前回請求書・現在の請求書を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
-          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day&limit=1'),
+          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day,payment_month_offset,payment_day&limit=1'),
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
@@ -1161,6 +1201,8 @@
           '受注日':   targetPeriodEnd || '',
           '住所':     customerExtra.address || '',
           '締め日':   customerExtra.closing_day != null ? customerExtra.closing_day : null,
+          '支払月オフセット': customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : null,
+          '支払日':   customerExtra.payment_day != null ? customerExtra.payment_day : null,
         };
         const allItems = orders.flatMap(o =>
           (o.order_items || []).map(it => ({
@@ -1183,7 +1225,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,customers(company_name,contact_name,address,closing_day),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,customers(company_name,contact_name,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1202,6 +1244,8 @@
           '受注日':   order.order_date || '',
           '住所':     order.customers?.address || '',
           '締め日':   order.customers?.closing_day != null ? order.customers?.closing_day : null,
+          '支払月オフセット': order.customers?.payment_month_offset != null ? order.customers?.payment_month_offset : null,
+          '支払日':   order.customers?.payment_day != null ? order.customers?.payment_day : null,
         };
         const items = (order.order_items || []).map(it => ({
           '商品名': it.products?.product_name || '',
