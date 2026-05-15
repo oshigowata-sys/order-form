@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>見積書 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#e8630a;--green:#1e6641;
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ===== 操作バー（印刷時非表示） ===== */
+.action-bar{background:var(--sidebar-bg);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100}
+.action-bar-left{display:flex;align-items:center;gap:16px}
+.action-bar img{width:100px}
+.action-bar-title{color:rgba(232,213,188,0.6);font-size:14px}
+.action-bar-right{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all 0.2s;text-decoration:none}
+.btn-primary{background:var(--orange);color:white}
+.btn-primary:hover{background:#d4570a}
+.btn-secondary{background:rgba(255,255,255,0.1);color:rgba(232,213,188,0.9);border:1px solid rgba(255,255,255,0.15)}
+.btn-secondary:hover{background:rgba(255,255,255,0.15)}
+.btn-ghost{background:transparent;color:rgba(232,213,188,0.7)}
+.btn-ghost:hover{color:white}
+.btn-save{background:var(--green);color:white}
+.btn-save:hover{background:#165230}
+.btn-save:disabled{background:#9ca3af;cursor:not-allowed}
+.btn-danger{background:#dc2626;color:#fff}
+.btn-danger:hover{background:#b91c1c}
+
+/* ===== メインコンテンツ ===== */
+.main{max-width:900px;margin:0 auto;padding:40px 24px}
+
+/* ===== 編集パネル ===== */
+.settings-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:32px}
+.settings-title{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.settings-grid .full{grid-column:1 / -1}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:14px;font-weight:500;color:var(--text-muted)}
+.form-input,.form-select{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s;width:100%}
+.form-input:focus,.form-select:focus{border-color:var(--orange);background:white}
+.form-textarea{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s;width:100%;min-height:60px;resize:vertical}
+.form-textarea:focus{border-color:var(--orange);background:white}
+
+/* 明細編集 */
+.items-section{margin-top:20px;border-top:1px solid var(--border);padding-top:20px}
+.items-section-title{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.items-table{width:100%;border-collapse:collapse;font-size:14px}
+.items-table th{padding:8px 10px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);background:var(--bg);border-bottom:1px solid var(--border)}
+.items-table th.num{text-align:right}
+.items-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.items-table td.num{text-align:right;font-family:'Space Grotesk',sans-serif}
+.items-table input.qty,.items-table input.price{width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);text-align:right}
+.items-table input.qty:focus,.items-table input.price:focus{border-color:var(--orange);background:white;outline:none}
+.btn-add-item{background:rgba(232,99,10,0.1);border:1.5px dashed var(--orange);color:var(--orange);padding:10px;border-radius:10px;font-weight:600;cursor:pointer;width:100%;margin-top:10px;font-family:inherit;font-size:14px}
+.btn-add-item:hover{background:rgba(232,99,10,0.16)}
+.btn-remove-item{background:#fff;border:1.5px solid #fca5a5;color:#dc2626;padding:5px 10px;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px}
+.btn-remove-item:hover{background:#fef2f2}
+.empty-items{padding:20px;text-align:center;color:var(--text-muted);font-size:14px;background:var(--bg);border-radius:8px}
+
+.save-row{margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:20px;border-top:1px solid var(--border)}
+.save-msg{font-size:14px;color:var(--green);opacity:0;transition:opacity 0.3s}
+.save-msg.show{opacity:1}
+
+/* ===== 見積書本体 ===== */
+#quotation-wrap{background:white;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden}
+.loading-state{padding:80px;text-align:center;color:var(--text-muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.quotation{padding:48px 56px;color:var(--text);font-size:14px;line-height:1.6}
+.quotation-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:3px solid var(--text)}
+.quotation-title-block{display:flex;flex-direction:column;gap:4px}
+.quotation-title{font-size:34px;font-weight:700;font-family:'Noto Serif JP',serif;letter-spacing:6px}
+.quotation-subtitle{font-size:11px;letter-spacing:4px;color:var(--text-muted);text-transform:uppercase}
+.quotation-meta table{font-size:13px}
+.quotation-meta td{padding:3px 8px;vertical-align:top}
+.quotation-meta td:first-child{color:var(--text-muted);font-weight:600;letter-spacing:0.5px}
+.quotation-meta td:last-child{color:var(--text);font-weight:600;font-family:'Space Grotesk',sans-serif}
+.quotation-parties{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:24px}
+.quotation-to{flex:1}
+.party-label{font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
+.party-name{font-size:21px;font-weight:700;font-family:'Noto Serif JP',serif}
+.party-name-suffix{font-size:16px;color:var(--text-muted);margin-left:8px;font-weight:500}
+.party-address{font-size:13px;color:var(--text-muted);margin-top:4px;line-height:1.6}
+.footer-section-title{font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase}
+.from-name{font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif;margin-bottom:2px}
+.quotation-from div{font-size:12px;line-height:1.6;color:var(--text-muted)}
+.quotation-from .from-name{font-size:15px;color:var(--text)}
+
+.amount-headline{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.amount-headline-label{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px}
+.amount-headline-value{font-size:26px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--text)}
+
+.quotation-table-wrap{margin-bottom:24px}
+.quotation-table{width:100%;border-collapse:collapse;font-size:13px}
+.quotation-table th{padding:10px 8px;text-align:left;background:var(--bg);font-weight:700;font-size:11px;color:var(--text-muted);letter-spacing:1px;border-bottom:2px solid var(--border)}
+.quotation-table td{padding:10px 8px;border-bottom:1px solid var(--border)}
+.quotation-table tfoot td{padding:8px;font-size:13px;color:var(--text-muted)}
+.quotation-table tfoot tr.total-row td{font-size:15px;font-weight:700;color:var(--text);background:var(--bg)}
+.quotation-footer{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-top:28px;padding-top:24px;border-top:1px solid var(--border)}
+.notes-block{flex:1}
+.notes-text{font-size:13px;line-height:1.8;color:var(--text-muted);white-space:pre-wrap}
+.quotation-stamp{font-size:11px;color:var(--text-muted);border:1.5px solid var(--text-muted);border-radius:50%;width:80px;height:80px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.4;letter-spacing:1px;flex-shrink:0}
+
+/* モーダル（商品選択） */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding-top:60px;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:20px;width:600px;max-width:95vw;max-height:80vh;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18);display:flex;flex-direction:column}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--bg)}
+.modal-body{padding:16px 24px;overflow-y:auto;flex:1}
+.modal-search{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px;outline:none}
+.modal-search:focus{border-color:var(--orange)}
+.product-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.15s}
+.product-row:hover{background:var(--bg);border-color:var(--orange)}
+.product-row-info{display:flex;flex-direction:column;gap:2px}
+.product-row-name{font-weight:600;font-size:14px}
+.product-row-meta{font-size:12px;color:var(--text-muted)}
+
+/* toast */
+.toast{position:fixed;bottom:28px;right:28px;background:#1a1208;color:#fff;padding:13px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity 0.25s,transform 0.25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* 印刷時 */
+@media print{
+  body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .action-bar,.settings-panel,.overlay,.toast,.no-print{display:none !important}
+  .main{max-width:none;padding:0;margin:0}
+  #quotation-wrap{box-shadow:none;border-radius:0}
+  .quotation{padding:30px 36px}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+
+<div class="action-bar no-print">
+  <div class="action-bar-left">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="action-bar-title" id="modeLabel">見積書</div>
+  </div>
+  <div class="action-bar-right">
+    <a class="btn btn-ghost" href="quotation-list.html">← 一覧へ戻る</a>
+    <button class="btn btn-secondary" onclick="window.print()" id="printBtn" style="display:none">🖨 印刷 / PDF</button>
+    <button class="btn btn-save" onclick="saveQuotation()" id="saveBtn">💾 保存</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===== 編集パネル ===== -->
+  <div class="settings-panel no-print" id="editPanel">
+    <div class="settings-title">📝 見積書情報</div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">取引先</label>
+        <select class="form-select" id="customerSelect" onchange="onCustomerChange()">
+          <option value="">取引先を選択してください</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">発行日</label>
+        <input type="date" class="form-input" id="issuedDate" onchange="onIssuedDateChange()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">有効期限</label>
+        <input type="date" class="form-input" id="expiryDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">見積番号</label>
+        <input type="text" class="form-input" id="quotationNumber" readonly placeholder="保存時に自動採番">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">備考</label>
+        <textarea class="form-textarea" id="notes" placeholder="お見積もりに関する備考があればこちらにご記入ください"></textarea>
+      </div>
+    </div>
+
+    <div class="items-section">
+      <div class="items-section-title">
+        <span>📦 明細</span>
+        <span style="font-size:12px;font-weight:500;color:var(--text-muted)" id="itemsCount">0 件</span>
+      </div>
+      <div id="itemsContainer">
+        <div class="empty-items" id="emptyItems">明細がありません。下の「＋ 商品を追加」から追加してください。</div>
+      </div>
+      <button class="btn-add-item" onclick="openProductPicker()">＋ 商品を追加</button>
+    </div>
+
+    <div class="save-row">
+      <span class="save-msg" id="saveMsg">✓ 保存しました</span>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-danger" onclick="deleteQuotation()" id="deleteBtn" style="display:none">削除</button>
+        <button class="btn btn-save" onclick="saveQuotation()">💾 保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 見積書プレビュー ===== -->
+  <div id="quotation-wrap">
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <div>読み込み中...</div>
+    </div>
+    <div class="quotation" id="quotationBody" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- 商品選択モーダル -->
+<div class="overlay" id="productOverlay" onclick="if(event.target===this)closeProductPicker()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">商品を選択</div>
+      <button class="modal-close" onclick="closeProductPicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="modal-search" id="productSearch" placeholder="🔍 商品名・JAN・商品コードで検索" oninput="renderProductPicker(this.value)">
+      <div id="productList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="auth.js?v=20260510-idletimer"></script>
+<script>
+checkAuth();
+
+const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+const { tenantId } = userData;
+
+// ===== ヘルパー =====
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) {
+  return '¥' + Number(n || 0).toLocaleString('ja-JP');
+}
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function addDaysStr(dateStr, days) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function formatDateJa(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+function sbFetch(path, options = {}) {
+  return fetch(SB_URL + path, {
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + getAccessToken(),
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+}
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ===== 状態 =====
+const urlParams = new URLSearchParams(location.search);
+const mode = urlParams.get('mode') || (urlParams.get('id') ? 'edit' : 'new');
+const quotationId = urlParams.get('id') || null;
+
+let _settings = {};
+let _customers = [];
+let _products = [];
+let _pricing = []; // { customer_id, product_id, unit_price }
+let _items = []; // { product_id, product_code, product_name, quantity, unit_price, is_food }
+let _selectedCustomer = null;
+let _existingNumber = null;
+
+// ===== 初期ロード =====
+async function init() {
+  try {
+    const [settingsRes, customersRes, productsRes, pricingRes, banksRes] = await Promise.all([
+      sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&limit=1`),
+      sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=*&order=company_name.asc`),
+      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=*&order=name.asc`),
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=customer_id,product_id,unit_price`),
+      sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc`)
+    ]);
+    if (!settingsRes.ok || !customersRes.ok || !productsRes.ok) throw new Error('マスタ取得失敗');
+    const [settings] = await settingsRes.json();
+    _settings = settings || {};
+    _customers = await customersRes.json();
+    _products = await productsRes.json();
+    _pricing = pricingRes.ok ? await pricingRes.json() : [];
+    _settings.bank_accounts = banksRes.ok ? await banksRes.json() : [];
+
+    populateCustomerSelect();
+
+    if (mode === 'edit' && quotationId) {
+      await loadExistingQuotation();
+    } else {
+      // 新規モード初期化
+      document.getElementById('modeLabel').textContent = '新規見積書';
+      const today = todayStr();
+      document.getElementById('issuedDate').value = today;
+      document.getElementById('expiryDate').value = addDaysStr(today, 30);
+      renderPreview();
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ データ取得に失敗しました');
+    document.getElementById('loadingState').innerHTML = '<div style="color:#991b1b">読み込みに失敗しました</div>';
+  }
+}
+
+function populateCustomerSelect() {
+  const sel = document.getElementById('customerSelect');
+  sel.innerHTML = '<option value="">取引先を選択してください</option>' +
+    _customers.map(c => `<option value="${c.id}">${esc(c.company_name || '(無名)')}</option>`).join('');
+}
+
+async function loadExistingQuotation() {
+  const res = await sbFetch(`/rest/v1/quotations?id=eq.${quotationId}&select=*,quotation_items(*)`);
+  if (!res.ok) {
+    showToast('⚠️ 見積書が見つかりません');
+    return;
+  }
+  const rows = await res.json();
+  if (!rows.length) {
+    showToast('⚠️ 見積書が見つかりません');
+    return;
+  }
+  const q = rows[0];
+  _existingNumber = q.quotation_number;
+  document.getElementById('modeLabel').textContent = '見積書編集';
+  document.getElementById('quotationNumber').value = q.quotation_number;
+  document.getElementById('issuedDate').value = q.issued_date || todayStr();
+  document.getElementById('expiryDate').value = q.expiry_date || addDaysStr(todayStr(), 30);
+  document.getElementById('notes').value = q.notes || '';
+  if (q.customer_id) {
+    document.getElementById('customerSelect').value = q.customer_id;
+    _selectedCustomer = _customers.find(c => c.id === q.customer_id) || q.customer_snapshot || null;
+  } else if (q.customer_snapshot) {
+    _selectedCustomer = q.customer_snapshot;
+  }
+  _items = (q.quotation_items || [])
+    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+    .map(it => ({
+      product_id: it.product_id,
+      product_code: it.product_code || '',
+      product_name: it.product_name || '',
+      quantity: Number(it.quantity || 0),
+      unit_price: Number(it.unit_price || 0),
+      is_food: !!it.is_food
+    }));
+  document.getElementById('deleteBtn').style.display = 'inline-flex';
+  document.getElementById('printBtn').style.display = 'inline-flex';
+  renderItems();
+  renderPreview();
+}
+
+function onCustomerChange() {
+  const id = document.getElementById('customerSelect').value;
+  _selectedCustomer = id ? _customers.find(c => c.id === id) : null;
+  // 既存明細について、新しい取引先の掛け率で単価を再計算（手入力済みの値は尊重し、商品から追加された価格のみ更新）
+  _items.forEach(it => {
+    if (!it.product_id) return;
+    const price = lookupPrice(id, it.product_id, it);
+    if (price != null) it.unit_price = price;
+  });
+  renderItems();
+  renderPreview();
+}
+
+function onIssuedDateChange() {
+  const issued = document.getElementById('issuedDate').value;
+  if (!issued) return;
+  // 有効期限が未設定 or 発行日以前なら自動で+30日
+  const expiry = document.getElementById('expiryDate').value;
+  if (!expiry || expiry < issued) {
+    document.getElementById('expiryDate').value = addDaysStr(issued, 30);
+  }
+  renderPreview();
+}
+
+// 掛け率管理から単価を取得（なければ商品マスタの list_price → cost_price の順）
+function lookupPrice(customerId, productId, productData) {
+  if (customerId) {
+    const p = _pricing.find(x => x.customer_id === customerId && x.product_id === productId);
+    if (p && p.unit_price != null) return Number(p.unit_price);
+  }
+  const prod = productData || _products.find(x => x.id === productId);
+  if (prod) {
+    if (prod.list_price != null && prod.list_price !== '') return Number(prod.list_price);
+    if (prod.cost_price != null && prod.cost_price !== '') return Number(prod.cost_price);
+    if (prod.unit_price != null && prod.unit_price !== '') return Number(prod.unit_price);
+  }
+  return null;
+}
+
+// ===== 明細 =====
+function renderItems() {
+  const container = document.getElementById('itemsContainer');
+  const empty = document.getElementById('emptyItems');
+  document.getElementById('itemsCount').textContent = `${_items.length} 件`;
+  if (!_items.length) {
+    container.innerHTML = '<div class="empty-items" id="emptyItems">明細がありません。下の「＋ 商品を追加」から追加してください。</div>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>商品名</th>
+          <th class="num" style="width:90px">数量</th>
+          <th class="num" style="width:120px">単価</th>
+          <th class="num" style="width:120px">金額</th>
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_items.map((it, i) => `
+          <tr>
+            <td>
+              <div style="font-weight:600">${esc(it.product_name)}</div>
+              ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
+            </td>
+            <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
+            <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
+            <td class="num" style="font-weight:600">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
+            <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function updateItem(idx, key, value) {
+  if (!_items[idx]) return;
+  _items[idx][key] = Number(value || 0);
+  renderItems();
+  renderPreview();
+}
+
+function removeItem(idx) {
+  _items.splice(idx, 1);
+  renderItems();
+  renderPreview();
+}
+
+// ===== 商品ピッカー =====
+function openProductPicker() {
+  document.getElementById('productSearch').value = '';
+  renderProductPicker('');
+  document.getElementById('productOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('productSearch').focus(), 100);
+}
+
+function closeProductPicker() {
+  document.getElementById('productOverlay').classList.remove('open');
+}
+
+function renderProductPicker(q) {
+  q = (q || '').toLowerCase();
+  const filtered = _products.filter(p => {
+    if (!q) return true;
+    return (
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.product_code || '').toLowerCase().includes(q) ||
+      (p.jan_code || '').toLowerCase().includes(q)
+    );
+  });
+  const list = document.getElementById('productList');
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">該当する商品がありません</div>';
+    return;
+  }
+  list.innerHTML = filtered.slice(0, 100).map(p => `
+    <div class="product-row" onclick="addProductFromPicker('${p.id}')">
+      <div class="product-row-info">
+        <div class="product-row-name">${esc(p.name)}</div>
+        <div class="product-row-meta">${esc(p.product_code || '')}${p.jan_code ? ' / JAN: ' + esc(p.jan_code) : ''}${p.is_food ? ' / 食品' : ''}</div>
+      </div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${p.list_price != null && p.list_price !== '' ? fmt(p.list_price) : ''}</div>
+    </div>
+  `).join('');
+}
+
+function addProductFromPicker(productId) {
+  const p = _products.find(x => x.id === productId);
+  if (!p) return;
+  const customerId = document.getElementById('customerSelect').value || null;
+  const price = lookupPrice(customerId, productId, p) || 0;
+  _items.push({
+    product_id: p.id,
+    product_code: p.product_code || '',
+    product_name: p.name || '',
+    quantity: 1,
+    unit_price: price,
+    is_food: !!p.is_food
+  });
+  closeProductPicker();
+  renderItems();
+  renderPreview();
+}
+
+// ===== プレビュー =====
+function renderPreview() {
+  const issued = document.getElementById('issuedDate').value || todayStr();
+  const expiry = document.getElementById('expiryDate').value || addDaysStr(issued, 30);
+  const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
+  const notes = document.getElementById('notes').value || '';
+
+  const subtotal = _items.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.unit_price || 0), 0);
+  const tax8 = _items.filter(i => i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.08), 0);
+  const tax10 = _items.filter(i => !i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.10), 0);
+  const tax = tax8 + tax10;
+  const total = subtotal + tax;
+
+  const c = _selectedCustomer || {};
+  const customerName = c.company_name || c.name || '取引先を選択してください';
+  const customerAddress = c.address || '';
+  const customerInvoiceNum = c.invoice_number || '';
+  const customerTel = c.tel || '';
+  const customerFax = c.fax || '';
+  const customerPerson = c.contact_person || c.person || '';
+
+  const s = _settings;
+  const fromBlock = s.name ? `
+    <div class="from-name">${esc(s.name)}</div>
+    ${s.person ? `<div>${esc(s.person)}</div>` : ''}
+    ${s.address ? `<div>${esc(s.address)}</div>` : ''}
+    ${s.tel ? `<div>TEL: ${esc(s.tel)}</div>` : ''}
+    ${s.fax ? `<div>FAX: ${esc(s.fax)}</div>` : ''}
+    ${s.email ? `<div>${esc(s.email)}</div>` : ''}
+    ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}
+  ` : '<div style="color:#aaa;font-size:13px">⚙ 発行者情報を設定してください</div>';
+
+  const itemRows = _items.length > 0
+    ? _items.map(it => {
+        const qty = Number(it.quantity || 0);
+        const price = Number(it.unit_price || 0);
+        const sub = qty * price;
+        const rate = it.is_food ? '8%' : '10%';
+        return `
+          <tr>
+            <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:90px">${esc(it.product_code || '—')}</td>
+            <td>${esc(it.product_name || '-')}</td>
+            <td style="text-align:right;width:52px">${qty.toLocaleString()}</td>
+            <td style="text-align:right;width:90px">${fmt(price)}</td>
+            <td style="text-align:right;width:90px">${fmt(sub)}</td>
+            <td style="text-align:center;width:46px;font-size:11px;color:var(--text-muted)">${rate}</td>
+          </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
+
+  document.getElementById('quotationBody').innerHTML = `
+    <div class="quotation-header">
+      <div class="quotation-title-block">
+        <div class="quotation-title">お見積書</div>
+        <div class="quotation-subtitle">QUOTATION</div>
+      </div>
+      <div class="quotation-meta">
+        <table>
+          <tr><td>見積番号</td><td>${esc(number)}</td></tr>
+          <tr><td>発行日</td><td>${esc(formatDateJa(issued))}</td></tr>
+          <tr><td>有効期限</td><td>${esc(formatDateJa(expiry))}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="quotation-parties">
+      <div class="quotation-to">
+        <div class="party-label">お見積先 / TO</div>
+        <div class="party-name">${esc(customerName)}<span class="party-name-suffix">御中</span></div>
+        ${customerPerson ? `<div class="party-address">${esc(customerPerson)} 様</div>` : ''}
+        ${customerAddress ? `<div class="party-address">${esc(customerAddress)}</div>` : ''}
+        ${customerTel ? `<div class="party-address">TEL: ${esc(customerTel)}</div>` : ''}
+        ${customerFax ? `<div class="party-address">FAX: ${esc(customerFax)}</div>` : ''}
+        ${customerInvoiceNum ? `<div class="party-address" style="margin-top:4px">適格請求書番号: ${esc(customerInvoiceNum)}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <div class="footer-section-title" style="margin-bottom:6px">発行者 / ISSUED BY</div>
+        <div class="quotation-from">${fromBlock}</div>
+      </div>
+    </div>
+
+    <div class="amount-headline">
+      <div class="amount-headline-label">お見積金額（税込）</div>
+      <div class="amount-headline-value">${fmt(total)}</div>
+    </div>
+
+    <div class="quotation-table-wrap">
+      <table class="quotation-table">
+        <thead>
+          <tr>
+            <th style="width:90px">商品コード</th>
+            <th>商品名</th>
+            <th style="text-align:right;width:52px">数量</th>
+            <th style="text-align:right;width:90px">単価</th>
+            <th style="text-align:right;width:90px">金額</th>
+            <th style="text-align:center;width:46px">税率</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr><td colspan="2">小計</td><td colspan="4" style="text-align:right">${fmt(subtotal)}</td></tr>
+          ${tax8 > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="4" style="text-align:right">${fmt(tax8)}</td></tr>` : ''}
+          ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="4" style="text-align:right">${fmt(tax10)}</td></tr>` : ''}
+          <tr class="total-row"><td colspan="2">合計（税込）</td><td colspan="4" style="text-align:right">${fmt(total)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="quotation-footer">
+      <div class="notes-block">
+        ${notes ? `<div class="footer-section-title" style="margin-bottom:6px">備考 / NOTES</div><div class="notes-text">${esc(notes)}</div>` : ''}
+      </div>
+      <div class="quotation-stamp">QUOTATION<br>${esc(formatDateJa(issued))}</div>
+    </div>
+  `;
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('quotationBody').style.display = 'block';
+  document.title = `お見積書 - ${customerName} - ${number}`;
+}
+
+// プレビュー連動：発行日・有効期限・備考の入力でリアルタイム更新
+['issuedDate', 'expiryDate', 'notes'].forEach(id => {
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderPreview);
+  });
+});
+
+// ===== 保存 =====
+async function saveQuotation() {
+  const customerId = document.getElementById('customerSelect').value || null;
+  const issued = document.getElementById('issuedDate').value;
+  const expiry = document.getElementById('expiryDate').value;
+  const notes = document.getElementById('notes').value || '';
+
+  if (!customerId) {
+    showToast('⚠️ 取引先を選択してください');
+    return;
+  }
+  if (!issued) {
+    showToast('⚠️ 発行日を入力してください');
+    return;
+  }
+  if (!expiry) {
+    showToast('⚠️ 有効期限を入力してください');
+    return;
+  }
+  if (!_items.length) {
+    showToast('⚠️ 明細を1件以上追加してください');
+    return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+
+  try {
+    const subtotal = _items.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.unit_price || 0), 0);
+    const tax8 = _items.filter(i => i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.08), 0);
+    const tax10 = _items.filter(i => !i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.10), 0);
+    const tax = tax8 + tax10;
+    const total = subtotal + tax;
+
+    const customer = _customers.find(c => c.id === customerId) || null;
+    const customerSnapshot = customer ? {
+      name: customer.company_name || '',
+      person: customer.contact_person || '',
+      address: customer.address || '',
+      tel: customer.tel || '',
+      fax: customer.fax || '',
+      invoice_number: customer.invoice_number || ''
+    } : {};
+
+    let qid = quotationId;
+    let qnumber = _existingNumber;
+
+    if (mode === 'new' || !qid) {
+      // 見積番号採番
+      const numRes = await sbFetch(`/rest/v1/rpc/generate_quotation_number`, {
+        method: 'POST',
+        body: JSON.stringify({ p_tenant_id: tenantId })
+      });
+      if (!numRes.ok) {
+        const err = await numRes.text();
+        throw new Error('見積番号採番失敗: ' + err);
+      }
+      qnumber = await numRes.json();
+      // ヘッダINSERT
+      const insRes = await sbFetch(`/rest/v1/quotations`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          quotation_number: qnumber,
+          customer_id: customerId,
+          customer_snapshot: customerSnapshot,
+          issued_date: issued,
+          expiry_date: expiry,
+          subtotal,
+          tax_amount: tax,
+          total_incl_tax: total,
+          notes
+        })
+      });
+      if (!insRes.ok) {
+        const err = await insRes.text();
+        throw new Error('見積書保存失敗: ' + err);
+      }
+      const inserted = await insRes.json();
+      qid = inserted[0]?.id;
+    } else {
+      // 既存更新
+      const updRes = await sbFetch(`/rest/v1/quotations?id=eq.${qid}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          customer_id: customerId,
+          customer_snapshot: customerSnapshot,
+          issued_date: issued,
+          expiry_date: expiry,
+          subtotal,
+          tax_amount: tax,
+          total_incl_tax: total,
+          notes
+        })
+      });
+      if (!updRes.ok) {
+        const err = await updRes.text();
+        throw new Error('見積書更新失敗: ' + err);
+      }
+      // 既存明細を削除
+      const delRes = await sbFetch(`/rest/v1/quotation_items?quotation_id=eq.${qid}`, { method: 'DELETE' });
+      if (!delRes.ok) {
+        const err = await delRes.text();
+        throw new Error('明細削除失敗: ' + err);
+      }
+    }
+
+    // 明細INSERT
+    if (qid && _items.length) {
+      const itemRows = _items.map((it, i) => ({
+        quotation_id: qid,
+        product_id: it.product_id || null,
+        product_code: it.product_code || '',
+        product_name: it.product_name || '',
+        quantity: Number(it.quantity || 0),
+        unit_price: Number(it.unit_price || 0),
+        subtotal: Number(it.quantity || 0) * Number(it.unit_price || 0),
+        is_food: !!it.is_food,
+        display_order: i
+      }));
+      const itemRes = await sbFetch(`/rest/v1/quotation_items`, {
+        method: 'POST',
+        body: JSON.stringify(itemRows)
+      });
+      if (!itemRes.ok) {
+        const err = await itemRes.text();
+        throw new Error('明細保存失敗: ' + err);
+      }
+    }
+
+    // 新規→編集モードへURL更新
+    if (mode === 'new' && qid) {
+      history.replaceState(null, '', `quotation.html?id=${qid}`);
+    }
+    document.getElementById('quotationNumber').value = qnumber;
+    _existingNumber = qnumber;
+    document.getElementById('deleteBtn').style.display = 'inline-flex';
+    document.getElementById('printBtn').style.display = 'inline-flex';
+    document.getElementById('modeLabel').textContent = '見積書編集';
+
+    renderPreview();
+    const msg = document.getElementById('saveMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+    showToast('✓ 保存しました');
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ ' + (e.message || '保存に失敗しました'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 保存';
+  }
+}
+
+async function deleteQuotation() {
+  if (!quotationId && !_existingNumber) return;
+  const id = quotationId || (new URLSearchParams(location.search)).get('id');
+  if (!id) return;
+  if (!confirm('この見積書を削除します。よろしいですか？')) return;
+  try {
+    const res = await sbFetch(`/rest/v1/quotations?id=eq.${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('削除失敗');
+    showToast('✓ 削除しました');
+    setTimeout(() => location.href = 'quotation-list.html', 800);
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ 削除に失敗しました');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
