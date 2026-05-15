@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAX注文の管理を効率化する方法 | MeguRee</title>
+<meta name="description" content="FAX・電話で届く注文管理を効率化したい卸売業者向けに、受注ミスを減らし、納品書・請求書までスムーズに進める見直し手順を解説します。">
+<link rel="canonical" href="https://oshigowata-sys.github.io/order-form/fax-order-management.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FAX注文の管理を効率化する方法 | MeguRee">
+<meta property="og:description" content="FAX・電話で届く注文管理を効率化したい卸売業者向けに、受注ミスを減らす見直し手順を解説します。">
+<meta property="og:url" content="https://oshigowata-sys.github.io/order-form/fax-order-management.html">
+<meta property="og:image" content="https://oshigowata-sys.github.io/order-form/assets/lp/17.png">
+<meta property="og:site_name" content="MeguRee">
+<meta property="og:locale" content="ja_JP">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "FAX注文の管理を効率化する方法",
+  "description": "FAX・電話で届く注文管理を効率化したい卸売業者向けに、受注ミスを減らす見直し手順を解説します。",
+  "datePublished": "2026-05-15",
+  "dateModified": "2026-05-15",
+  "author": {
+    "@type": "Organization",
+    "name": "MeguRee"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "MeguRee",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://oshigowata-sys.github.io/order-form/meguree_final%20(2).svg"
+    }
+  },
+  "mainEntityOfPage": "https://oshigowata-sys.github.io/order-form/fax-order-management.html"
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #e8630a;
+  --green: #1e6641;
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --text: #1c1917;
+  --muted: #6b6258;
+  --border: #e7e0d8;
+}
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.8;
+}
+a { color: inherit; }
+.header {
+  background: rgba(255,255,255,0.96);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.logo img { height: 42px; display: block; }
+.header-links { display: flex; align-items: center; gap: 18px; font-size: 13px; font-weight: 700; }
+.header-links a { text-decoration: none; color: var(--muted); }
+.header-links .cta {
+  background: var(--orange);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+.hero {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.hero-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 24px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+.eyebrow {
+  display: inline-flex;
+  background: #fff4ec;
+  color: var(--orange);
+  border: 1px solid rgba(232,99,10,0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+h1 {
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.3;
+  letter-spacing: 0;
+  margin-bottom: 16px;
+}
+.lead { color: var(--muted); font-size: 16px; }
+.hero-image {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+}
+.hero-image img { width: 100%; display: block; }
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+.article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px;
+}
+.article h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 34px 0 14px;
+}
+.article h2:first-child { margin-top: 0; }
+.article h3 {
+  font-size: 18px;
+  margin: 24px 0 8px;
+}
+.article p { color: var(--muted); margin-bottom: 14px; }
+.article ul, .article ol { padding-left: 1.4em; color: var(--muted); margin-bottom: 18px; }
+.article li { margin-bottom: 8px; }
+.note {
+  background: #f0f7f3;
+  border-left: 4px solid var(--green);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 24px 0;
+  color: var(--text);
+}
+.cta-box {
+  margin-top: 36px;
+  background: #1c1917;
+  color: #fff;
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.cta-box h2 { color: #fff; margin: 0 0 8px; font-size: 22px; }
+.cta-box p { color: rgba(255,255,255,0.72); margin: 0; }
+.cta-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--orange); color: #fff; }
+.btn-secondary { border: 1px solid rgba(255,255,255,0.32); color: #fff; }
+.footer {
+  background: #1c1917;
+  color: rgba(255,255,255,0.45);
+  padding: 24px;
+  font-size: 12px;
+}
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer a { color: rgba(255,255,255,0.65); text-decoration: none; margin-right: 16px; }
+@media (max-width: 760px) {
+  .header-inner { align-items: flex-start; flex-direction: column; }
+  .header-links { flex-wrap: wrap; gap: 12px; }
+  .hero-inner { grid-template-columns: 1fr; padding: 40px 20px; }
+  .main { padding: 32px 16px 48px; }
+  .article { padding: 24px; }
+  .cta-box { grid-template-columns: 1fr; }
+  .cta-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <a href="lp.html" class="logo">
+      <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    </a>
+    <nav class="header-links" aria-label="主要ページ">
+      <a href="lp.html">トップ</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html" class="cta">お問い合わせ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">卸売業の受注管理ガイド</div>
+      <h1>FAX注文の管理を効率化する方法</h1>
+      <p class="lead">
+        FAX・電話・メールで届く注文は、今のやり方でも回せます。ただ、件数が増えるほど、転記、確認、納品書作成に時間が取られます。ここでは小規模な卸売業者が、無理なく受注管理を見直す手順を整理します。
+      </p>
+    </div>
+    <div class="hero-image">
+      <img src="assets/lp/17.png" alt="受注管理を行うビジネスパーソン">
+    </div>
+  </div>
+</section>
+
+<main class="main">
+  <article class="article">
+    <h2>FAX注文で起きやすい問題</h2>
+    <p>FAX注文は、取引先にとって慣れた方法です。一方で、受ける側では次のような作業が重なりやすくなります。</p>
+    <ul>
+      <li>注文内容をExcelや紙の台帳へ転記する</li>
+      <li>読みにくい文字や数量を電話で確認する</li>
+      <li>対応済みかどうかを担当者同士で確認する</li>
+      <li>納品書・請求書を別作業で作る</li>
+      <li>月末に売上や取引先別の金額を集計する</li>
+    </ul>
+    <p>この作業は一つひとつは小さくても、毎日積み重なると大きな時間になります。特に観光卸売、食品卸売、地域産品卸売のように取引先や商品数が多い業務では、確認作業が負担になりやすいです。</p>
+
+    <h2>まず見直すべき3つのポイント</h2>
+    <h3>1. 注文情報の置き場所を一つにする</h3>
+    <p>最初にやるべきことは、注文情報の置き場所を決めることです。FAX、電話、メールで受けた注文を担当者ごとに持つと、確認漏れが起きます。注文日、取引先、商品、数量、対応状況を一つの一覧で見られる状態にします。</p>
+
+    <h3>2. 対応状況を見えるようにする</h3>
+    <p>「未対応」「準備中」「納品済み」などの状態を見えるようにすると、確認の電話や社内確認が減ります。紙の注文書を探す時間も短くなります。</p>
+
+    <h3>3. 納品書・請求書までつなげる</h3>
+    <p>受注管理だけをデジタル化しても、納品書や請求書を別で作ると二重入力が残ります。受けた注文から納品書・請求書までつながる形にすると、月末処理も軽くなります。</p>
+
+    <div class="note">
+      いきなり取引先の注文方法を変える必要はありません。まずは社内側の受注管理を整え、慣れてきた取引先から注文フォームやQRコードに移していくのが現実的です。
+    </div>
+
+    <h2>システムを選ぶときの確認項目</h2>
+    <ol>
+      <li>FAX・電話・メール注文をまとめて管理できるか</li>
+      <li>取引先別の価格や掛け率を扱えるか</li>
+      <li>商品マスタを簡単に更新できるか</li>
+      <li>納品書・請求書の発行まで対応できるか</li>
+      <li>少人数でも迷わず使える画面か</li>
+      <li>売上が増えても費用が大きく変わらないか</li>
+    </ol>
+    <p>小規模な卸売業では、多機能すぎる大規模システムより、毎日の受注作業を迷わず進められることが重要です。</p>
+
+    <h2>MeguReeでできること</h2>
+    <p>MeguReeは、FAX・電話・メールで届く注文を一つの画面で管理し、取引先、商品、掛け率、納品書、請求書までまとめて扱う受注管理システムです。</p>
+    <p>観光卸売や地域産品卸売のように、少人数で多くの取引先を対応する現場を想定しています。初期費用は0円、月額固定で始められます。</p>
+
+    <section class="cta-box" aria-label="資料ダウンロードと問い合わせ">
+      <div>
+        <h2>受注管理の見直しを始める方へ</h2>
+        <p>機能・料金・導入ステップをまとめた資料をご確認いただけます。</p>
+      </div>
+      <div class="cta-actions">
+        <a href="download.html" class="btn btn-primary">資料ダウンロード</a>
+        <a href="contact.html" class="btn btn-secondary">無料相談する</a>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <a href="lp.html">MeguRee</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html">お問い合わせ</a>
+    </div>
+    <div>© 2026 MeguRee. All rights reserved.</div>
+  </div>
+</footer>
+</body>
+</html>
