@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>見積書管理 | MeguRee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --orange:#e8630a;--orange-light:#f97316;--orange-pale:#fff4ec;
+  --green:#1e6641;--green-pale:#e8f5ee;
+  --text:#1a1208;--text-muted:#7a6a55;
+  --sidebar-bg:#1a1208;--sidebar-text:#e8d5bc;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:240px;min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo img{width:140px;margin-bottom:4px;display:block}
+.sidebar-logo-sub{font-size:10px;color:rgba(232,213,188,0.4);letter-spacing:2px;}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:rgba(232,213,188,0.3);letter-spacing:2px;padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sidebar-text);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.06)}
+.nav-item.active{background:var(--orange);color:#fff}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:18px;font-weight:700}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
+.content{padding:28px 32px;flex:1}
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
+.search-input:focus{border-color:var(--orange);background:#fff}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
+th{padding:10px 16px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;white-space:nowrap}
+tbody tr{background:var(--bg);border-bottom:1px solid var(--border);transition:background 0.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f0ebe3}
+td{padding:13px 16px;font-size:14px;vertical-align:middle;white-space:nowrap}
+.num-right{text-align:right}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;text-decoration:none}
+.btn:hover{opacity:0.85}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-outline{background:none;border:1.5px solid var(--border);color:var(--text-muted)}
+.btn-danger{background:#fff;border:1.5px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fef2f2}
+.btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
+.btn-new{background:var(--orange);color:#fff;padding:9px 18px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none}
+.btn-new:hover{background:#d4570a}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:14px;font-weight:600}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.badge-valid{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
+.badge-valid::before{background:var(--green)}
+.badge-expired{background:#f3f4f6;color:#6b7280;border:1px solid rgba(107,114,128,0.2)}
+.badge-expired::before{background:#9ca3af}
+.filter-bar{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.filter-btn{padding:5px 14px;border:1.5px solid var(--border);border-radius:20px;background:none;cursor:pointer;font-size:14px;font-weight:600;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;transition:all 0.15s}
+.filter-btn:hover{border-color:var(--orange);color:var(--orange)}
+.filter-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.kpi-card.green::after{background:var(--green)}
+.kpi-card.yellow::after{background:#d97706}
+.kpi-card.gray::after{background:#9ca3af}
+.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-value.warn{color:var(--orange)}
+.kpi-value.green{color:var(--green)}
+.kpi-value.gray{color:#6b7280}
+.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:3px}
+.topbar-user{display:flex;align-items:center;gap:10px}
+.topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
+.topbar-user-role{font-size:14px;color:var(--text-muted)}
+.topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
+.logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
+.logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
+.toast{position:fixed;bottom:28px;right:28px;background:#1a1208;color:#fff;padding:13px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;font-family:'Noto Sans JP',sans-serif}
+.toast.show{opacity:1;transform:translateY(0)}
+tr.row-expired td{color:var(--text-muted)}
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee">
+    <div class="sidebar-logo-sub">MANAGEMENT</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">メニュー</div>
+    <a class="nav-item" href="dashboard.html"><span class="icon">🏠</span>ダッシュボード</a>
+    <a class="nav-item" href="orders.html"><span class="icon">📋</span>受注一覧</a>
+    <a class="nav-item" href="invoice-list.html"><span class="icon">🧾</span>請求書管理</a>
+    <a class="nav-item active" href="quotation-list.html"><span class="icon">📄</span>見積書管理</a>
+    <div class="nav-label">マスタ管理</div>
+    <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
+    <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <div class="nav-label">その他</div>
+    <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
+    <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a class="logout-item" href="#" onclick="signOut('login.html'); return false;"><span class="icon">🚪</span>ログアウト</a>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">見積書管理</div>
+      <div class="page-sub">取引先への見積書を発行・管理します</div>
+    </div>
+    <div class="topbar-user">
+      <div>
+        <div class="topbar-user-name" id="topbarUserName"></div>
+        <div class="topbar-user-role" id="topbarUserRole"></div>
+      </div>
+      <div class="topbar-avatar" id="topbarAvatar">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">有効な見積書</div>
+        <div class="kpi-value warn" id="kpiValid">—</div>
+        <div class="kpi-sub">期限内</div>
+      </div>
+      <div class="kpi-card gray">
+        <div class="kpi-label">期限切れ</div>
+        <div class="kpi-value gray" id="kpiExpired">—</div>
+        <div class="kpi-sub">件</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">有効分合計（税込）</div>
+        <div class="kpi-value" id="kpiValidAmount">—</div>
+        <div class="kpi-sub">期限内合計</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">累計件数</div>
+        <div class="kpi-value green" id="kpiTotal">—</div>
+        <div class="kpi-sub">全期間</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">全件</button>
+        <button class="filter-btn" data-filter="valid">有効</button>
+        <button class="filter-btn" data-filter="expired">期限切れ</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・見積番号で検索" oninput="onSearchInput(this.value)">
+          <a class="btn-new" href="quotation.html?mode=new">＋ 新規見積書</a>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr>
+            <th>見積番号</th>
+            <th>取引先名</th>
+            <th>発行日</th>
+            <th>有効期限</th>
+            <th class="num-right">税込合計</th>
+            <th>ステータス</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="quotationTbody"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="auth.js?v=20260510-idletimer"></script>
+<script>
+checkAuth();
+
+const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+const { tenantId, name: userName, role: userRole } = userData;
+
+(() => {
+  const nameEl = document.getElementById('topbarUserName');
+  const roleEl = document.getElementById('topbarUserRole');
+  const avatarEl = document.getElementById('topbarAvatar');
+  if (userName) {
+    nameEl.textContent = userName;
+    roleEl.textContent = userRole === 'admin' ? '管理者' : 'スタッフ';
+    avatarEl.textContent = userName.charAt(0);
+  }
+})();
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(n) {
+  return '¥' + Number(n || 0).toLocaleString('ja-JP');
+}
+
+function sbFetch(path, options = {}) {
+  return fetch(SB_URL + path, {
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + getAccessToken(),
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+}
+
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── データ ──
+let _allRows = [];
+let _renderedRows = [];
+let currentFilter = 'all';
+let currentSearch = '';
+
+function onSearchInput(val) {
+  currentSearch = val.trim();
+  renderAll();
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderAll();
+  });
+});
+
+async function loadAll() {
+  document.getElementById('quotationTbody').innerHTML =
+    '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr>';
+  try {
+    const res = await sbFetch(`/rest/v1/quotations?tenant_id=eq.${tenantId}&select=id,quotation_number,customer_id,customer_snapshot,issued_date,expiry_date,total_incl_tax,customers(company_name)&order=issued_date.desc,quotation_number.desc`);
+    if (!res.ok) throw new Error('データ取得失敗');
+    const rows = await res.json();
+
+    const today = new Date().toISOString().slice(0, 10);
+    _allRows = rows.map(r => ({
+      id: r.id,
+      quotationNumber: r.quotation_number,
+      customer: r.customers?.company_name || (r.customer_snapshot?.name) || '（取引先未設定）',
+      issuedDate: r.issued_date,
+      expiryDate: r.expiry_date,
+      total: Number(r.total_incl_tax || 0),
+      status: r.expiry_date >= today ? 'valid' : 'expired'
+    }));
+
+    updateKPIs();
+    renderAll();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('quotationTbody').innerHTML =
+      '<tr><td colspan="7" style="text-align:center;padding:24px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
+  }
+}
+
+function updateKPIs() {
+  const validRows = _allRows.filter(r => r.status === 'valid');
+  const expiredRows = _allRows.filter(r => r.status === 'expired');
+  document.getElementById('kpiValid').textContent = validRows.length;
+  document.getElementById('kpiExpired').textContent = expiredRows.length;
+  document.getElementById('kpiValidAmount').textContent = fmt(validRows.reduce((s, r) => s + r.total, 0));
+  document.getElementById('kpiTotal').textContent = _allRows.length;
+}
+
+function renderAll() {
+  const tbody = document.getElementById('quotationTbody');
+  let rows = _allRows;
+  if (currentFilter === 'valid') rows = rows.filter(r => r.status === 'valid');
+  else if (currentFilter === 'expired') rows = rows.filter(r => r.status === 'expired');
+  const q = currentSearch.toLowerCase();
+  if (q) rows = rows.filter(r => r.customer.toLowerCase().includes(q) || r.quotationNumber.toLowerCase().includes(q));
+
+  _renderedRows = rows;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">該当する見積書はありません</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const badge = r.status === 'valid'
+      ? '<span class="badge badge-valid">有効</span>'
+      : '<span class="badge badge-expired">期限切れ</span>';
+    const rowClass = r.status === 'expired' ? ' class="row-expired"' : '';
+    return `<tr${rowClass}>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${esc(r.quotationNumber)}</td>
+      <td style="font-weight:600">${esc(r.customer)}</td>
+      <td style="font-size:14px;color:var(--text-muted)">${r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—'}</td>
+      <td style="font-size:14px;color:var(--text-muted)">${r.expiryDate ? r.expiryDate.replace(/-/g,'/') : '—'}</td>
+      <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">${fmt(r.total)}</td>
+      <td>${badge}</td>
+      <td>
+        <a class="btn btn-primary btn-sm" href="quotation.html?id=${encodeURIComponent(r.id)}">開く</a>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('${r.id}','${esc(r.quotationNumber).replace(/'/g,"\\'")}')">削除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function confirmDelete(id, number) {
+  if (!confirm(`見積書「${number}」を削除します。よろしいですか？`)) return;
+  try {
+    const res = await sbFetch(`/rest/v1/quotations?id=eq.${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('削除失敗');
+    showToast('削除しました');
+    loadAll();
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ 削除に失敗しました');
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
