@@ -244,6 +244,13 @@ async function loadAll() {
       basePrice:   r.products?.price         || 0,
     }));
 
+    CUSTOMERS.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    PRODUCTS.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    PRICING.sort((a, b) => {
+      const c = a.custName.localeCompare(b.custName, 'ja');
+      return c !== 0 ? c : a.prodName.localeCompare(b.prodName, 'ja');
+    });
+
     populateSelects();
     renderPricing();
   } catch(e) {

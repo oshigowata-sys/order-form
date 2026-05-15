@@ -498,6 +498,7 @@
         category:     r.category || '',
         imageUrl:     normalizeImageUrl(r.image_url),
       }));
+      products.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
       renderProducts();
     } catch(e) {
       console.error('商品データ取得失敗:', e);
