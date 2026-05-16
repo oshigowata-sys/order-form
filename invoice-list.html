@@ -620,6 +620,58 @@ async function confirmIssue() {
       })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    // ── 明細スナップショット保存（請求書発行時点の商品名・単価・税率を固定） ──
+    const invoicePayload = await res.json();
+    const invoiceId = Array.isArray(invoicePayload) ? invoicePayload[0]?.id : invoicePayload?.id;
+    if (!invoiceId) throw new Error('発行された請求書IDの取得に失敗しました');
+
+    try {
+      const ordersRes = await sbFetch(
+        '/rest/v1/orders?tenant_id=eq.' + encodeURIComponent(tenantId)
+        + '&customer_id=eq.' + encodeURIComponent(r.customerId)
+        + '&order_date=gte.' + encodeURIComponent(periodStart)
+        + '&order_date=lte.' + encodeURIComponent(periodEnd)
+        + '&select=id,order_date,order_items(product_id,quantity,unit_price,products(product_code,product_name,is_food))'
+        + '&order=order_date.asc'
+      );
+      if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
+      const ordersData = await ordersRes.json();
+
+      const itemsPayload = [];
+      let dispOrder = 0;
+      for (const ord of (ordersData || [])) {
+        for (const it of (ord.order_items || [])) {
+          const unitPrice = Number(it.unit_price) || 0;
+          const qty       = Number(it.quantity)   || 0;
+          itemsPayload.push({
+            invoice_id:    invoiceId,
+            product_id:    it.product_id || null,
+            product_code:  it.products?.product_code || '',
+            product_name:  it.products?.product_name || '',
+            quantity:      qty,
+            unit_price:    unitPrice,
+            subtotal:      Math.round(unitPrice * qty),
+            is_food:       !!(it.products?.is_food),
+            display_order: dispOrder++,
+          });
+        }
+      }
+
+      if (itemsPayload.length > 0) {
+        const itemsRes = await sbFetch('/rest/v1/invoice_items', {
+          method: 'POST',
+          body: JSON.stringify(itemsPayload),
+        });
+        if (!itemsRes.ok) throw new Error('HTTP ' + itemsRes.status);
+      }
+    } catch (snapshotErr) {
+      // 明細スナップショット保存失敗 → 請求書ヘッダを取り消してロールバック
+      console.error('invoice_items の保存に失敗。請求書をロールバックします', snapshotErr);
+      await sbFetch('/rest/v1/invoices?id=eq.' + encodeURIComponent(invoiceId), { method: 'DELETE' });
+      throw snapshotErr;
+    }
+
     closeIssueModal();
     showToast(`✅ 請求書を発行しました（${num}）`);
     const pdfUrl = 'invoice.html'
