@@ -470,26 +470,12 @@ function inferExpiryType(issuedDate, expiryDate) {
   return days >= 3650 ? 'next_quote' : 'date';
 }
 
-function isMissingExpiryTypeError(text) {
-  return /PGRST204/.test(text || '') && /expiry_type/.test(text || '');
-}
-
 async function writeQuotationHeader(method, qid, payload) {
   const path = method === 'POST' ? '/rest/v1/quotations' : `/rest/v1/quotations?id=eq.${qid}`;
-  let res = await sbFetch(path, { method, body: JSON.stringify(payload) });
-  if (res.ok) return res;
-
-  const errText = await res.text().catch(() => '');
-  if (!isMissingExpiryTypeError(errText)) {
-    throw new Error((method === 'POST' ? '見積書保存失敗: ' : '見積書更新失敗: ') + errText);
-  }
-
-  const fallbackPayload = { ...payload };
-  delete fallbackPayload.expiry_type;
-  res = await sbFetch(path, { method, body: JSON.stringify(fallbackPayload) });
+  const res = await sbFetch(path, { method, body: JSON.stringify(payload) });
   if (!res.ok) {
-    const fallbackErr = await res.text().catch(() => '');
-    throw new Error((method === 'POST' ? '見積書保存失敗: ' : '見積書更新失敗: ') + fallbackErr);
+    const errText = await res.text().catch(() => '');
+    throw new Error((method === 'POST' ? '見積書保存失敗: ' : '見積書更新失敗: ') + errText);
   }
   return res;
 }
