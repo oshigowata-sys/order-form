@@ -214,6 +214,10 @@ function sbFetch(path, options = {}) {
 let CUSTOMERS = [];
 let PRODUCTS  = [];
 let PRICING   = [];
+
+// 取引先グループの折りたたみ状態（ページ内メモリ・リロードでリセット）
+// MeguRee内部ルールにより sessionStorage には保存しない。
+let _pricingCollapseState = {};
 let currentSearch = '';
 
 function onSearchInput(val) {
@@ -322,7 +326,6 @@ function renderPricing() {
   const groups = {};
   list.forEach(p => { if (!groups[p.custName]) groups[p.custName] = []; groups[p.custName].push(p); });
   const custKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
-  const savedState = JSON.parse(sessionStorage.getItem('meguree_pricing_state') || '{}');
 
   let html = '';
   custKeys.forEach((cust, idx) => {
@@ -336,8 +339,10 @@ function renderPricing() {
   });
   document.getElementById('pricingTbody').innerHTML = html;
 
+  // 折りたたみ状態は MeguRee 内部ルール（sessionStorage 許可リスト外）のためメモリ内で保持。
+  // ページリロードで状態はリセットされる。
   custKeys.forEach((cust, idx) => {
-    if (!savedState[cust]) return;
+    if (!_pricingCollapseState[cust]) return;
     const cgId = 'pcg' + idx;
     const header = document.querySelector(`.cust-group-row[data-cgid="${cgId}"]`);
     const rows = document.querySelectorAll(`.cust-pricing-row[data-cg="${cgId}"]`);
@@ -351,9 +356,7 @@ function toggleCustGroup(cgId) {
   const collapsed = header.classList.toggle('collapsed');
   rows.forEach(r => r.classList.toggle('cust-hidden', collapsed));
   const custName = header.dataset.custname;
-  const state = JSON.parse(sessionStorage.getItem('meguree_pricing_state') || '{}');
-  if (collapsed) { state[custName] = true; } else { delete state[custName]; }
-  sessionStorage.setItem('meguree_pricing_state', JSON.stringify(state));
+  if (collapsed) { _pricingCollapseState[custName] = true; } else { delete _pricingCollapseState[custName]; }
 }
 
 /* ── プレビュー ── */

@@ -360,7 +360,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
       const res = await sbFetch(
-        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customers(company_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
+        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,customers(company_name,contact_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
@@ -372,10 +372,19 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           return s + Math.round(i.quantity * i.unit_price * rate);
         }, 0);
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
+        // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
+        const masterCompany = r.customers?.company_name || '';
+        const inputCompany  = r.input_company_name || '';
+        const isUnlinked    = !r.customer_id;
+        const displayCompany = masterCompany
+          || (inputCompany ? `${inputCompany}（マスタ未登録）` : '');
         return {
           id:       r.id,
           code:     r.order_code || r.id.slice(0,8),
-          customer: r.customers?.company_name || '',
+          customer: displayCompany,
+          customerSearch: masterCompany + ' ' + inputCompany,
+          contactName: r.customers?.contact_name || r.input_contact_name || '',
+          isUnlinked,
           date:     r.order_date || '',
           status:   r.status || '',
           excl,
@@ -415,7 +424,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     let list = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
     if (currentSearch) {
       const q = currentSearch.toLowerCase();
-      list = list.filter(o => o.customer.toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
+      list = list.filter(o => (o.customerSearch || o.customer).toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
     }
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">受注データがありません</td></tr>';
@@ -485,6 +494,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('modalInfo').innerHTML = [
       {label:'受注ID',    val:`<span style="font-family:'Space Grotesk',sans-serif;color:var(--orange)">${esc(o.code)}</span>`},
       {label:'取引先名',  val:esc(o.customer)},
+      {label:'担当者名',  val:esc(o.contactName || '—')},
       {label:'受注日',    val:esc(o.date)},
       {label:'ステータス',val:`<span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span>`},
     ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');

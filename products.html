@@ -447,6 +447,10 @@
   }
 
   let products = [];
+
+  // カテゴリの折りたたみ状態（ページ内メモリ・リロードでリセット）
+  // MeguRee内部ルールにより sessionStorage には保存しない。
+  let _catCollapseState = {};
   let currentSearch = '';
 
   function onSearchInput(val) {
@@ -567,9 +571,10 @@
     });
     tbody.innerHTML = html;
 
-    const savedState = JSON.parse(sessionStorage.getItem('meguree_cat_state') || '{}');
+    // 折りたたみ状態は MeguRee 内部ルール（sessionStorage 許可リスト外）のためメモリ内で保持。
+    // ページリロードで状態はリセットされる。
     catKeys.forEach((cat, idx) => {
-      if (!savedState[cat]) return;
+      if (!_catCollapseState[cat]) return;
       const catId = 'cg' + idx;
       const header = document.querySelector(`.category-group-row[data-catid="${catId}"]`);
       const rows = document.querySelectorAll(`.cat-product-row[data-cat="${catId}"]`);
@@ -587,9 +592,7 @@
     rows.forEach(r => r.classList.toggle('cat-hidden', collapsed));
 
     const catName = header.dataset.catname;
-    const state = JSON.parse(sessionStorage.getItem('meguree_cat_state') || '{}');
-    if (collapsed) { state[catName] = true; } else { delete state[catName]; }
-    sessionStorage.setItem('meguree_cat_state', JSON.stringify(state));
+    if (collapsed) { _catCollapseState[catName] = true; } else { delete _catCollapseState[catName]; }
   }
 
   function janDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
