@@ -388,7 +388,7 @@ async function loadExistingQuotation() {
   document.getElementById('modeLabel').textContent = '見積書編集';
   document.getElementById('quotationNumber').value = q.quotation_number;
   document.getElementById('issuedDate').value = q.issued_date || todayStr();
-  document.getElementById('expiryType').value = q.expiry_type || 'next_quote';
+  document.getElementById('expiryType').value = q.expiry_type || inferExpiryType(q.issued_date, q.expiry_date);
   document.getElementById('expiryDate').value = q.expiry_date || addDaysStr(todayStr(), 30);
   document.getElementById('notes').value = q.notes || '';
   updateExpiryDateVisibility();
@@ -459,6 +459,39 @@ function updateExpiryDateVisibility() {
 
 function expiryLabel(type, dateStr) {
   return type === 'date' ? formatDateJa(dateStr) : '次回見積まで';
+}
+
+function inferExpiryType(issuedDate, expiryDate) {
+  if (!expiryDate) return 'next_quote';
+  const issued = new Date(issuedDate || todayStr());
+  const expiry = new Date(expiryDate);
+  if (isNaN(issued) || isNaN(expiry)) return 'next_quote';
+  const days = Math.round((expiry - issued) / 86400000);
+  return days >= 3650 ? 'next_quote' : 'date';
+}
+
+function isMissingExpiryTypeError(text) {
+  return /PGRST204/.test(text || '') && /expiry_type/.test(text || '');
+}
+
+async function writeQuotationHeader(method, qid, payload) {
+  const path = method === 'POST' ? '/rest/v1/quotations' : `/rest/v1/quotations?id=eq.${qid}`;
+  let res = await sbFetch(path, { method, body: JSON.stringify(payload) });
+  if (res.ok) return res;
+
+  const errText = await res.text().catch(() => '');
+  if (!isMissingExpiryTypeError(errText)) {
+    throw new Error((method === 'POST' ? '見積書保存失敗: ' : '見積書更新失敗: ') + errText);
+  }
+
+  const fallbackPayload = { ...payload };
+  delete fallbackPayload.expiry_type;
+  res = await sbFetch(path, { method, body: JSON.stringify(fallbackPayload) });
+  if (!res.ok) {
+    const fallbackErr = await res.text().catch(() => '');
+    throw new Error((method === 'POST' ? '見積書保存失敗: ' : '見積書更新失敗: ') + fallbackErr);
+  }
+  return res;
 }
 
 // 単価 = 商品の基本単価（products.price＝下代） × 取引先別掛け率（pricing.rate）
@@ -781,48 +814,34 @@ async function saveQuotation() {
       }
       qnumber = await numRes.json();
       // ヘッダINSERT
-      const insRes = await sbFetch(`/rest/v1/quotations`, {
-        method: 'POST',
-        body: JSON.stringify({
-          tenant_id: tenantId,
-          quotation_number: qnumber,
-          customer_id: customerId,
-          customer_snapshot: customerSnapshot,
-          issued_date: issued,
-          expiry_type: expiryType,
-          expiry_date: expiry,
-          subtotal,
-          tax_amount: tax,
-          total_incl_tax: total,
-          notes
-        })
+      const insRes = await writeQuotationHeader('POST', null, {
+        tenant_id: tenantId,
+        quotation_number: qnumber,
+        customer_id: customerId,
+        customer_snapshot: customerSnapshot,
+        issued_date: issued,
+        expiry_type: expiryType,
+        expiry_date: expiry,
+        subtotal,
+        tax_amount: tax,
+        total_incl_tax: total,
+        notes
       });
-      if (!insRes.ok) {
-        const err = await insRes.text();
-        throw new Error('見積書保存失敗: ' + err);
-      }
       const inserted = await insRes.json();
       qid = inserted[0]?.id;
     } else {
       // 既存更新
-      const updRes = await sbFetch(`/rest/v1/quotations?id=eq.${qid}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          customer_id: customerId,
-          customer_snapshot: customerSnapshot,
-          issued_date: issued,
-          expiry_type: expiryType,
-          expiry_date: expiry,
-          subtotal,
-          tax_amount: tax,
-          total_incl_tax: total,
-          notes
-        })
+      await writeQuotationHeader('PATCH', qid, {
+        customer_id: customerId,
+        customer_snapshot: customerSnapshot,
+        issued_date: issued,
+        expiry_type: expiryType,
+        expiry_date: expiry,
+        subtotal,
+        tax_amount: tax,
+        total_incl_tax: total,
+        notes
       });
-      if (!updRes.ok) {
-        const err = await updRes.text();
-        throw new Error('見積書更新失敗: ' + err);
-      }
       // 既存明細を削除
       const delRes = await sbFetch(`/rest/v1/quotation_items?quotation_id=eq.${qid}`, { method: 'DELETE' });
       if (!delRes.ok) {
