@@ -889,10 +889,14 @@
   let _customerRates = {};
 
   async function loadRatesForCustomer(customerId) {
-    if (!customerId) { _customerRates = {}; return; }
+    if (!customerId || !TENANT_ID) { _customerRates = {}; return; }
     try {
-      const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-      const res = await sbFetch(`/rest/v1/pricing?${tf}customer_id=eq.${customerId}&select=product_id,rate`);
+      // テナント分離のため pricing テーブル直接ではなく専用 RPC 経由で取得。
+      // RPC 側で「指定された tenant_id + customer_id の組み合わせ」だけを返す。
+      const res = await sbFetch('/rest/v1/rpc/get_pricing_for_customer', {
+        method: 'POST',
+        body: JSON.stringify({ p_tenant_id: TENANT_ID, p_customer_id: customerId })
+      });
       if (!res.ok) { _customerRates = {}; return; }
       const data = await res.json();
       const map = {};
@@ -925,8 +929,16 @@
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
-        const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
-        const res = await sbFetch(`/rest/v1/products?${tf}select=id,product_name,price,category,is_food,image_url&order=category,product_name`);
+        if (!TENANT_ID) {
+          list.innerHTML = '<div class="empty-msg">テナントが指定されていません</div>';
+          return;
+        }
+        // テナント分離のため products テーブル直接ではなく専用 RPC 経由で取得。
+        // RPC 側で「指定された tenant_id の商品」だけを返す。
+        const res = await sbFetch('/rest/v1/rpc/get_products_for_tenant', {
+          method: 'POST',
+          body: JSON.stringify({ p_tenant_id: TENANT_ID })
+        });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
