@@ -1096,13 +1096,16 @@
 
     const customerCard = document.getElementById('customerCard');
     let company = '';
+    let personName = '';
     if (customerCard.style.display !== 'none') {
       company = document.getElementById('companyName').value.trim();
+      personName = document.getElementById('personName')?.value?.trim() || '';
       const companyErr = document.getElementById('companyError');
       if (!company) { companyErr.classList.add('show'); valid = false; }
       else { companyErr.classList.remove('show'); }
     } else {
       company = document.getElementById('companyName')?.value?.trim() || '';
+      personName = document.getElementById('personName')?.value?.trim() || '';
     }
 
     const items = getOrderItems();
@@ -1150,12 +1153,16 @@
 
       const today = new Date().toISOString().slice(0,10);
       const orderCode = await generateOrderCode();
+      // 取引先マスタに紐付かないフリー入力客の追跡用に入力時の会社名・担当者名も保存
+      // 取引先IDが既知のフロー（QR/URL経由）では入力欄が非表示で値は空 → null として保存
       const rpcRes = await sbFetch('/rest/v1/rpc/create_anon_order', {
         method: 'POST',
         body: JSON.stringify({
           p_tenant_id: TENANT_ID || null, p_customer_id: customerId || null,
           p_order_code: orderCode, p_order_date: today,
-          p_status: '新規受注', p_items: orderItemsPayload
+          p_status: '新規受注', p_items: orderItemsPayload,
+          p_input_company_name: company || null,
+          p_input_contact_name: personName || null
         })
       });
 
