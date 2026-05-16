@@ -1170,7 +1170,7 @@
         // 全受注の明細を結合
         const firstOrder = orders[0];
 
-        // 取引先詳細・前回請求書・現在の請求書を並行取得
+        // 取引先詳細・前回請求書・現在の請求書（明細スナップショット込み）を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
           sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day,payment_month_offset,payment_day&limit=1'),
           sbFetch(
@@ -1179,7 +1179,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -1190,7 +1190,14 @@
         if (prevRes.ok) { const d = await prevRes.json(); prevInvoice = d[0] || null; }
 
         let currentInvoicePaidAmount = null;
-        if (curRes && curRes.ok) { const d = await curRes.json(); if (d[0]) currentInvoicePaidAmount = d[0].paid_amount; }
+        let snapshotItems = [];
+        if (curRes && curRes.ok) {
+          const d = await curRes.json();
+          if (d[0]) {
+            currentInvoicePaidAmount = d[0].paid_amount;
+            snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
+          }
+        }
 
         const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount } : null;
 
@@ -1204,16 +1211,27 @@
           '支払月オフセット': customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : null,
           '支払日':   customerExtra.payment_day != null ? customerExtra.payment_day : null,
         };
-        const allItems = orders.flatMap(o =>
-          (o.order_items || []).map(it => ({
-            '商品コード': it.products?.product_code || '',
-            '商品名': it.products?.product_name || '',
-            '数量':   it.quantity || 0,
-            '単価':   it.unit_price || 0,
-            '小計':   (it.quantity || 0) * (it.unit_price || 0),
-            isFood:   it.products?.is_food || false,
-          }))
-        );
+        // 明細スナップショットがあればそれを優先（発行時点の商品名・単価・税率を保持）
+        // スナップショットが無い既発行分は orders を再集計（フォールバック）
+        const allItems = snapshotItems.length > 0
+          ? snapshotItems.map(it => ({
+              '商品コード': it.product_code || '',
+              '商品名':     it.product_name || '',
+              '数量':       it.quantity || 0,
+              '単価':       it.unit_price || 0,
+              '小計':       it.subtotal != null ? it.subtotal : (it.quantity || 0) * (it.unit_price || 0),
+              isFood:       !!it.is_food,
+            }))
+          : orders.flatMap(o =>
+              (o.order_items || []).map(it => ({
+                '商品コード': it.products?.product_code || '',
+                '商品名': it.products?.product_name || '',
+                '数量':   it.quantity || 0,
+                '単価':   it.unit_price || 0,
+                '小計':   (it.quantity || 0) * (it.unit_price || 0),
+                isFood:   it.products?.is_food || false,
+              }))
+            );
 
         renderInvoice({ fields: f }, allItems, false, prevInvoice, currentInvoice);
 
