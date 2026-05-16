@@ -883,9 +883,45 @@
 
   let products = [];
 
+  // 取引先別の掛け率マップ（product_id => rate）
+  // CUSTOMER_ID が事前に特定できているフローでのみ事前ロード。
+  // フリー入力客向けフローでは submitOrder 内で取引先確定後に遅延ロード。
+  let _customerRates = {};
+
+  async function loadRatesForCustomer(customerId) {
+    if (!customerId) { _customerRates = {}; return; }
+    try {
+      const tf = TENANT_ID ? `tenant_id=eq.${TENANT_ID}&` : '';
+      const res = await sbFetch(`/rest/v1/pricing?${tf}customer_id=eq.${customerId}&select=product_id,rate`);
+      if (!res.ok) { _customerRates = {}; return; }
+      const data = await res.json();
+      const map = {};
+      (data || []).forEach(r => {
+        if (r.product_id != null && r.rate != null) map[r.product_id] = Number(r.rate);
+      });
+      _customerRates = map;
+    } catch(e) {
+      console.warn('掛け率の取得に失敗しました:', e);
+      _customerRates = {};
+    }
+  }
+
+  function rateOf(productId) {
+    return _customerRates[productId] != null ? _customerRates[productId] : 1.0;
+  }
+
+  // 表示用の販売単価（基本単価 × 掛け率、四捨五入）
+  function displayPriceOf(p) {
+    const base = Number(p.price) || 0;
+    return Math.round(base * rateOf(p.id));
+  }
+
   async function loadProducts() {
     const list = document.getElementById('productList');
     try {
+      // 取引先IDがQR/URLで特定されているフローでは、商品ロードと並行して掛け率を取得
+      const ratesPromise = CUSTOMER_ID ? loadRatesForCustomer(CUSTOMER_ID) : Promise.resolve();
+
       if (sessionCache.products) {
         products = sessionCache.products;
       } else {
@@ -900,6 +936,9 @@
         }));
         sessionCache.products = products;
       }
+
+      // 掛け率の取得が終わってから商品一覧をレンダリング（販売単価で表示するため）
+      await ratesPromise;
 
       if (products.length === 0) {
         list.innerHTML = '<div class="empty-msg">商品が登録されていません</div>';
@@ -925,13 +964,15 @@
               <span class="cat-arrow">▼</span>
             </div>
             <div class="category-body">
-              ${items.map(p => `
+              ${items.map(p => {
+                const dispPrice = displayPriceOf(p); // 販売単価（掛け率反映後）
+                return `
                 <div class="product-row" id="prow-${esc(p.id)}">
                   ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
                   <div class="product-info">
                     <span class="product-name">${esc(p.name)}</span>
                     <div class="product-meta">
-                      <span>¥${Number(p.price).toLocaleString()}</span>
+                      <span>¥${dispPrice.toLocaleString()}</span>
                       <span class="tax-badge">税${p.taxRate}%</span>
                     </div>
                   </div>
@@ -939,14 +980,14 @@
                     <button class="stepper-btn minus" onclick="stepQty('${esc(p.id)}',-1)">−</button>
                     <input class="qty-input" type="number" min="0" max="999" value="0"
                       id="qty-${esc(p.id)}"
-                      data-id="${esc(p.id)}" data-price="${Number(p.price)}"
+                      data-id="${esc(p.id)}" data-price="${Number(p.price)}" data-display-price="${dispPrice}"
                       data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
                       data-name="${esc(p.name)}"
                       oninput="syncQty(this)">
                     <button class="stepper-btn plus" onclick="stepQty('${esc(p.id)}',1)">+</button>
                   </div>
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
           </div>`;
       }).join('');
@@ -976,12 +1017,18 @@
 
   function getOrderItems() {
     return Array.from(document.querySelectorAll('.qty-input'))
-      .map(el => ({
-        id: el.dataset.id, name: el.dataset.name || '',
-        price: Number(el.dataset.price),
-        taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
-        qty: parseInt(el.value) || 0
-      }))
+      .map(el => {
+        const basePrice = Number(el.dataset.price);
+        const dispRaw   = Number(el.dataset.displayPrice);
+        const dispPrice = !isNaN(dispRaw) ? dispRaw : basePrice;
+        return {
+          id: el.dataset.id, name: el.dataset.name || '',
+          price: basePrice,            // 基本単価（DB保存時に rate を掛けるため保持）
+          displayPrice: dispPrice,     // 販売単価（画面表示・小計計算に使用）
+          taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
+          qty: parseInt(el.value) || 0
+        };
+      })
       .filter(i => i.qty > 0);
   }
 
@@ -989,7 +1036,7 @@
     const items = getOrderItems();
     let subtotal = 0, tax8 = 0, tax10 = 0, totalQty = 0;
     items.forEach(i => {
-      const amt = i.price * i.qty;
+      const amt = i.displayPrice * i.qty; // 販売単価ベースで合計
       subtotal += amt;
       if (i.taxRate === 8) tax8 += Math.round(amt * 0.08);
       else tax10 += Math.round(amt * 0.10);
@@ -1004,7 +1051,7 @@
         itemsEl.innerHTML = '<div class="summary-items-empty">商品が選択されていません</div>';
       } else {
         itemsEl.innerHTML = items.map(i => {
-          const amt = i.price * i.qty;
+          const amt = i.displayPrice * i.qty;
           return `<div class="summary-item">
             <span class="summary-item-name" title="${esc(i.name)}">${esc(i.name)}</span>
             <span class="summary-item-qty">× ${i.qty}</span>
@@ -1044,15 +1091,6 @@
     } catch(e) { return `ORD-${dateStr}-001`; }
   }
 
-  async function getRate(customerId, productId) {
-    try {
-      const res = await sbFetch(`/rest/v1/pricing?customer_id=eq.${customerId}&product_id=eq.${productId}&select=rate`);
-      if (!res.ok) return 1.0;
-      const data = await res.json();
-      return (data.length > 0 && data[0].rate != null) ? Number(data[0].rate) : 1.0;
-    } catch(e) { return 1.0; }
-  }
-
   async function submitOrder() {
     let valid = true;
 
@@ -1090,15 +1128,25 @@
           method: 'POST',
           body: JSON.stringify({ p_company_name: company, p_tenant_id: TENANT_ID })
         });
-        if (custRes.ok) { const id = await custRes.json(); if (id) customerId = id; }
+        if (custRes.ok) {
+          const id = await custRes.json();
+          if (id) {
+            customerId = id;
+            // フリー入力客フロー：取引先確定後に掛け率をまとめてロード
+            await loadRatesForCustomer(customerId);
+          }
+        }
       } catch(e) { console.warn('顧客検索エラー:', e); }
     }
 
     try {
-      const orderItemsPayload = await Promise.all(items.map(async item => {
-        const rate = customerId ? await getRate(customerId, item.id) : 1.0;
+      // 基本単価 × 掛け率（_customerRates）を毎明細で計算。
+      // CUSTOMER_ID 経由フローでは _customerRates は loadProducts 時に既にロード済み。
+      // フリー入力フローでは直前のブロックでロード（取引先未特定なら 1.0）。
+      const orderItemsPayload = items.map(item => {
+        const rate = rateOf(item.id);
         return { product_id: item.id, quantity: item.qty, unit_price: Math.round(item.price * rate) };
-      }));
+      });
 
       const today = new Date().toISOString().slice(0,10);
       const orderCode = await generateOrderCode();
