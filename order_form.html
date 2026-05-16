@@ -823,12 +823,16 @@
   })();
 
   // ===== Customer name from param =====
-  if (CUSTOMER_ID) {
+  // テナント分離のため tenant_id と customer_id の両方を必須として RPC に渡す。
+  // 不一致なら RPC が NULL を返し、顧客カードのフォールバック表示にもならない
+  // （customer 指定があったのに名前が取れない＝壊れた URL なので静観）。
+  if (CUSTOMER_ID && TENANT_ID) {
     document.getElementById('customerCard').style.display = 'none';
     (async () => {
       try {
         const res = await sbFetch('/rest/v1/rpc/get_customer_name_by_id', {
-          method: 'POST', body: JSON.stringify({ p_customer_id: CUSTOMER_ID })
+          method: 'POST',
+          body: JSON.stringify({ p_tenant_id: TENANT_ID, p_customer_id: CUSTOMER_ID })
         });
         if (res.ok) {
           const name = await res.json();
@@ -836,6 +840,9 @@
             document.getElementById('headerCustomer').textContent = name + ' 様の注文フォーム';
             const inp = document.getElementById('companyName');
             if (inp) { inp.value = name; inp.readOnly = true; }
+          } else {
+            // テナント不一致など正規取引先として解決できなかった場合は顧客カードを表示
+            document.getElementById('customerCard').style.display = '';
           }
         }
       } catch(e) { console.warn('顧客名取得エラー:', e); }
