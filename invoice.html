@@ -761,6 +761,17 @@
     return '¥' + Number(n || 0).toLocaleString('ja-JP');
   }
 
+  // ===== 取引先住所フォーマット（郵便番号付き） =====
+  // 自社住所側と書式を揃える（〒XXX-XXXX 住所）。
+  // postal_code が 7 桁数字なら自動で 3-4 区切りにする。
+  function formatAddressWithZip(zip, address) {
+    if (!zip && !address) return '';
+    if (!zip) return address || '';
+    const digits = String(zip).replace(/[^0-9]/g, '');
+    const formatted = digits.length === 7 ? digits.slice(0, 3) + '-' + digits.slice(3) : String(zip);
+    return '〒' + formatted + (address ? ' ' + address : '');
+  }
+
   // ===== 納品書HTML生成 =====
   function renderDeliveryNote(f, items, s) {
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -1172,7 +1183,7 @@
 
         // 取引先詳細・前回請求書・現在の請求書（明細スナップショット込み）を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
-          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=address,closing_day,payment_month_offset,payment_day&limit=1'),
+          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=postal_code,address,closing_day,payment_month_offset,payment_day&limit=1'),
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
@@ -1206,7 +1217,7 @@
           '取引先名': firstOrder.customers?.company_name || '',
           '担当者名': firstOrder.customers?.contact_name || '',
           '受注日':   targetPeriodEnd || '',
-          '住所':     customerExtra.address || '',
+          '住所':     formatAddressWithZip(customerExtra.postal_code, customerExtra.address),
           '締め日':   customerExtra.closing_day != null ? customerExtra.closing_day : null,
           '支払月オフセット': customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : null,
           '支払日':   customerExtra.payment_day != null ? customerExtra.payment_day : null,
@@ -1243,7 +1254,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,customers(company_name,contact_name,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1263,7 +1274,7 @@
           '取引先名': fallbackCompany,
           '担当者名': fallbackContact,
           '受注日':   order.order_date || '',
-          '住所':     order.customers?.address || '',
+          '住所':     formatAddressWithZip(order.customers?.postal_code, order.customers?.address),
           '締め日':   order.customers?.closing_day != null ? order.customers?.closing_day : null,
           '支払月オフセット': order.customers?.payment_month_offset != null ? order.customers?.payment_month_offset : null,
           '支払日':   order.customers?.payment_day != null ? order.customers?.payment_day : null,
