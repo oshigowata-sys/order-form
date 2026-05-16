@@ -176,8 +176,14 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
       </div>
       <div class="form-group">
         <label class="form-label">有効期限</label>
-        <div class="form-input" style="background:var(--bg);color:var(--text-muted);cursor:not-allowed">次回見積まで</div>
-        <input type="hidden" id="expiryDate">
+        <select class="form-select" id="expiryType" onchange="onExpiryTypeChange()">
+          <option value="next_quote">次回見積まで</option>
+          <option value="date">日付を指定</option>
+        </select>
+      </div>
+      <div class="form-group" id="expiryDateGroup" style="display:none">
+        <label class="form-label">有効期限日</label>
+        <input type="date" class="form-input" id="expiryDate" onchange="renderPreview()">
       </div>
       <div class="form-group">
         <label class="form-label">見積番号</label>
@@ -288,6 +294,21 @@ function showToast(msg) {
   _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 
+function normalizeSettings(raw, bankAccounts) {
+  const s = raw || {};
+  return {
+    ...s,
+    name: s.company_name || s.name || '',
+    person: s.company_person || s.person || '',
+    address: ((s.company_zip ? '〒' + s.company_zip + ' ' : '') + (s.company_address || s.address || '')).trim(),
+    tel: s.company_tel || s.tel || '',
+    fax: s.company_fax || s.fax || '',
+    email: s.company_email || s.email || '',
+    invoice_num: s.company_invoice_no || s.invoice_num || '',
+    bank_accounts: bankAccounts || []
+  };
+}
+
 // ===== 状態 =====
 const urlParams = new URLSearchParams(location.search);
 const mode = urlParams.get('mode') || (urlParams.get('id') ? 'edit' : 'new');
@@ -320,22 +341,22 @@ async function init() {
     if (!customersRes.ok || !productsRes.ok) throw new Error('取引先・商品マスタの取得に失敗しました（コンソールを確認）');
 
     const settingsJson = settingsRes.ok ? await settingsRes.json() : [];
-    _settings = settingsJson[0] || {};
+    const bankAccounts = banksRes.ok ? await banksRes.json() : [];
+    _settings = normalizeSettings(settingsJson[0] || {}, bankAccounts);
     _customers = await customersRes.json();
     _products = await productsRes.json();
     _pricing = pricingRes.ok ? await pricingRes.json() : [];
-    _settings.bank_accounts = banksRes.ok ? await banksRes.json() : [];
 
     populateCustomerSelect();
 
     if (mode === 'edit' && quotationId) {
       await loadExistingQuotation();
     } else {
-      // 新規モード初期化（有効期限は「次回見積まで」運用：DB用に+10年のダミー日付）
       document.getElementById('modeLabel').textContent = '新規見積書';
       const today = todayStr();
       document.getElementById('issuedDate').value = today;
-      document.getElementById('expiryDate').value = addDaysStr(today, 3650);
+      document.getElementById('expiryType').value = 'next_quote';
+      setExpiryDateForType();
       renderPreview();
     }
   } catch (e) {
@@ -367,8 +388,10 @@ async function loadExistingQuotation() {
   document.getElementById('modeLabel').textContent = '見積書編集';
   document.getElementById('quotationNumber').value = q.quotation_number;
   document.getElementById('issuedDate').value = q.issued_date || todayStr();
+  document.getElementById('expiryType').value = q.expiry_type || 'next_quote';
   document.getElementById('expiryDate').value = q.expiry_date || addDaysStr(todayStr(), 30);
   document.getElementById('notes').value = q.notes || '';
+  updateExpiryDateVisibility();
   if (q.customer_id) {
     document.getElementById('customerSelect').value = q.customer_id;
     _selectedCustomer = _customers.find(c => c.id === q.customer_id) || q.customer_snapshot || null;
@@ -408,11 +431,34 @@ function onCustomerChange() {
 }
 
 function onIssuedDateChange() {
-  // 有効期限は「次回見積まで」固定運用。expiry_date には十分先の日付（発行日+10年）を入れて
-  // DB上の NOT NULL 制約を満たすが、画面・印刷では「次回見積まで」と表示する。
-  const issued = document.getElementById('issuedDate').value || todayStr();
-  document.getElementById('expiryDate').value = addDaysStr(issued, 3650);
+  setExpiryDateForType();
   renderPreview();
+}
+
+function onExpiryTypeChange() {
+  setExpiryDateForType();
+  updateExpiryDateVisibility();
+  renderPreview();
+}
+
+function setExpiryDateForType() {
+  const issued = document.getElementById('issuedDate').value || todayStr();
+  const type = document.getElementById('expiryType').value || 'next_quote';
+  const expiryEl = document.getElementById('expiryDate');
+  if (type === 'next_quote') {
+    expiryEl.value = addDaysStr(issued, 3650);
+  } else if (!expiryEl.value) {
+    expiryEl.value = addDaysStr(issued, 30);
+  }
+}
+
+function updateExpiryDateVisibility() {
+  const type = document.getElementById('expiryType').value || 'next_quote';
+  document.getElementById('expiryDateGroup').style.display = type === 'date' ? 'flex' : 'none';
+}
+
+function expiryLabel(type, dateStr) {
+  return type === 'date' ? formatDateJa(dateStr) : '次回見積まで';
 }
 
 // 単価 = 商品の基本単価（products.price＝下代） × 取引先別掛け率（pricing.rate）
@@ -551,6 +597,7 @@ function addProductFromPicker(productId) {
 // ===== プレビュー =====
 function renderPreview() {
   const issued = document.getElementById('issuedDate').value || todayStr();
+  const expiryType = document.getElementById('expiryType').value || 'next_quote';
   const expiry = document.getElementById('expiryDate').value || addDaysStr(issued, 30);
   const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
   const notes = document.getElementById('notes').value || '';
@@ -607,7 +654,7 @@ function renderPreview() {
         <table>
           <tr><td>見積番号</td><td>${esc(number)}</td></tr>
           <tr><td>発行日</td><td>${esc(formatDateJa(issued))}</td></tr>
-          <tr><td>有効期限</td><td>次回見積まで</td></tr>
+          <tr><td>有効期限</td><td>${esc(expiryLabel(expiryType, expiry))}</td></tr>
         </table>
       </div>
     </div>
@@ -668,7 +715,7 @@ function renderPreview() {
 }
 
 // プレビュー連動：発行日・有効期限・備考の入力でリアルタイム更新
-['issuedDate', 'expiryDate', 'notes'].forEach(id => {
+['issuedDate', 'expiryType', 'expiryDate', 'notes'].forEach(id => {
   document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', renderPreview);
@@ -679,6 +726,7 @@ function renderPreview() {
 async function saveQuotation() {
   const customerId = document.getElementById('customerSelect').value || null;
   const issued = document.getElementById('issuedDate').value;
+  const expiryType = document.getElementById('expiryType').value || 'next_quote';
   const expiry = document.getElementById('expiryDate').value;
   const notes = document.getElementById('notes').value || '';
 
@@ -741,6 +789,7 @@ async function saveQuotation() {
           customer_id: customerId,
           customer_snapshot: customerSnapshot,
           issued_date: issued,
+          expiry_type: expiryType,
           expiry_date: expiry,
           subtotal,
           tax_amount: tax,
@@ -762,6 +811,7 @@ async function saveQuotation() {
           customer_id: customerId,
           customer_snapshot: customerSnapshot,
           issued_date: issued,
+          expiry_type: expiryType,
           expiry_date: expiry,
           subtotal,
           tax_amount: tax,
