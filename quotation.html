@@ -529,7 +529,7 @@ function renderItems() {
               <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
               <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
               <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
-              <td class="num" style="font-weight:600">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
+              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
               <td class="snapshot">${esc(it.jan_code || '—')}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
             </tr>
@@ -543,7 +543,11 @@ function renderItems() {
 function updateItem(idx, key, value) {
   if (!_items[idx]) return;
   _items[idx][key] = Number(value || 0);
-  renderItems();
+  const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
+  if (cell) {
+    const it = _items[idx];
+    cell.textContent = fmt(Number(it.quantity || 0) * Number(it.unit_price || 0));
+  }
   renderPreview();
 }
 
