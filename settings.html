@@ -510,33 +510,19 @@
   }
 
   async function saveSettings(data) {
-    const patchRes = await fetch(SB_URL + `/rest/v1/settings?tenant_id=eq.${tenantId}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + getAccessToken(),
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!patchRes.ok) throw new Error('HTTP ' + patchRes.status);
-    const updated = await patchRes.json();
-    if (Array.isArray(updated) && updated.length > 0) return updated[0];
-
-    const insertRes = await fetch(SB_URL + '/rest/v1/settings', {
+    const res = await fetch(SB_URL + '/rest/v1/settings?on_conflict=tenant_id', {
       method: 'POST',
       headers: {
         'apikey': SB_KEY,
         'Authorization': 'Bearer ' + getAccessToken(),
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
+        'Prefer': 'resolution=merge-duplicates,return=representation',
       },
       body: JSON.stringify({ tenant_id: tenantId, ...data }),
     });
-    if (!insertRes.ok) throw new Error('HTTP ' + insertRes.status);
-    const inserted = await insertRes.json();
-    return inserted?.[0] || null;
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const saved = await res.json();
+    return saved?.[0] || null;
   }
 
   async function saveBankAccounts(banks) {
