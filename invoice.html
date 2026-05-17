@@ -727,6 +727,22 @@
     }).join('');
   }
 
+  // 1銀行=1行表記（請求書明細書の上部用）
+  // 例: 楽天銀行 ビオラ支店 普通口座 123456
+  function renderBankInline(bankAccounts) {
+    const banks = (bankAccounts || []).filter(b => b.bank_name || b.bank_branch || b.bank_number);
+    if (banks.length === 0) return '';
+    return banks.map(bank => {
+      const parts = [];
+      if (bank.bank_name) parts.push(esc(bank.bank_name));
+      if (bank.bank_branch) parts.push(esc(bank.bank_branch));
+      const type = bank.bank_type || '普通';
+      parts.push(esc(type + '口座'));
+      if (bank.bank_number) parts.push(esc(bank.bank_number));
+      return `<div>${parts.join(' ')}</div>`;
+    }).join('');
+  }
+
   // ===== 請求書番号生成 =====
   function generateInvoiceNo(orderId) {
     if (orderId && /^INV-/.test(orderId)) return orderId;
@@ -878,12 +894,6 @@
           </tfoot>
         </table>
       </div>
-      <div class="invoice-footer">
-        <div>
-          <div class="footer-section-title">振込先 / BANK TRANSFER</div>
-          <div class="bank-info">${renderBankBlock(s.bank_accounts)}</div>
-        </div>
-      </div>
     `;
   }
 
@@ -939,9 +949,6 @@
          ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
 
-    // 振込先情報
-    const bankBlock = renderBankBlock(s.bank_accounts);
-
     document.getElementById('invoiceBody').innerHTML = `
       <div class="invoice-header">
         <div class="invoice-title-block">
@@ -970,6 +977,15 @@
           <div class="invoice-from">${fromBlock}</div>
         </div>
       </div>
+
+      ${(() => {
+        const inline = renderBankInline(s.bank_accounts);
+        return inline ? `
+      <div class="invoice-bank-inline" style="margin-bottom:14px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+        <div class="footer-section-title" style="margin-bottom:6px;">お振込先 / BANK TRANSFER</div>
+        <div style="font-size:13px;line-height:1.8;font-family:'Noto Sans JP',sans-serif;">${inline}</div>
+      </div>` : '';
+      })()}
 
       ${!showDelivery ? `
       <div class="billing-summary" id="billingSummary">
@@ -1035,9 +1051,7 @@
 
       <div class="invoice-footer">
         <div>
-          <div class="footer-section-title">振込先 / BANK TRANSFER</div>
-          <div class="bank-info">${bankBlock}</div>
-          ${f['備考'] ? `<div style="margin-top:16px;"><div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div></div>` : ''}
+          ${f['備考'] ? `<div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div>` : ''}
         </div>
         <div style="text-align:right;">
           <div class="invoice-stamp">発行済</div>
