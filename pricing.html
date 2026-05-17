@@ -339,10 +339,12 @@ function renderPricing() {
   });
   document.getElementById('pricingTbody').innerHTML = html;
 
+  // デフォルトで全取引先グループ折りたたみ。ユーザーが明示的に開いた（state===false）グループのみ展開状態を維持。
   // 折りたたみ状態は MeguRee 内部ルール（sessionStorage 許可リスト外）のためメモリ内で保持。
-  // ページリロードで状態はリセットされる。
+  // ページリロードで状態はリセットされる（＝再びすべて折りたたみ表示）。
   custKeys.forEach((cust, idx) => {
-    if (!_pricingCollapseState[cust]) return;
+    // 明示的に開いている場合のみ折りたたまない
+    if (_pricingCollapseState[cust] === false) return;
     const cgId = 'pcg' + idx;
     const header = document.querySelector(`.cust-group-row[data-cgid="${cgId}"]`);
     const rows = document.querySelectorAll(`.cust-pricing-row[data-cg="${cgId}"]`);
@@ -356,7 +358,8 @@ function toggleCustGroup(cgId) {
   const collapsed = header.classList.toggle('collapsed');
   rows.forEach(r => r.classList.toggle('cust-hidden', collapsed));
   const custName = header.dataset.custname;
-  if (collapsed) { _pricingCollapseState[custName] = true; } else { delete _pricingCollapseState[custName]; }
+  // 明示的に開いた = state=false で記憶／閉じた = state を消してデフォルト挙動に戻す
+  if (collapsed) { delete _pricingCollapseState[custName]; } else { _pricingCollapseState[custName] = false; }
 }
 
 /* ── プレビュー ── */

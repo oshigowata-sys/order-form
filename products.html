@@ -571,10 +571,12 @@
     });
     tbody.innerHTML = html;
 
+    // デフォルトで全カテゴリ折りたたみ。ユーザーが明示的に開いた（state===false）カテゴリのみ展開状態を維持。
     // 折りたたみ状態は MeguRee 内部ルール（sessionStorage 許可リスト外）のためメモリ内で保持。
-    // ページリロードで状態はリセットされる。
+    // ページリロードで状態はリセットされる（＝再びすべて折りたたみ表示）。
     catKeys.forEach((cat, idx) => {
-      if (!_catCollapseState[cat]) return;
+      // 明示的に開いている場合のみ折りたたまない
+      if (_catCollapseState[cat] === false) return;
       const catId = 'cg' + idx;
       const header = document.querySelector(`.category-group-row[data-catid="${catId}"]`);
       const rows = document.querySelectorAll(`.cat-product-row[data-cat="${catId}"]`);
@@ -592,7 +594,8 @@
     rows.forEach(r => r.classList.toggle('cat-hidden', collapsed));
 
     const catName = header.dataset.catname;
-    if (collapsed) { _catCollapseState[catName] = true; } else { delete _catCollapseState[catName]; }
+    // 明示的に開いた = state=false で記憶／閉じた = state を消してデフォルト挙動に戻す
+    if (collapsed) { delete _catCollapseState[catName]; } else { _catCollapseState[catName] = false; }
   }
 
   function janDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
