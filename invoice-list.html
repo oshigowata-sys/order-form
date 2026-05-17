@@ -632,6 +632,30 @@ async function confirmIssue() {
       ));
     }
 
+    // 初回判定: その取引先の有効な過去請求書が一切なければ「初回」
+    let manualPrevAmount = null;
+    const pastInvCheckRes = await sbFetch(
+      `/rest/v1/invoices?tenant_id=eq.${encodeURIComponent(tenantId)}` +
+      `&customer_id=eq.${encodeURIComponent(r.customerId)}` +
+      `&superseded_at=is.null` +
+      `&period_end=lt.${encodeURIComponent(periodEnd)}` +
+      `&select=id&limit=1`
+    );
+    const pastInvs = pastInvCheckRes.ok ? await pastInvCheckRes.json() : [];
+    if (pastInvs.length === 0) {
+      // 初回 → ポップアップで前回請求額を入力してもらう
+      const ans = prompt(
+        `「${r.customer}」の初回請求書発行です。\n\nMeguRee 導入前の「前回請求額」（円・無ければ0）を入力してください：`,
+        '0'
+      );
+      if (ans === null) {
+        showToast('発行を中止しました');
+        btn.disabled = false; btn.textContent = '発行する';
+        return;
+      }
+      manualPrevAmount = Number(String(ans).replace(/[^0-9]/g, '')) || 0;
+    }
+
     const today = new Date();
     const ym    = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
     const cntRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=id`);
@@ -639,20 +663,23 @@ async function confirmIssue() {
     const num    = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
     const incl   = r.excl + r.tax;
 
+    const invoicePayloadBody = {
+      invoice_number: num,
+      customer_id:    r.customerId,
+      period_start:   periodStart,
+      period_end:     periodEnd,
+      issued_date:    today.toISOString().slice(0,10),
+      total_excl_tax: r.excl,
+      tax_amount:     r.tax,
+      total_incl_tax: incl,
+      tenant_id:      tenantId,
+      is_interim:     _isInterim,
+    };
+    if (manualPrevAmount !== null) invoicePayloadBody.manual_prev_amount = manualPrevAmount;
+
     const res = await sbFetch('/rest/v1/invoices', {
       method: 'POST',
-      body: JSON.stringify({
-        invoice_number: num,
-        customer_id:    r.customerId,
-        period_start:   periodStart,
-        period_end:     periodEnd,
-        issued_date:    today.toISOString().slice(0,10),
-        total_excl_tax: r.excl,
-        tax_amount:     r.tax,
-        total_incl_tax: incl,
-        tenant_id:      tenantId,
-        is_interim:     _isInterim,
-      })
+      body: JSON.stringify(invoicePayloadBody)
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
@@ -660,6 +687,26 @@ async function confirmIssue() {
     const invoicePayload = await res.json();
     const invoiceId = Array.isArray(invoicePayload) ? invoicePayload[0]?.id : invoicePayload?.id;
     if (!invoiceId) throw new Error('発行された請求書IDの取得に失敗しました');
+
+    // 初回前回請求額が入力された場合、操作履歴に記録
+    if (manualPrevAmount !== null) {
+      try {
+        await sbFetch('/rest/v1/audit_log', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            user_name: userName || '—',
+            action: 'create',
+            table_name: 'invoices',
+            record_id: String(invoiceId),
+            record_label: `${r.customer} 初回前回請求額`,
+            old_values: null,
+            new_values: { invoice_number: num, manual_prev_amount: manualPrevAmount }
+          })
+        });
+      } catch(e) { console.warn('audit_log書き込み失敗:', e); }
+    }
 
     try {
       const ordersRes = await sbFetch(
