@@ -1065,7 +1065,7 @@
     // prevPaidAmount    = 前回請求書への入金額（繰越金計算に使用）
     window._invoiceTotals = {
       subtotal, tax, total,
-      currentPaidAmount: currentInvoicePaidAmount,
+      currentPaidAmount: currentInvoice != null ? currentInvoice.paid_amount : undefined,
       prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined
     };
 
