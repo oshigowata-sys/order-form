@@ -286,6 +286,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       </div>
       <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
         <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+        <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（任意）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
         <div class="add-item-row">
           <select class="form-input2" id="newItemProduct">
             <option value="">商品を選択してください</option>
@@ -624,6 +625,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('newOrderCustomer').value = '';
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
+    const search = document.getElementById('newItemSearch');
+    if (search) search.value = '';
     document.getElementById('itemError').classList.remove('show');
     document.getElementById('orderError').classList.remove('show');
     renderNewItems();
@@ -645,12 +648,37 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   async function loadProductsForEntry() {
-    if (allProducts.length) return;
-    const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price&order=product_name`);
-    allProducts = await res.json();
+    if (!allProducts.length) {
+      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,product_code,price&order=product_name`);
+      allProducts = await res.json();
+    }
+    renderProductOptions(allProducts);
+  }
+
+  function renderProductOptions(list) {
     const sel = document.getElementById('newItemProduct');
+    const products = list || allProducts;
+    const prevValue = sel.value;
     sel.innerHTML = '<option value="">商品を選択してください</option>' +
-      allProducts.map(p => `<option value="${esc(p.id)}">${esc(p.product_name)}</option>`).join('');
+      products.map(p => `<option value="${esc(p.id)}">${esc(p.product_name)}${p.product_code ? ' (' + esc(p.product_code) + ')' : ''}</option>`).join('');
+    if (prevValue && products.find(p => p.id === prevValue)) {
+      sel.value = prevValue;
+    }
+  }
+
+  function filterProductOptions(q) {
+    const query = (q || '').trim().toLowerCase();
+    const filtered = query
+      ? allProducts.filter(p =>
+          (p.product_name || '').toLowerCase().includes(query) ||
+          (p.product_code || '').toLowerCase().includes(query)
+        )
+      : allProducts;
+    renderProductOptions(filtered);
+    // 検索結果が1件なら自動で選択（入力ストレス削減）
+    if (query && filtered.length === 1) {
+      document.getElementById('newItemProduct').value = filtered[0].id;
+    }
   }
 
   async function onCustomerChange() {
@@ -684,6 +712,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
+    const search = document.getElementById('newItemSearch');
+    if (search) {
+      search.value = '';
+      renderProductOptions(allProducts);
+    }
     renderNewItems();
   }
 
