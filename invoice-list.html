@@ -379,7 +379,7 @@ async function loadAll() {
     const today = new Date();
     const [ordersRes, invoicesRes] = await Promise.all([
       sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
-      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&select=invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,customers(company_name)&order=issued_date.desc`)
+      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,customers(company_name)&order=issued_date.desc`)
     ]);
     if (!ordersRes.ok || !invoicesRes.ok) throw new Error('データ取得失敗');
     const [orders, invoices] = await Promise.all([ordersRes.json(), invoicesRes.json()]);
@@ -598,6 +598,40 @@ async function confirmIssue() {
   const btn = document.getElementById('issueConfirmBtn');
   btn.disabled = true; btn.textContent = '発行中...';
   try {
+    // 同じ取引先・同じ期間に有効な請求書があるかチェック
+    const existCheckRes = await sbFetch(
+      `/rest/v1/invoices?tenant_id=eq.${encodeURIComponent(tenantId)}` +
+      `&customer_id=eq.${encodeURIComponent(r.customerId)}` +
+      `&period_start=eq.${encodeURIComponent(periodStart)}` +
+      `&period_end=eq.${encodeURIComponent(periodEnd)}` +
+      `&superseded_at=is.null` +
+      `&select=id,invoice_number,is_interim`
+    );
+    const existRows = existCheckRes.ok ? await existCheckRes.json() : [];
+    const existFinal = existRows.find(x => !x.is_interim);
+    const existInterims = existRows.filter(x => x.is_interim);
+
+    // 本発行・途中発行のどちらも、既存の本発行があればブロック
+    if (existFinal) {
+      showToast(_isInterim
+        ? '⚠️ この期間は既に本発行済みです。途中発行はできません'
+        : '⚠️ この期間は既に発行済みです。新規発行はできません');
+      btn.disabled = false; btn.textContent = '発行する';
+      return;
+    }
+
+    // 既存の途中発行を「上書き済み」マーク（履歴として残す）
+    if (existInterims.length > 0) {
+      const supersededAt = new Date().toISOString();
+      await Promise.all(existInterims.map(old =>
+        sbFetch(`/rest/v1/invoices?id=eq.${encodeURIComponent(old.id)}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ superseded_at: supersededAt })
+        })
+      ));
+    }
+
     const today = new Date();
     const ym    = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
     const cntRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=id`);
@@ -617,6 +651,7 @@ async function confirmIssue() {
         tax_amount:     r.tax,
         total_incl_tax: incl,
         tenant_id:      tenantId,
+        is_interim:     _isInterim,
       })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
