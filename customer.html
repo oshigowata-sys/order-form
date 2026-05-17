@@ -482,7 +482,7 @@
       contact_name: document.getElementById('fContact').value.trim() || null,
       phone:        document.getElementById('fPhone').value.trim()   || null,
       email:        document.getElementById('fEmail').value.trim()   || null,
-      postal_code:  document.getElementById('fZip').value.trim().replace(/[^0-9]/g, '') || null,
+      postal_code:  document.getElementById('fZip').value.trim() || null,
       address:      document.getElementById('fAddress').value.trim() || null,
       closing_day:           Number(document.getElementById('fClosing').value)        || null,
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
