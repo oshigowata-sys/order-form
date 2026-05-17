@@ -114,6 +114,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .form-input2{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s}
 .form-input2:focus{border-color:var(--orange);background:#fff}
 .add-item-row{display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:flex-end;margin-bottom:14px}
+.search-results-wrap{max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--surface)}
+.search-result-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;gap:12px}
+.search-result-item:last-child{border-bottom:none}
+.search-result-item:hover{background:var(--orange-pale)}
+.search-result-name{font-weight:600;flex:1;color:var(--text)}
+.search-result-code{color:var(--text-muted);font-size:13px;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+.search-result-price{color:var(--orange);font-weight:700;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+.search-result-empty{padding:14px;color:var(--text-muted);font-size:14px;text-align:center}
 .entry-items-table{width:100%;border-collapse:collapse;margin-top:8px}
 .entry-items-table th{font-size:14px;font-weight:700;color:var(--text-muted);padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);text-align:left;letter-spacing:0.5px}
 .entry-items-table td{padding:9px 10px;font-size:14px;border-bottom:1px solid var(--border)}
@@ -286,7 +294,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       </div>
       <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
         <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-        <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（任意）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
+        <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
+        <div id="searchResults" class="search-results-wrap" style="display:none"></div>
         <div class="add-item-row">
           <select class="form-input2" id="newItemProduct">
             <option value="">商品を選択してください</option>
@@ -627,6 +636,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('newItemQty').value = '1';
     const search = document.getElementById('newItemSearch');
     if (search) search.value = '';
+    renderSearchResults('', []);
     document.getElementById('itemError').classList.remove('show');
     document.getElementById('orderError').classList.remove('show');
     renderNewItems();
@@ -675,10 +685,49 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         )
       : allProducts;
     renderProductOptions(filtered);
-    // 検索結果が1件なら自動で選択（入力ストレス削減）
-    if (query && filtered.length === 1) {
-      document.getElementById('newItemProduct').value = filtered[0].id;
+    renderSearchResults(query, filtered);
+  }
+
+  function renderSearchResults(query, list) {
+    const wrap = document.getElementById('searchResults');
+    if (!wrap) return;
+    if (!query) {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
     }
+    wrap.style.display = 'block';
+    if (!list || list.length === 0) {
+      wrap.innerHTML = '<div class="search-result-empty">該当する商品がありません</div>';
+      return;
+    }
+    wrap.innerHTML = list.map(p => `
+      <div class="search-result-item" onclick="addItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
+        <span class="search-result-name">${esc(p.product_name)}</span>
+        <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
+        <span class="search-result-price">¥${Number(p.price || 0).toLocaleString()}</span>
+      </div>
+    `).join('');
+  }
+
+  function addItemFromSearch(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return;
+    const unitPrice = getUnitPrice(productId);
+    const existing = newOrderItems.find(i => i.productId === productId);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0 });
+    }
+    // 検索窓・候補リスト・プルダウンをリセットして次の検索に備える
+    const search = document.getElementById('newItemSearch');
+    if (search) search.value = '';
+    renderSearchResults('', []);
+    renderProductOptions(allProducts);
+    document.getElementById('newItemProduct').value = '';
+    document.getElementById('itemError').classList.remove('show');
+    renderNewItems();
   }
 
   async function onCustomerChange() {
@@ -716,6 +765,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (search) {
       search.value = '';
       renderProductOptions(allProducts);
+      renderSearchResults('', []);
     }
     renderNewItems();
   }
