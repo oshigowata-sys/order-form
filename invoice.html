@@ -557,11 +557,36 @@
     body { background: white; }
     .main { padding: 0; max-width: 100%; }
     #invoice-wrap { box-shadow: none; border-radius: 0; }
-    .invoice { padding: 18px 32px; }
+    .invoice { padding: 10mm 12mm; }
     .invoice-table tbody tr:hover { background: transparent; }
     .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #sumPaid { cursor: default !important; }
-    @page { margin: 6mm; size: A4; }
+    @page { margin: 5mm; size: A4; }
+
+    /* 通常の明細量で A4 1枚に収まるよう全体を圧縮 */
+    .invoice-header { margin-bottom: 8px; padding-bottom: 6px; }
+    .invoice-title { font-size: 20px; letter-spacing: 3px; }
+    .invoice-subtitle { font-size: 10px; }
+    .invoice-meta table { font-size: 11px; }
+    .invoice-meta td { padding: 2px 0 2px 14px; }
+
+    .invoice-parties { margin-bottom: 8px; gap: 16px; }
+    .party-name { font-size: 14px; }
+    .party-address { font-size: 11px; line-height: 1.5; margin-top: 3px; }
+    .invoice-amount-highlight { padding: 8px 14px; min-width: 150px; }
+    .amount-value { font-size: 18px; }
+
+    .invoice-table-wrap { margin-bottom: 8px; }
+    .invoice-table { font-size: 11px; page-break-inside: avoid; }
+    .invoice-table thead th { padding: 4px 8px; font-size: 10px; }
+    .invoice-table tbody td { padding: 3px 8px; font-size: 11px; }
+    .invoice-table tbody tr { page-break-inside: avoid; }
+    .invoice-table tfoot td { padding: 4px 8px; font-size: 11px; }
+    .invoice-table tfoot tr.total-row td { padding: 5px 8px; font-size: 12px; }
+
+    .invoice-footer { margin-top: 8px; padding-top: 6px; gap: 12px; }
+    .invoice-footer .footer-section-title { font-size: 9px; }
+    .invoice-footer .bank-info { font-size: 11px; line-height: 1.5; }
   }
 </style>
 </head>
