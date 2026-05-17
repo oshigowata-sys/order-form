@@ -978,14 +978,15 @@
         </div>
       </div>
 
-      ${(() => {
+      ${!showDelivery ? (() => {
+        // 振込先（請求書明細書モードのみ表示。納品書ペアの請求書には表示しない）
         const inline = renderBankInline(s.bank_accounts);
         return inline ? `
       <div class="invoice-bank-inline" style="margin-bottom:14px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
         <div class="footer-section-title" style="margin-bottom:6px;">お振込先 / BANK TRANSFER</div>
         <div style="font-size:13px;line-height:1.8;font-family:'Noto Sans JP',sans-serif;">${inline}</div>
       </div>` : '';
-      })()}
+      })() : ''}
 
       ${!showDelivery ? `
       <div class="billing-summary" id="billingSummary">
