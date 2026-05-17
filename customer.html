@@ -183,15 +183,23 @@
           <input class="form-input" id="fContact" type="text" placeholder="例：田中 太郎">
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">電話番号</label>
-          <input class="form-input" id="fPhone" type="tel" placeholder="例：03-1234-5678">
-        </div>
-        <div class="form-group">
-          <label class="form-label">メールアドレス</label>
-          <input class="form-input" id="fEmail" type="email" placeholder="例：info@example.com">
-        </div>
+      <div class="form-group">
+        <label class="form-label">メールアドレス</label>
+        <input class="form-input" id="fEmail" type="email" placeholder="例：info@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>電話番号</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addPhoneRow()">+ 追加</button>
+        </label>
+        <div id="phoneList"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>FAX番号</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addFaxRow()">+ 追加</button>
+        </label>
+        <div id="faxList"></div>
       </div>
       <div class="form-group">
         <label class="form-label">郵便番号 <span style="font-size:14px;color:var(--text-muted);font-weight:400">（入力すると住所を自動入力）</span></label>
@@ -443,23 +451,25 @@
   function openAddModal() {
     editId = null;
     document.getElementById('modalTitle').textContent = '新規取引先を追加';
-    ['fCompany','fContact','fPhone','fEmail','fAddress','fClosing','fPaymentOffset','fPayment'].forEach(id => {
+    ['fCompany','fContact','fEmail','fAddress','fClosing','fPaymentOffset','fPayment'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('fZip').value = '';
     document.getElementById('zipStatus').textContent = '';
+    _phones = [];
+    _faxes  = [];
+    renderContactRows();
     document.getElementById('modalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('fCompany').focus(), 100);
   }
 
-  function openEditModal(id) {
+  async function openEditModal(id) {
     const c = customers.find(x => x.id === id);
     if (!c) return;
     editId = id;
     document.getElementById('modalTitle').textContent = '取引先を編集';
     document.getElementById('fCompany').value  = c.company;
     document.getElementById('fContact').value  = c.contact;
-    document.getElementById('fPhone').value    = c.phone;
     document.getElementById('fEmail').value    = c.email;
     document.getElementById('fZip').value            = c.postalCode || '';
     document.getElementById('zipStatus').textContent  = '';
@@ -467,22 +477,125 @@
     document.getElementById('fClosing').value        = c.closing;
     document.getElementById('fPaymentOffset').value  = c.paymentOffset;
     document.getElementById('fPayment').value        = c.payment;
+    _phones = [];
+    _faxes  = [];
+    renderContactRows();
     document.getElementById('modalOverlay').classList.add('open');
+    await loadContacts(id);
   }
 
   function closeModal() {
     document.getElementById('modalOverlay').classList.remove('open');
   }
 
+  // ===== 連絡先（電話・FAX 複数管理） =====
+  let _phones = []; // [{ label, value }]
+  let _faxes  = []; // [{ label, value }]
+
+  function renderContactRows() {
+    const renderRows = (arr, type, phLabel, phNum) => arr.map((row, i) => `
+      <div style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px">
+        <input class="form-input" type="text" placeholder="${phLabel}" value="${esc(row.label || '')}" oninput="updateContact('${type}', ${i}, 'label', this.value)">
+        <input class="form-input" type="tel" placeholder="${phNum}" value="${esc(row.value || '')}" oninput="updateContact('${type}', ${i}, 'value', this.value)">
+        <button type="button" class="btn-danger-sm" style="margin-left:0" onclick="removeContact('${type}', ${i})">削除</button>
+      </div>
+    `).join('') || `<div style="font-size:14px;color:var(--text-muted);padding:6px 0">「+ 追加」で${type === 'phone' ? '電話' : 'FAX'}番号を登録</div>`;
+    document.getElementById('phoneList').innerHTML = renderRows(_phones, 'phone', '例：会社代表', '例：03-1234-5678');
+    document.getElementById('faxList').innerHTML   = renderRows(_faxes,  'fax',   '例：本社FAX',  '例：03-1234-5679');
+  }
+
+  function updateContact(type, idx, key, value) {
+    const arr = type === 'phone' ? _phones : _faxes;
+    if (arr[idx]) arr[idx][key] = value;
+  }
+
+  function addPhoneRow() {
+    _phones.push({ label: '', value: '' });
+    renderContactRows();
+  }
+
+  function addFaxRow() {
+    _faxes.push({ label: '', value: '' });
+    renderContactRows();
+  }
+
+  function removeContact(type, idx) {
+    const arr = type === 'phone' ? _phones : _faxes;
+    arr.splice(idx, 1);
+    renderContactRows();
+  }
+
+  async function loadContacts(customerId) {
+    _phones = [];
+    _faxes  = [];
+    if (!customerId) { renderContactRows(); return; }
+    try {
+      const res = await sbFetch(`/rest/v1/customer_contacts?customer_id=eq.${customerId}&select=*&order=display_order.asc,created_at.asc`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+      rows.forEach(r => {
+        const entry = { label: r.label || '', value: r.contact_value || '' };
+        if (r.contact_type === 'phone') _phones.push(entry);
+        else if (r.contact_type === 'fax') _faxes.push(entry);
+      });
+    } catch(e) {
+      console.error('連絡先取得エラー', e);
+    }
+    renderContactRows();
+  }
+
+  async function saveContacts(customerId) {
+    const delRes = await sbFetch(`/rest/v1/customer_contacts?customer_id=eq.${customerId}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' },
+    });
+    if (!delRes.ok && delRes.status !== 404) throw new Error('contacts delete HTTP ' + delRes.status);
+
+    const rows = [];
+    _phones.forEach((p, i) => {
+      const v = (p.value || '').trim();
+      if (!v) return;
+      rows.push({
+        customer_id: customerId,
+        tenant_id: tenantId,
+        contact_type: 'phone',
+        contact_value: v,
+        label: (p.label || '').trim() || null,
+        display_order: i,
+      });
+    });
+    _faxes.forEach((f, i) => {
+      const v = (f.value || '').trim();
+      if (!v) return;
+      rows.push({
+        customer_id: customerId,
+        tenant_id: tenantId,
+        contact_type: 'fax',
+        contact_value: v,
+        label: (f.label || '').trim() || null,
+        display_order: i,
+      });
+    });
+    if (rows.length === 0) return;
+
+    const insRes = await sbFetch('/rest/v1/customer_contacts', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rows),
+    });
+    if (!insRes.ok) throw new Error('contacts insert HTTP ' + insRes.status);
+  }
+
   async function saveCustomer() {
     const company = document.getElementById('fCompany').value.trim();
     if (!company) { alert('会社名は必須です'); document.getElementById('fCompany').focus(); return; }
+    const mainPhone = (_phones.find(p => (p.value || '').trim())?.value || '').trim();
     const payload = {
       company_name: company,
       contact_name: document.getElementById('fContact').value.trim() || null,
-      phone:        document.getElementById('fPhone').value.trim()   || null,
+      phone:        mainPhone || null,
       email:        document.getElementById('fEmail').value.trim()   || null,
-      postal_code:  document.getElementById('fZip').value.trim().replace(/[^0-9]/g, '') || null,
+      postal_code:  document.getElementById('fZip').value.trim() || null,
       address:      document.getElementById('fAddress').value.trim() || null,
       closing_day:           Number(document.getElementById('fClosing').value)        || null,
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
@@ -492,6 +605,7 @@
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');
     saveBtn.disabled = true; saveBtn.textContent = '保存中...';
     try {
+      let customerId = editId;
       if (editId) {
         const res = await sbFetch('/rest/v1/customers?id=eq.' + editId, { method: 'PATCH', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -504,6 +618,11 @@
         }
         const res = await sbFetch('/rest/v1/customers', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        customerId = data?.[0]?.id;
+      }
+      if (customerId) {
+        await saveContacts(customerId);
       }
       closeModal();
       await loadCustomers();
