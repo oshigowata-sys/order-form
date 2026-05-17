@@ -1061,13 +1061,21 @@
     `;
 
     // 合計をグローバルに保存（updateBillingSummary用）
-    window._invoiceTotals = { subtotal, tax, total, prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined };
+    // currentPaidAmount = 今表示中の請求書への入金額（編集対象）
+    // prevPaidAmount    = 前回請求書への入金額（繰越金計算に使用）
+    window._invoiceTotals = {
+      subtotal, tax, total,
+      currentPaidAmount: currentInvoicePaidAmount,
+      prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined
+    };
 
     // 前回請求額を操作バーにセット（表示のみ・readonly）
     const prevEl = document.getElementById('prevAmountInput');
     if (prevEl) prevEl.value = prevInvoice && prevInvoice.total_incl_tax != null ? formatYen(prevInvoice.total_incl_tax) : '';
 
-    // 入金保存対象 = 前回請求書（請求書本文の御入金金額と一致させる）
+    // 入金保存対象 = 今表示中の請求書（御入金金額欄に入力した値はこの請求書に保存される）
+    window._currentInvoiceNum = targetInvoiceNum || null;
+    // 参考: 前回請求書の番号も保持（将来の機能拡張用）
     window._prevInvoiceNum = prevInvoice?.invoice_number || null;
 
     document.getElementById('loadingState').style.display = 'none';
@@ -1094,7 +1102,7 @@
     const t = window._invoiceTotals;
     if (!t) return;
     const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
-    // 編集中（input が存在）なら入力値を、そうでなければメモリ値 or 前回保存値
+    // 御入金金額 = 今表示中の請求書への入金額（編集対象）
     const sumPaidEl = document.getElementById('sumPaid');
     const editingInput = sumPaidEl ? sumPaidEl.querySelector('input') : null;
     let paidAmount;
@@ -1104,11 +1112,13 @@
     } else if (_paidAmountValue != null) {
       paidAmount = _paidAmountValue;
     } else {
-      paidAmount = t.prevPaidAmount;
+      paidAmount = t.currentPaidAmount;
     }
     if (paidAmount != null && !isNaN(paidAmount)) _paidAmountValue = paidAmount;
 
-    const carryOver  = (paidAmount != null && !isNaN(paidAmount)) ? Math.max(0, prevAmount - paidAmount) : prevAmount;
+    // 繰越金 = 前回請求額 - 前回への入金額（=前回請求書の paid_amount）
+    const prevPaid = t.prevPaidAmount;
+    const carryOver = (prevPaid != null && !isNaN(prevPaid)) ? Math.max(0, prevAmount - prevPaid) : prevAmount;
     const grandTotal = carryOver + t.total;
 
     document.getElementById('sumPrev').textContent      = fmt(prevAmount);
@@ -1138,20 +1148,12 @@
     input.select();
   }
 
-  // 入力中：繰越/今回御請求額の即時再計算＋幅追従
+  // 入力中：幅追従のみ。
+  // 御入金金額は「今表示中の請求書への入金」なので、編集中も繰越金（=前回への入金から計算）は変動しない。
   function onPaidInputChange() {
-    const t = window._invoiceTotals;
-    if (!t) return;
-    const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
     const paidEl = document.getElementById('sumPaidInput');
     if (!paidEl) return;
     paidEl.style.width = Math.max((paidEl.value || '').length, 1) + 'ch';
-    const paidVal = Number(yenDigits(paidEl.value));
-    const paidAmount = !isNaN(paidVal) ? paidVal : 0;
-    const carryOver  = Math.max(0, prevAmount - paidAmount);
-    const grandTotal = carryOver + t.total;
-    document.getElementById('sumCarry').textContent      = fmt(carryOver);
-    document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
   }
 
   // ===== 編集終了：保存して span 表示に戻す =====
@@ -1162,7 +1164,7 @@
     const numVal = raw === '' ? null : Number(raw);
     const isValid = numVal != null && !isNaN(numVal) && numVal >= 0;
     // 値が前回保存値と同じなら DB アクセス不要
-    const prevSaved = window._invoiceTotals ? window._invoiceTotals.prevPaidAmount : null;
+    const prevSaved = window._invoiceTotals ? window._invoiceTotals.currentPaidAmount : null;
     if (isValid && numVal !== prevSaved) {
       _paidAmountValue = numVal;
       await savePaidAmount(numVal);
@@ -1173,9 +1175,9 @@
     updateBillingSummary();
   }
 
-  // ===== 御入金金額の登録（前回請求書へ保存） =====
+  // ===== 御入金金額の登録（今表示中の請求書へ保存） =====
   async function savePaidAmount(numVal) {
-    const prevNum = window._prevInvoiceNum;
+    const currentNum = window._currentInvoiceNum;
     const msg = document.getElementById('paidSaveMsg');
     const showMsg = (text, color) => {
       if (!msg) return;
@@ -1184,14 +1186,14 @@
       msg.style.opacity = '1';
       setTimeout(() => { msg.style.opacity = '0'; }, 2500);
     };
-    if (!prevNum) { showMsg('前回請求書がありません', '#dc2626'); return; }
+    if (!currentNum) { showMsg('請求書が特定できません', '#dc2626'); return; }
     if (numVal == null || isNaN(numVal) || numVal < 0) { showMsg('⚠ 金額を確認してください', '#dc2626'); return; }
     const res = await sbFetch(
-      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(prevNum),
+      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(currentNum),
       { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ paid_amount: numVal }) }
     );
     if (res.ok) {
-      if (window._invoiceTotals) window._invoiceTotals.prevPaidAmount = numVal;
+      if (window._invoiceTotals) window._invoiceTotals.currentPaidAmount = numVal;
       showMsg('✓ 保存しました', 'var(--green)');
     } else {
       showMsg('❌ 保存失敗', '#dc2626');
