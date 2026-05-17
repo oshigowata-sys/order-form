@@ -1132,9 +1132,11 @@
     }
     if (paidAmount != null && !isNaN(paidAmount)) _paidAmountValue = paidAmount;
 
-    // 繰越金 = 前回請求額 - 前回への入金額（=前回請求書の paid_amount）
-    const prevPaid = t.prevPaidAmount;
-    const carryOver = (prevPaid != null && !isNaN(prevPaid)) ? Math.max(0, prevAmount - prevPaid) : prevAmount;
+    // 繰越金 = 前回御請求額 − 御入金金額
+    // 御入金金額は「過去の未払い分を消し込んだ金額」として扱い、編集中の入力値も即時反映。
+    // マイナスになる場合は 0 にクランプ（前払い分は預り金として別管理する想定）。
+    const subtractPaid = (paidAmount != null && !isNaN(paidAmount)) ? paidAmount : 0;
+    const carryOver = Math.max(0, prevAmount - subtractPaid);
     const grandTotal = carryOver + t.total;
 
     document.getElementById('sumPrev').textContent      = fmt(prevAmount);
@@ -1218,12 +1220,12 @@
     input.select();
   }
 
-  // 入力中：幅追従のみ。
-  // 御入金金額は「今表示中の請求書への入金」なので、編集中も繰越金（=前回への入金から計算）は変動しない。
+  // 入力中：幅追従＋繰越金・今回御請求額の即時再計算
   function onPaidInputChange() {
     const paidEl = document.getElementById('sumPaidInput');
     if (!paidEl) return;
     paidEl.style.width = Math.max((paidEl.value || '').length, 1) + 'ch';
+    updateBillingSummary();
   }
 
   // ===== 編集終了：保存して span 表示に戻す =====
