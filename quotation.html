@@ -273,6 +273,13 @@ function formatDateJa(dateStr) {
   if (isNaN(d)) return dateStr;
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 }
+function janDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
+function formatJan(s) {
+  const d = janDigits(s);
+  if (d.length === 13) return d.slice(0, 7) + '　' + d.slice(7);
+  if (d.length === 8)  return d.slice(0, 4) + '　' + d.slice(4);
+  return d;
+}
 function sbFetch(path, options = {}) {
   return fetch(SB_URL + path, {
     ...options,
@@ -530,7 +537,7 @@ function renderItems() {
               <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
               <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
-              <td class="snapshot">${esc(it.jan_code || '—')}</td>
+              <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
             </tr>
           `).join('')}
@@ -588,7 +595,7 @@ function renderProductPicker(q) {
     <div class="product-row" onclick="addProductFromPicker('${p.id}')">
       <div class="product-row-info">
         <div class="product-row-name">${esc(p.product_name)}</div>
-        <div class="product-row-meta">${esc(p.product_code || '')}${p.jan_code ? ' / JAN: ' + esc(p.jan_code) : ''}${p.is_food ? ' / 食品' : ''}</div>
+        <div class="product-row-meta">${esc(p.product_code || '')}${p.jan_code ? ' / JAN: ' + esc(formatJan(p.jan_code)) : ''}${p.is_food ? ' / 食品' : ''}</div>
       </div>
       <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${p.price != null && p.price !== '' ? fmt(p.price) : ''}</div>
     </div>
@@ -662,7 +669,7 @@ function renderPreview() {
             <td style="text-align:right;width:50px">${qty.toLocaleString()}</td>
             <td style="text-align:right;width:85px">${fmt(price)}</td>
             <td style="text-align:right;width:100px">${fmt(sub)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
-            <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${esc(it.jan_code || '—')}</td>
+            <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
           </tr>`;
       }).join('')
     : '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
