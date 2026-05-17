@@ -676,16 +676,24 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
+  // 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
+  // 例: "ホタテ" と "ほたて" は同じキーになる
+  function normalizeSearch(s) {
+    return String(s || '').toLowerCase()
+      .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
   function filterProductOptions(q) {
-    const query = (q || '').trim().toLowerCase();
+    const raw = (q || '').trim();
+    const query = normalizeSearch(raw);
     const filtered = query
       ? allProducts.filter(p =>
-          (p.product_name || '').toLowerCase().includes(query) ||
-          (p.product_code || '').toLowerCase().includes(query)
+          normalizeSearch(p.product_name).includes(query) ||
+          (p.product_code || '').toLowerCase().includes(query.toLowerCase())
         )
       : allProducts;
-    renderProductOptions(filtered);
-    renderSearchResults(query, filtered);
+    // プルダウンは検索窓と独立（常に全商品を保持）→ 絞り込まない
+    renderSearchResults(raw, filtered);
   }
 
   function renderSearchResults(query, list) {
@@ -720,12 +728,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     } else {
       newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0 });
     }
-    // 検索窓・候補リスト・プルダウンをリセットして次の検索に備える
+    // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
     const search = document.getElementById('newItemSearch');
     if (search) search.value = '';
     renderSearchResults('', []);
-    renderProductOptions(allProducts);
-    document.getElementById('newItemProduct').value = '';
     document.getElementById('itemError').classList.remove('show');
     renderNewItems();
   }
@@ -764,10 +770,26 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const search = document.getElementById('newItemSearch');
     if (search) {
       search.value = '';
-      renderProductOptions(allProducts);
       renderSearchResults('', []);
     }
     renderNewItems();
+  }
+
+  function updateNewItemQty(idx, value) {
+    if (!newOrderItems[idx]) return;
+    const qty = Math.max(1, parseInt(value, 10) || 1);
+    newOrderItems[idx].qty = qty;
+    // 行小計セルだけ書き換え（テーブル全体を再描画しない＝入力フォーカスを奪わない）
+    const subCell = document.querySelector(`[data-newitem-sub="${idx}"]`);
+    if (subCell) {
+      subCell.textContent = '¥' + (qty * newOrderItems[idx].unitPrice).toLocaleString();
+    }
+    // 合計も部分更新
+    const total = newOrderItems.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
+    const totalEl = document.getElementById('newOrderTotal');
+    if (totalEl) {
+      totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</span>`;
+    }
   }
 
   function removeNewItem(index) {
@@ -788,9 +810,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       total += sub;
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
-        <td style="text-align:right">${item.qty}</td>
+        <td style="text-align:right"><input type="number" min="1" value="${item.qty}" oninput="updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">¥${item.unitPrice.toLocaleString()}</td>
-        <td style="text-align:right;font-weight:600">¥${sub.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">¥${sub.toLocaleString()}</td>
         <td><button class="btn-danger-sm" onclick="removeNewItem(${i})">✕</button></td>
       </tr>`;
     }).join('');
