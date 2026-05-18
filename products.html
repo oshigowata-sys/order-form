@@ -197,11 +197,14 @@
   }
   .form-input:focus { border-color: var(--orange); background: white; }
   .form-input::placeholder { color: #bbb; }
-  /* 日本語入力をデフォルトにしたい欄（商品名・カテゴリ・検索） */
+  /* 日本語入力をデフォルトにしたい欄（商品名・カテゴリ・検索）
+     ※ ime-mode は Firefox など限られたブラウザでしか効かないが、
+        併設の lang="ja" と合わせて IME 自動切替のヒントとして付与。
+        数値欄を IME 強制 OFF にすると、Edge/Chromium 系で入力が阻害される
+        ケースが Wata 環境で発生したため、半角欄への ime-mode 指定は撤去。
+        商品名で一度日本語入力に切り替わった後、その状態のまま他の欄でも
+        Edge の入力モード継承機能で使い回されることを期待する設計。 */
   .ime-active { ime-mode: active; }
-  /* 半角英数のみ受け付ける欄（金額・JAN・URL・ケース入数） */
-  .ime-inactive { ime-mode: inactive; }
-  .ime-disabled { ime-mode: disabled; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
   .form-grid .form-group { margin-bottom: 0; }
   .form-section-title {
@@ -373,7 +376,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">JANコード</label>
-          <input type="text" class="form-input ime-disabled" id="formJanCode" inputmode="numeric" maxlength="14" placeholder="例：4976176　102229" oninput="onJanInput(this)" />
+          <input type="text" class="form-input" id="formJanCode" inputmode="numeric" maxlength="14" placeholder="例：4976176　102229" oninput="onJanInput(this)" />
           <div class="form-hint">8桁または13桁の数字（入力すると自動で全角スペースが入ります）</div>
         </div>
       </div>
@@ -382,22 +385,22 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">上代（円）</label>
-          <input type="text" class="form-input ime-disabled" id="formListPrice" inputmode="numeric" placeholder="例：1,500" oninput="onYenInput(this)" />
+          <input type="text" class="form-input" id="formListPrice" inputmode="numeric" placeholder="例：1,500" oninput="onYenInput(this)" />
           <div class="form-hint">定価／メーカー希望小売価格</div>
         </div>
         <div class="form-group">
           <label class="form-label">仕入価格（円）</label>
-          <input type="text" class="form-input ime-disabled" id="formCostPrice" inputmode="numeric" placeholder="例：800" oninput="onYenInput(this)" />
+          <input type="text" class="form-input" id="formCostPrice" inputmode="numeric" placeholder="例：800" oninput="onYenInput(this)" />
           <div class="form-hint">原価</div>
         </div>
         <div class="form-group">
           <label class="form-label">基本単価（円） *</label>
-          <input type="text" class="form-input ime-disabled" id="formPrice" inputmode="numeric" placeholder="例：1,200" oninput="onYenInput(this)" />
+          <input type="text" class="form-input" id="formPrice" inputmode="numeric" placeholder="例：1,200" oninput="onYenInput(this)" />
           <div class="form-hint">小売店への売価のベース</div>
         </div>
         <div class="form-group">
           <label class="form-label">ケース入数</label>
-          <input type="number" class="form-input ime-disabled" id="formCaseQuantity" min="1" value="1" placeholder="例：24" />
+          <input type="number" class="form-input" id="formCaseQuantity" min="1" value="1" placeholder="例：24" />
           <div class="form-hint">バラ売りは1</div>
         </div>
       </div>
@@ -409,7 +412,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">商品画像URL（任意）</label>
-        <input type="url" class="form-input ime-disabled" id="formImageUrl" placeholder="https://example.com/image.jpg" />
+        <input type="url" class="form-input" id="formImageUrl" placeholder="https://example.com/image.jpg" />
         <div id="imagePreview" style="margin-top:8px;display:none;">
           <img id="imagePreviewImg" src="" alt="プレビュー" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />
         </div>
