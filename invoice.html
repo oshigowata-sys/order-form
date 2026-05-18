@@ -448,22 +448,6 @@
     margin-bottom: 2px;
   }
 
-  .invoice-stamp {
-    display: inline-block;
-    border: 2px solid var(--orange);
-    color: var(--orange);
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    line-height: 56px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-top: 8px;
-    font-family: 'Noto Sans JP', sans-serif;
-  }
-
   /* ===== 切り取り線 ===== */
   .cut-line {
     display: flex;
@@ -557,36 +541,53 @@
     body { background: white; }
     .main { padding: 0; max-width: 100%; }
     #invoice-wrap { box-shadow: none; border-radius: 0; }
-    .invoice { padding: 10mm 12mm; }
+    .invoice { padding: 6mm 8mm; }
     .invoice-table tbody tr:hover { background: transparent; }
     .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #sumPaid { cursor: default !important; }
-    @page { margin: 5mm; size: A4; }
+    @page { margin: 4mm; size: A4; }
 
-    /* 通常の明細量で A4 1枚に収まるよう全体を圧縮 */
-    .invoice-header { margin-bottom: 8px; padding-bottom: 6px; }
-    .invoice-title { font-size: 20px; letter-spacing: 3px; }
-    .invoice-subtitle { font-size: 10px; }
-    .invoice-meta table { font-size: 11px; }
-    .invoice-meta td { padding: 2px 0 2px 14px; }
+    /* A4 1枚に収めるための圧縮 */
+    .invoice-header { margin-bottom: 4px; padding-bottom: 4px; }
+    .invoice-title { font-size: 16px; letter-spacing: 2px; }
+    .invoice-subtitle { font-size: 9px; }
+    .invoice-meta table { font-size: 10px; }
+    .invoice-meta td { padding: 1px 0 1px 12px; }
 
-    .invoice-parties { margin-bottom: 8px; gap: 16px; }
-    .party-name { font-size: 14px; }
-    .party-address { font-size: 11px; line-height: 1.5; margin-top: 3px; }
-    .invoice-amount-highlight { padding: 8px 14px; min-width: 150px; }
-    .amount-value { font-size: 18px; }
+    .invoice-parties { margin-bottom: 4px; gap: 12px; }
+    .party-name { font-size: 13px; }
+    .party-address { font-size: 10px; line-height: 1.35; margin-top: 2px; }
+    .invoice-amount-highlight { padding: 5px 10px; min-width: 130px; }
+    .amount-label { font-size: 9px; }
+    .amount-value { font-size: 15px; }
+    .amount-tax { font-size: 9px; }
 
-    .invoice-table-wrap { margin-bottom: 8px; }
-    .invoice-table { font-size: 11px; page-break-inside: avoid; }
-    .invoice-table thead th { padding: 4px 8px; font-size: 10px; }
-    .invoice-table tbody td { padding: 3px 8px; font-size: 11px; }
+    /* 御請求サマリー（請求書管理モードのみ表示） */
+    .billing-summary { margin-bottom: 5px; gap: 6px; }
+    .summary-cell { padding: 3px 4px; }
+    .summary-cell-label { font-size: 8px; margin-bottom: 2px; }
+    .summary-cell-value { font-size: 10px; }
+    .summary-total-box { padding: 3px 8px; min-width: 110px; }
+    .summary-total-label { font-size: 8px; margin-bottom: 2px; }
+    .summary-total-value { font-size: 13px; }
+    .unpaid-warning { padding: 3px 8px; font-size: 10px; }
+
+    /* お振込先（請求書管理モードのみ・上部1行表記） */
+    .invoice-bank-inline { margin-bottom: 5px !important; padding: 5px 9px !important; }
+    .invoice-bank-inline .footer-section-title { font-size: 8px !important; margin-bottom: 2px !important; }
+    .invoice-bank-inline > div:last-child { font-size: 10px !important; line-height: 1.4 !important; }
+
+    .invoice-table-wrap { margin-bottom: 4px; }
+    .invoice-table { font-size: 10px; page-break-inside: avoid; }
+    .invoice-table thead th { padding: 2px 6px; font-size: 9px; }
+    .invoice-table tbody td { padding: 2px 6px; font-size: 10px; }
     .invoice-table tbody tr { page-break-inside: avoid; }
-    .invoice-table tfoot td { padding: 4px 8px; font-size: 11px; }
-    .invoice-table tfoot tr.total-row td { padding: 5px 8px; font-size: 12px; }
+    .invoice-table tfoot td { padding: 3px 6px; font-size: 10px; }
+    .invoice-table tfoot tr.total-row td { padding: 3px 6px; font-size: 11px; }
 
-    .invoice-footer { margin-top: 8px; padding-top: 6px; gap: 12px; }
+    .invoice-footer { margin-top: 4px; padding-top: 4px; gap: 8px; }
     .invoice-footer .footer-section-title { font-size: 9px; }
-    .invoice-footer .bank-info { font-size: 11px; line-height: 1.5; }
+    .invoice-footer .bank-info { font-size: 10px; line-height: 1.4; }
   }
 </style>
 </head>
@@ -1056,9 +1057,6 @@
       <div class="invoice-footer">
         <div>
           ${f['備考'] ? `<div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div>` : ''}
-        </div>
-        <div style="text-align:right;">
-          <div class="invoice-stamp">発行済</div>
         </div>
       </div>
     `;
