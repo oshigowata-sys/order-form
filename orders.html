@@ -229,8 +229,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">受注詳細</div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <button onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')"
+      <div style="display:flex;align-items:center;gap:10px" id="detailHeaderActions">
+        <button id="detailEditBtn" onclick="enterEditMode()"
+          style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;color:var(--orange);border:1.5px solid var(--orange);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
+          ✏️ 編集
+        </button>
+        <button id="detailPrintBtn" onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')"
           style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
           🖨 納品書・請求書を発行
         </button>
@@ -238,12 +242,18 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       </div>
     </div>
     <div class="modal-body">
+      <div id="editWarning" style="display:none"></div>
       <div class="info-grid" id="modalInfo"></div>
       <div class="items-section-title">注文商品</div>
       <div class="table-wrapper">
         <table id="modalItems"></table>
       </div>
-      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+        <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+        <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
+        <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
+      </div>
+      <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
         <select class="form-input2" id="detailStatusSelect" style="width:160px">
           <option value="新規受注">新規受注</option>
@@ -257,7 +267,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
       <div class="modal-btns" style="display:flex;align-items:center;gap:10px">
-        <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:14px" onclick="deleteOrder()">受注を削除</button>
+        <div id="viewModeBtns" style="display:flex;align-items:center;gap:10px">
+          <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:14px" onclick="deleteOrder()">受注を削除</button>
+        </div>
+        <div id="editModeBtns" style="display:none;align-items:center;gap:10px">
+          <button class="btn btn-outline" onclick="cancelEditMode()">キャンセル</button>
+          <button class="btn btn-primary" id="saveEditBtn" onclick="saveEditMode()">💾 保存</button>
+        </div>
       </div>
     </div>
   </div>
@@ -591,7 +607,278 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
-  function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+  function closeDetail() {
+    if (editMode) {
+      editMode = false;
+      editItems = [];
+      editAffectedInvoices = [];
+      toggleEditUI(false);
+    }
+    document.getElementById('detailOverlay').classList.remove('open');
+  }
+
+  // ===== 受注編集モード =====
+  let editMode = false;
+  let editItems = [];
+  let editAffectedInvoices = [];
+
+  async function enterEditMode() {
+    const o = allOrders.find(x => x.id === currentDetailId);
+    if (!o) return;
+
+    // 商品マスタ・取引先掛け率をロード
+    await loadProductsForEntry();
+    if (o.customer_id) {
+      const pRes = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&select=product_id,rate`);
+      allPricing = pRes.ok ? await pRes.json() : [];
+    } else {
+      allPricing = [];
+    }
+
+    // 既存 order_items を編集用配列にロード
+    try {
+      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,products(product_code,product_name,is_food,price)`);
+      if (!res.ok) throw new Error('order_items取得失敗');
+      const items = await res.json();
+      editItems = items.map(it => ({
+        productId: it.product_id,
+        name: it.products?.product_name || '',
+        productCode: it.products?.product_code || '',
+        qty: it.quantity || 0,
+        unitPrice: it.unit_price || 0,
+        costPrice: it.cost_price || 0,
+        isFood: it.products?.is_food || false,
+      }));
+    } catch(e) {
+      console.error('編集モード初期化失敗:', e);
+      alert('受注明細の読み込みに失敗しました');
+      return;
+    }
+
+    // 受注期間に該当する有効請求書を取得
+    editAffectedInvoices = [];
+    if (o.customer_id) {
+      try {
+        const invRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&superseded_at=is.null&select=invoice_number,period_start,period_end&period_start=lte.${o.order_date}&period_end=gte.${o.order_date}`);
+        if (invRes.ok) editAffectedInvoices = await invRes.json();
+      } catch(e) { console.error('影響請求書チェック失敗:', e); }
+    }
+
+    if (editAffectedInvoices.length > 0) {
+      const nums = editAffectedInvoices.map(i => i.invoice_number).join('、');
+      const proceed = confirm(`この受注は既に請求書発行済みです（${nums}）。\n保存すると現在の請求書が無効になり、再発行が必要になります。\n続行しますか？`);
+      if (!proceed) return;
+    }
+
+    editMode = true;
+    renderEditMode();
+  }
+
+  function cancelEditMode() {
+    editMode = false;
+    editItems = [];
+    editAffectedInvoices = [];
+    toggleEditUI(false);
+    loadOrderDetail(currentDetailId);
+  }
+
+  function toggleEditUI(isEdit) {
+    document.getElementById('editWarning').style.display = isEdit ? 'block' : 'none';
+    document.getElementById('editAddSection').style.display = isEdit ? 'block' : 'none';
+    document.getElementById('detailStatusSection').style.display = isEdit ? 'none' : 'flex';
+    document.getElementById('detailEditBtn').style.display = isEdit ? 'none' : 'flex';
+    document.getElementById('detailPrintBtn').style.display = isEdit ? 'none' : 'flex';
+    document.getElementById('viewModeBtns').style.display = isEdit ? 'none' : 'flex';
+    document.getElementById('editModeBtns').style.display = isEdit ? 'flex' : 'none';
+  }
+
+  function renderEditMode() {
+    toggleEditUI(true);
+    const warningEl = document.getElementById('editWarning');
+    if (editAffectedInvoices.length > 0) {
+      warningEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#dc2626;font-size:14px;line-height:1.6">
+        ⚠️ この受注は請求書発行済みです（${editAffectedInvoices.map(i => esc(i.invoice_number)).join('、')}）。<br>
+        保存すると現在の請求書が無効化され、請求書管理画面から再発行が必要になります。
+      </div>`;
+    } else {
+      warningEl.innerHTML = `<div style="background:#fff8e6;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#92400e;font-size:14px;line-height:1.6">
+        💡 既に印刷済みの納品書がある場合、編集後の内容とは差分が生じます。再印刷をご検討ください。
+      </div>`;
+    }
+    document.getElementById('editItemSearch').value = '';
+    document.getElementById('editSearchResults').style.display = 'none';
+    document.getElementById('editSearchResults').innerHTML = '';
+    renderEditItems();
+  }
+
+  function renderEditItems() {
+    let excl = 0, tax = 0;
+    const rows = editItems.map((it, i) => {
+      const taxRate = it.isFood ? 0.08 : 0.10;
+      const sub = it.qty * it.unitPrice;
+      excl += sub;
+      tax += Math.round(sub * taxRate);
+      return `<tr>
+        <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
+        <td style="font-weight:500;white-space:normal">${esc(it.name)}</td>
+        <td class="num-right"><input type="number" min="1" value="${it.qty}" oninput="updateEditItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td class="num-right">¥${it.unitPrice.toLocaleString()}</td>
+        <td class="num-right" style="font-weight:600">¥${sub.toLocaleString()}</td>
+        <td><span class="${it.isFood?'badge-food':'badge-regular'}">${it.isFood?'軽減8%':'標準10%'}</span></td>
+        <td><button onclick="removeEditItem(${i})" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('modalItems').innerHTML =
+      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th>税率</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
+
+    const incl = excl + tax;
+    document.getElementById('modalTotals').innerHTML = `
+      <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
+      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
+      <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+  }
+
+  function updateEditItemQty(idx, value) {
+    if (!editItems[idx]) return;
+    const qty = Math.max(1, parseInt(value, 10) || 1);
+    editItems[idx].qty = qty;
+    // 行小計＋合計だけ部分更新（テーブル全体を再描画するとフォーカスを奪うため）
+    let excl = 0, tax = 0;
+    const tbody = document.querySelector('#modalItems tbody');
+    editItems.forEach((it, i) => {
+      const taxRate = it.isFood ? 0.08 : 0.10;
+      const sub = it.qty * it.unitPrice;
+      excl += sub;
+      tax += Math.round(sub * taxRate);
+      if (i === idx && tbody && tbody.children[i]) {
+        const subCell = tbody.children[i].children[4];
+        if (subCell) subCell.textContent = '¥' + sub.toLocaleString();
+      }
+    });
+    const incl = excl + tax;
+    document.getElementById('modalTotals').innerHTML = `
+      <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
+      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
+      <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+  }
+
+  function removeEditItem(idx) {
+    editItems.splice(idx, 1);
+    renderEditItems();
+  }
+
+  function filterEditProductOptions(q) {
+    const raw = (q || '').trim();
+    const query = normalizeSearch(raw);
+    const filtered = query
+      ? allProducts.filter(p =>
+          normalizeSearch(p.product_name).includes(query) ||
+          (p.product_code || '').toLowerCase().includes(query.toLowerCase())
+        )
+      : allProducts;
+    renderEditSearchResults(raw, filtered);
+  }
+
+  function renderEditSearchResults(query, list) {
+    const wrap = document.getElementById('editSearchResults');
+    if (!wrap) return;
+    if (!query) {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.style.display = 'block';
+    if (!list || list.length === 0) {
+      wrap.innerHTML = '<div class="search-result-empty">該当する商品がありません</div>';
+      return;
+    }
+    wrap.innerHTML = list.map(p => `
+      <div class="search-result-item" onclick="addEditItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
+        <span class="search-result-name">${esc(p.product_name)}</span>
+        <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
+        <span class="search-result-price">¥${Number(p.price || 0).toLocaleString()}</span>
+      </div>
+    `).join('');
+  }
+
+  function addEditItemFromSearch(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return;
+    const unitPrice = getUnitPrice(productId);
+    const existing = editItems.find(i => i.productId === productId);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      editItems.push({
+        productId,
+        name: product.product_name,
+        productCode: product.product_code || '',
+        qty: 1,
+        unitPrice,
+        costPrice: 0,
+        isFood: product.is_food || false,
+      });
+    }
+    document.getElementById('editItemSearch').value = '';
+    renderEditSearchResults('', []);
+    renderEditItems();
+  }
+
+  async function saveEditMode() {
+    if (editItems.length === 0) {
+      alert('商品を1つ以上追加してください');
+      return;
+    }
+    const btn = document.getElementById('saveEditBtn');
+    btn.disabled = true; btn.textContent = '保存中...';
+
+    try {
+      const delRes = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      if (!delRes.ok) throw new Error('明細削除失敗');
+
+      await Promise.all(editItems.map(item =>
+        sbFetch('/rest/v1/order_items', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            order_id: currentDetailId,
+            product_id: item.productId,
+            quantity: item.qty,
+            unit_price: item.unitPrice,
+            cost_price: item.costPrice,
+            tenant_id: tenantId
+          })
+        }).then(r => { if (!r.ok) throw new Error('明細追加失敗'); })
+      ));
+
+      const o = allOrders.find(x => x.id === currentDetailId);
+      if (o && editAffectedInvoices.length > 0) {
+        const supersededAt = new Date().toISOString();
+        await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&superseded_at=is.null&period_start=lte.${o.order_date}&period_end=gte.${o.order_date}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ superseded_at: supersededAt })
+        });
+      }
+
+      editMode = false;
+      editItems = [];
+      editAffectedInvoices = [];
+      await loadOrders();
+      toggleEditUI(false);
+      loadOrderDetail(currentDetailId);
+    } catch(e) {
+      console.error('受注編集保存失敗:', e);
+      alert('保存に失敗しました。もう一度お試しください。');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 保存';
+    }
+  }
 
   async function deleteOrder() {
     const o = allOrders.find(x => x.id === currentDetailId);
@@ -659,7 +946,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   async function loadProductsForEntry() {
     if (!allProducts.length) {
-      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,product_code,price&order=product_name`);
+      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,product_code,price,is_food&order=product_name`);
       allProducts = await res.json();
     }
     renderProductOptions(allProducts);
