@@ -547,10 +547,21 @@
     #sumPaid { cursor: default !important; }
     @page { margin: 4mm; size: A4; }
 
-    /* 納品書モード時：切り取り線が A4 縦中央に来るよう、上下のブロックを縦半分に揃える。
-       請求書管理モードでは明細＋サマリ＋振込先で 138mm を超えるので min-height は実効しない。 */
-    #deliveryBody { min-height: 138mm; box-sizing: border-box; }
-    #invoiceBody  { min-height: 138mm; box-sizing: border-box; }
+    /* 納品書兼請求書モード時：切り取り線を A4 縦中央(148.5mm)にぴったり置くため、
+       印刷可能領域(289mm = A4 297mm - @page上下margin 4mm×2)を flex で均等分配する。
+       請求書管理モードでは body に delivery-mode クラスが付かないので影響なし。 */
+    body.delivery-mode #invoice-wrap {
+      height: 289mm;
+      display: flex;
+      flex-direction: column;
+    }
+    body.delivery-mode #deliveryBody,
+    body.delivery-mode #invoiceBody {
+      flex: 1;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+    body.delivery-mode .cut-line { flex-shrink: 0; }
 
     /* A4 1枚に収めるための圧縮 */
     .invoice-header { margin-bottom: 4px; padding-bottom: 4px; }
@@ -1107,9 +1118,11 @@
 
       document.getElementById('deliveryBody').style.display = 'block';
       document.getElementById('cutLine').style.display = 'flex';
+      document.body.classList.add('delivery-mode');
       document.title = `納品書兼請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
       renderDeliveryNote(f, items, s);
     } else {
+      document.body.classList.remove('delivery-mode');
       document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
       updateBillingSummary();
     }
