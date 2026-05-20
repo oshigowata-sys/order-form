@@ -252,6 +252,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
         <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
         <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
+        <div class="add-item-row">
+          <select class="form-input2" id="editItemProduct">
+            <option value="">商品を選択してください</option>
+          </select>
+          <input type="number" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" />
+          <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
+        </div>
+        <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
       </div>
       <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
@@ -710,6 +718,52 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('editItemSearch').value = '';
     document.getElementById('editSearchResults').style.display = 'none';
     document.getElementById('editSearchResults').innerHTML = '';
+    document.getElementById('editItemProduct').value = '';
+    document.getElementById('editItemQty').value = '1';
+    document.getElementById('editItemError').classList.remove('show');
+    renderEditProductOptions(allProducts);
+    renderEditItems();
+  }
+
+  function renderEditProductOptions(list) {
+    const sel = document.getElementById('editItemProduct');
+    if (!sel) return;
+    const products = list || allProducts;
+    const prevValue = sel.value;
+    sel.innerHTML = '<option value="">商品を選択してください</option>' +
+      products.map(p => `<option value="${esc(p.id)}">${esc(p.product_name)}${p.product_code ? ' (' + esc(p.product_code) + ')' : ''}</option>`).join('');
+    if (prevValue && products.find(p => p.id === prevValue)) {
+      sel.value = prevValue;
+    }
+  }
+
+  function addEditItemFromSelect() {
+    const productId = document.getElementById('editItemProduct').value;
+    const qty = parseInt(document.getElementById('editItemQty').value, 10);
+    const errEl = document.getElementById('editItemError');
+    if (!productId || !qty || qty < 1) { errEl.classList.add('show'); return; }
+    errEl.classList.remove('show');
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return;
+    const unitPrice = getUnitPrice(productId);
+    const existing = editItems.find(i => i.productId === productId);
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      editItems.push({
+        productId,
+        name: product.product_name,
+        productCode: product.product_code || '',
+        qty,
+        unitPrice,
+        costPrice: 0,
+        isFood: product.is_food || false,
+      });
+    }
+    document.getElementById('editItemProduct').value = '';
+    document.getElementById('editItemQty').value = '1';
+    const search = document.getElementById('editItemSearch');
+    if (search) { search.value = ''; renderEditSearchResults('', []); }
     renderEditItems();
   }
 
