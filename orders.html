@@ -407,6 +407,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         return {
           id:       r.id,
           code:     r.order_code || r.id.slice(0,8),
+          customer_id: r.customer_id || null,
+          order_date: r.order_date || '',
           customer: displayCompany,
           customerSearch: masterCompany + ' ' + inputCompany,
           contactName: r.customers?.contact_name || r.input_contact_name || '',
