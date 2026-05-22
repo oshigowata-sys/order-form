@@ -95,9 +95,6 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
 .search-result-name{font-weight:600;flex:1;color:var(--text);font-size:14px}
 .search-result-price{color:var(--orange);font-weight:700;font-family:'Space Grotesk',sans-serif;white-space:nowrap;font-size:13px}
 .search-result-empty{padding:14px;color:var(--text-muted);font-size:14px;text-align:center}
-.selected-summary{font-size:13px;color:var(--green);font-weight:600;padding:6px 10px;background:var(--green-pale);border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:6px}
-.selected-summary .clear-btn{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}
-.selected-summary .clear-btn:hover{background:rgba(0,0,0,0.06);color:var(--text)}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -174,27 +171,19 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
           <input type="hidden" id="editKey">
           <div class="form-group">
             <label class="form-label">取引先</label>
-            <div class="selected-summary" id="fCustomerSelectedSummary" style="display:none">
-              <span>✓ 選択中：<span id="fCustomerSelectedName"></span></span>
-              <button type="button" class="clear-btn" onclick="clearCustomerSelection()" title="選択解除">✕</button>
-            </div>
-            <input type="text" class="search-input-inline ime-active" lang="ja" id="fCustomerSearch" placeholder="🔍 取引先名で検索（クリックで選択）" oninput="filterCustomerOptions(this.value)" onfocus="filterCustomerOptions(this.value)">
-            <div id="fCustomerResults" class="search-results-wrap" style="display:none"></div>
-            <select class="form-input" id="fCustomer" onchange="updatePreview()" style="display:none">
+            <select class="form-input" id="fCustomer" onchange="onCustomerSelectChange()">
               <option value="">選択してください</option>
             </select>
+            <input type="text" class="search-input-inline ime-active" lang="ja" id="fCustomerSearch" placeholder="🔍 取引先名で検索（候補からクリックで選択）" oninput="filterCustomerOptions(this.value)" style="margin-top:6px">
+            <div id="fCustomerResults" class="search-results-wrap" style="display:none"></div>
           </div>
           <div class="form-group">
             <label class="form-label">商品</label>
-            <div class="selected-summary" id="fProductSelectedSummary" style="display:none">
-              <span>✓ 選択中：<span id="fProductSelectedName"></span></span>
-              <button type="button" class="clear-btn" onclick="clearProductSelection()" title="選択解除">✕</button>
-            </div>
-            <input type="text" class="search-input-inline ime-active" lang="ja" id="fProductSearch" placeholder="🔍 商品名で検索（クリックで選択）" oninput="filterProductOptions(this.value)" onfocus="filterProductOptions(this.value)">
-            <div id="fProductResults" class="search-results-wrap" style="display:none"></div>
-            <select class="form-input" id="fProduct" onchange="updatePreview()" style="display:none">
+            <select class="form-input" id="fProduct" onchange="onProductSelectChange()">
               <option value="">選択してください</option>
             </select>
+            <input type="text" class="search-input-inline ime-active" lang="ja" id="fProductSearch" placeholder="🔍 商品名で検索（候補からクリックで選択）" oninput="filterProductOptions(this.value)" style="margin-top:6px">
+            <div id="fProductResults" class="search-results-wrap" style="display:none"></div>
           </div>
           <div class="form-group">
             <label class="form-label">掛け率（0〜1）</label>
@@ -367,44 +356,41 @@ function filterProductOptions(query) {
   `).join('');
 }
 
-// 取引先を選択
+// 検索結果からクリックで取引先を選択（プルダウンに反映）
 function selectCustomer(id) {
   const c = CUSTOMERS.find(x => x.id === id);
   if (!c) return;
   document.getElementById('fCustomer').value = id;
-  document.getElementById('fCustomerSelectedName').textContent = c.name;
-  document.getElementById('fCustomerSelectedSummary').style.display = 'flex';
-  // 検索窓と結果リストはクリア
+  // 検索窓と結果リストはクリア（再検索の邪魔にならないように）
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fCustomerResults').style.display = 'none';
   document.getElementById('fCustomerResults').innerHTML = '';
   updatePreview();
 }
 
-// 商品を選択
+// 検索結果からクリックで商品を選択（プルダウンに反映）
 function selectProduct(id) {
   const p = PRODUCTS.find(x => x.id === id);
   if (!p) return;
   document.getElementById('fProduct').value = id;
-  document.getElementById('fProductSelectedName').textContent = p.name;
-  document.getElementById('fProductSelectedSummary').style.display = 'flex';
   document.getElementById('fProductSearch').value = '';
   document.getElementById('fProductResults').style.display = 'none';
   document.getElementById('fProductResults').innerHTML = '';
   updatePreview();
 }
 
-function clearCustomerSelection() {
-  document.getElementById('fCustomer').value = '';
-  document.getElementById('fCustomerSelectedName').textContent = '';
-  document.getElementById('fCustomerSelectedSummary').style.display = 'none';
+// プルダウンから直接選択した場合：検索窓・結果リストをクリアしてプレビュー更新
+function onCustomerSelectChange() {
+  document.getElementById('fCustomerSearch').value = '';
+  document.getElementById('fCustomerResults').style.display = 'none';
+  document.getElementById('fCustomerResults').innerHTML = '';
   updatePreview();
 }
 
-function clearProductSelection() {
-  document.getElementById('fProduct').value = '';
-  document.getElementById('fProductSelectedName').textContent = '';
-  document.getElementById('fProductSelectedSummary').style.display = 'none';
+function onProductSelectChange() {
+  document.getElementById('fProductSearch').value = '';
+  document.getElementById('fProductResults').style.display = 'none';
+  document.getElementById('fProductResults').innerHTML = '';
   updatePreview();
 }
 
@@ -524,16 +510,13 @@ function editPricing(id) {
   document.getElementById('fCustomer').value         = p.customer_id;
   document.getElementById('fProduct').value          = p.product_id;
   document.getElementById('fRate').value             = p.rate;
-  // 選択中の取引先・商品を上部の selected-summary に表示
-  document.getElementById('fCustomerSelectedName').textContent = p.custName;
-  document.getElementById('fCustomerSelectedSummary').style.display = 'flex';
-  document.getElementById('fProductSelectedName').textContent = p.prodName;
-  document.getElementById('fProductSelectedSummary').style.display = 'flex';
-  // 検索窓と結果リストはクリア
+  // 検索窓と結果リストはクリア（プルダウンが選択状態を表示する）
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fProductSearch').value  = '';
   document.getElementById('fCustomerResults').style.display = 'none';
   document.getElementById('fProductResults').style.display  = 'none';
+  document.getElementById('fCustomerResults').innerHTML = '';
+  document.getElementById('fProductResults').innerHTML = '';
   document.getElementById('formTitle').textContent   = '掛け率を編集';
   document.getElementById('cancelBtn').style.display = '';
   updatePreview();
@@ -549,10 +532,6 @@ function resetForm() {
   document.getElementById('fRate').value             = '';
   document.getElementById('fCustomerSearch').value   = '';
   document.getElementById('fProductSearch').value    = '';
-  document.getElementById('fCustomerSelectedSummary').style.display = 'none';
-  document.getElementById('fProductSelectedSummary').style.display  = 'none';
-  document.getElementById('fCustomerSelectedName').textContent = '';
-  document.getElementById('fProductSelectedName').textContent = '';
   document.getElementById('fCustomerResults').style.display = 'none';
   document.getElementById('fProductResults').style.display  = 'none';
   document.getElementById('fCustomerResults').innerHTML = '';
