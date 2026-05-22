@@ -82,6 +82,12 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
 .cust-group-row.collapsed .cust-toggle{transform:rotate(-90deg)}
 .cust-count{display:inline-block;background:rgba(26,18,8,0.07);color:var(--text-muted);border-radius:10px;padding:1px 8px;font-size:10px;font-weight:600;margin-left:8px;vertical-align:middle}
 .cust-pricing-row.cust-hidden{display:none}
+/* 新規登録フォームの取引先・商品プルダウン検索 */
+.search-input-inline{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.2s;margin-bottom:6px}
+.search-input-inline:focus{border-color:var(--orange);background:#fff}
+.search-input-inline.ime-active{ime-mode:active}
+.filter-empty-note{font-size:12px;color:#dc2626;margin-top:4px;display:none}
+.filter-empty-note.show{display:block}
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -158,15 +164,19 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
           <input type="hidden" id="editKey">
           <div class="form-group">
             <label class="form-label">取引先</label>
+            <input type="text" class="search-input-inline ime-active" lang="ja" id="fCustomerSearch" placeholder="🔍 取引先名で絞り込み" oninput="filterCustomerOptions(this.value)">
             <select class="form-input" id="fCustomer" onchange="updatePreview()">
               <option value="">選択してください</option>
             </select>
+            <div class="filter-empty-note" id="fCustomerEmpty">該当する取引先がありません</div>
           </div>
           <div class="form-group">
             <label class="form-label">商品</label>
+            <input type="text" class="search-input-inline ime-active" lang="ja" id="fProductSearch" placeholder="🔍 商品名で絞り込み" oninput="filterProductOptions(this.value)">
             <select class="form-input" id="fProduct" onchange="updatePreview()">
               <option value="">選択してください</option>
             </select>
+            <div class="filter-empty-note" id="fProductEmpty">該当する商品がありません</div>
           </div>
           <div class="form-group">
             <label class="form-label">掛け率（0〜1）</label>
@@ -272,15 +282,63 @@ function setTableLoading(on) {
     '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
 }
 
+// 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
+// 例: "ホタテ" と "ほたて" は同じキーになる
+function normalizeSearch(s) {
+  return String(s || '').toLowerCase()
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+
 /* ── ドロップダウン生成 ── */
 function populateSelects() {
-  const cs = document.getElementById('fCustomer');
-  const ps = document.getElementById('fProduct');
-  cs.innerHTML = '<option value="">選択してください</option>';
-  ps.innerHTML = '<option value="">選択してください</option>';
-  CUSTOMERS.forEach(c => cs.innerHTML += `<option value="${c.id}">${c.name}</option>`);
-  PRODUCTS.forEach(p  => ps.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+  // 現在の検索文字を考慮して生成（編集再表示時にもフィルタを維持）
+  renderCustomerOptions(document.getElementById('fCustomerSearch').value);
+  renderProductOptions(document.getElementById('fProductSearch').value);
 }
+
+// 取引先プルダウンを検索文字で絞り込んで描画
+function renderCustomerOptions(query) {
+  const sel = document.getElementById('fCustomer');
+  const prev = sel.value;
+  const q = normalizeSearch((query || '').trim());
+  const filtered = q
+    ? CUSTOMERS.filter(c => normalizeSearch(c.name).includes(q))
+    : CUSTOMERS;
+  sel.innerHTML = '<option value="">選択してください</option>' +
+    filtered.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  // 現在編集中の取引先が絞り込みで消えても選択状態は保持
+  if (prev) {
+    if (filtered.find(c => c.id === prev)) sel.value = prev;
+    else {
+      const cur = CUSTOMERS.find(c => c.id === prev);
+      if (cur) sel.innerHTML += `<option value="${cur.id}" selected>${cur.name}</option>`;
+    }
+  }
+  document.getElementById('fCustomerEmpty').classList.toggle('show', q && filtered.length === 0);
+}
+
+// 商品プルダウンを検索文字で絞り込んで描画
+function renderProductOptions(query) {
+  const sel = document.getElementById('fProduct');
+  const prev = sel.value;
+  const q = normalizeSearch((query || '').trim());
+  const filtered = q
+    ? PRODUCTS.filter(p => normalizeSearch(p.name).includes(q))
+    : PRODUCTS;
+  sel.innerHTML = '<option value="">選択してください</option>' +
+    filtered.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  if (prev) {
+    if (filtered.find(p => p.id === prev)) sel.value = prev;
+    else {
+      const cur = PRODUCTS.find(p => p.id === prev);
+      if (cur) sel.innerHTML += `<option value="${cur.id}" selected>${cur.name}</option>`;
+    }
+  }
+  document.getElementById('fProductEmpty').classList.toggle('show', q && filtered.length === 0);
+}
+
+function filterCustomerOptions(val) { renderCustomerOptions(val); }
+function filterProductOptions(val)  { renderProductOptions(val); }
 
 function updateKPIs() {
   const uniqueCustomers = new Set(PRICING.map(p => p.customer_id)).size;
@@ -383,6 +441,11 @@ function editPricing(id) {
   const p = PRICING.find(x => x.id === id);
   if (!p) return;
   editId = id;
+  // 検索窓は編集開始時にクリア（全候補から正しく選択状態を復元するため）
+  document.getElementById('fCustomerSearch').value = '';
+  document.getElementById('fProductSearch').value  = '';
+  renderCustomerOptions('');
+  renderProductOptions('');
   document.getElementById('editKey').value          = id;
   document.getElementById('fCustomer').value         = p.customer_id;
   document.getElementById('fProduct').value          = p.product_id;
@@ -400,6 +463,10 @@ function resetForm() {
   document.getElementById('fCustomer').value         = '';
   document.getElementById('fProduct').value          = '';
   document.getElementById('fRate').value             = '';
+  document.getElementById('fCustomerSearch').value   = '';
+  document.getElementById('fProductSearch').value    = '';
+  renderCustomerOptions('');
+  renderProductOptions('');
   document.getElementById('formTitle').textContent   = '新規登録';
   document.getElementById('cancelBtn').style.display = 'none';
   document.getElementById('previewBox').style.display = 'none';
