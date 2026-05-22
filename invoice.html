@@ -547,11 +547,14 @@
     #sumPaid { cursor: default !important; }
     @page { margin: 4mm; size: A4; }
 
-    /* 納品書兼請求書モード時：切り取り線を A4 縦中央(148.5mm)にぴったり置くため、
-       印刷可能領域(289mm = A4 297mm - @page上下margin 4mm×2)を flex で均等分配する。
+    /* 納品書兼請求書モード時：切り取り線を A4 縦中央付近に置きつつ、
+       下端の合計行が切れないように 280mm に抑える（289mm 固定だと
+       ブラウザの印刷余白を「標準」(8〜10mm)にしている環境で下端 4〜12mm が
+       クリップされ請求書の合計／小計行が欠ける）。
+       切り取り線位置：4mm + 140mm = 144mm（A4中央 148.5mm より約 4.5mm 上）。
        請求書管理モードでは body に delivery-mode クラスが付かないので影響なし。 */
     body.delivery-mode #invoice-wrap {
-      height: 289mm;
+      height: 280mm;
       display: flex;
       flex-direction: column;
     }
