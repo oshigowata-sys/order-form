@@ -608,6 +608,49 @@
     .invoice-footer { margin-top: 4px; padding-top: 4px; gap: 8px; }
     .invoice-footer .footer-section-title { font-size: 9px; }
     .invoice-footer .bank-info { font-size: 9px; line-height: 1.35; }
+
+    /* ===== 納品書兼請求書モード専用の更なる圧縮 =====
+       A4 1枚に上半分=納品書・下半分=請求書を載せる構成で、
+       下半分（請求書側）は請求書番号・発行日・締め日・支払期限・受注ID と
+       メタ情報が多く、10商品入ると小計／消費税／合計（税込）の3行が紙の外に
+       押し出されて切れていた。両半分を更に圧縮して10行でも合計まで収まるようにする。
+       単独請求書モード（invoice-only）・期間請求書には影響しない（.delivery-mode 限定）。 */
+    body.delivery-mode .invoice { padding: 4mm 7mm; }
+
+    /* 上下の余白を縮める */
+    body.delivery-mode .invoice-header { margin-bottom: 3px; padding-bottom: 3px; }
+    body.delivery-mode .invoice-title { font-size: 15px; letter-spacing: 1.5px; }
+    body.delivery-mode .invoice-subtitle { font-size: 8px; margin-top: 1px; }
+    body.delivery-mode .invoice-meta table { font-size: 9px; }
+    body.delivery-mode .invoice-meta td { padding: 0 0 0 10px; line-height: 1.35; }
+    body.delivery-mode .invoice-meta td:first-child { font-size: 9px; }
+
+    /* 取引先・発行者ブロックを圧縮 */
+    body.delivery-mode .invoice-parties { margin-bottom: 3px !important; gap: 10px; }
+    body.delivery-mode .party-label { font-size: 8px; letter-spacing: 2px; margin-bottom: 3px; }
+    body.delivery-mode .party-name { font-size: 12px !important; margin-bottom: 1px; }
+    body.delivery-mode .party-name-suffix { font-size: 10px; }
+    body.delivery-mode .party-address { font-size: 9px; line-height: 1.3; margin-top: 1px; }
+
+    /* 発行者ブロック内の div（インラインstyleで size 12-15px が当たっている） */
+    body.delivery-mode #deliveryBody .invoice-parties > div:last-child > div,
+    body.delivery-mode #invoiceBody  .invoice-parties > div:last-child > div { font-size: 9px !important; line-height: 1.35 !important; }
+    body.delivery-mode #deliveryBody .invoice-parties > div:last-child > div:first-child,
+    body.delivery-mode #invoiceBody  .invoice-parties > div:last-child .from-name,
+    body.delivery-mode #deliveryBody .invoice-parties > div:last-child > div[style*="font-weight:700"] { font-size: 11px !important; }
+
+    /* 明細行を更に詰める（10行 × 約12px = 120px → 約100px に圧縮） */
+    body.delivery-mode .invoice-table-wrap { margin-bottom: 2px; }
+    body.delivery-mode .invoice-table { font-size: 8.5px; }
+    body.delivery-mode .invoice-table thead th { padding: 1.5px 4px; font-size: 8px; }
+    body.delivery-mode .invoice-table tbody td { padding: 0.5px 4px; font-size: 8.5px; line-height: 1.2; }
+    body.delivery-mode .invoice-table tfoot td { padding: 1px 4px; font-size: 8.5px; }
+    body.delivery-mode .invoice-table tfoot tr.total-row td { padding: 2px 4px; font-size: 10px; }
+
+    /* 備考欄（下半分の最後）を縮める */
+    body.delivery-mode .invoice-footer { margin-top: 2px; padding-top: 2px; gap: 6px; }
+    body.delivery-mode .invoice-footer .footer-section-title { font-size: 8px; }
+    body.delivery-mode .invoice-footer > div > div:last-child { font-size: 9px !important; line-height: 1.4 !important; }
   }
 </style>
 </head>
