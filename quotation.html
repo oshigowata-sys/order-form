@@ -488,13 +488,13 @@ async function writeQuotationHeader(method, qid, payload) {
 }
 
 // 単価決定ロジック：
-//   1) 取引先別の卸価格（pricing.wholesale_price）が設定されていればそれを使う（基本単価変更に連動しない）
-//   2) 後方互換：wholesale_price 未設定なら 基本単価 × 掛け率 でフォールバック
-//   3) どちらも未設定なら基本単価そのまま
+//   1) 取引先別の卸価格（pricing.wholesale_price）が設定されていればそれを使う
+//   2) 後方互換：wholesale_price 未設定なら 上代 × 掛け率 でフォールバック
+//   3) どちらも未設定なら上代そのまま
 function lookupPrice(customerId, productId, productData) {
   const prod = productData || _products.find(x => x.id === productId);
   if (!prod) return 0;
-  const basePrice = Number(prod.price || prod.list_price || 0);
+  const basePrice = Number(prod.list_price || prod.price || 0);
   if (customerId) {
     const p = _pricing.find(x => x.customer_id === customerId && x.product_id === productId);
     if (p) {

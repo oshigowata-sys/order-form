@@ -929,9 +929,9 @@
 
   // 表示用の販売単価
   // 優先：取引先別の wholesale_price（卸価格を直接保存している値）
-  // フォールバック：基本単価 × 掛け率（既存データ・wholesale_price 未設定時）
+  // フォールバック：上代 × 掛け率（既存データ・wholesale_price 未設定時）
   function displayPriceOf(p) {
-    const base = Number(p.price) || 0;
+    const base = Number(p.list_price || p.price) || 0;
     const r = _customerRates[p.id];
     if (r && r.wholesale_price != null && r.wholesale_price > 0) {
       return r.wholesale_price;
@@ -962,6 +962,7 @@
         const data = await res.json();
         products = data.map(p => ({
           id: p.id, name: p.product_name || '', price: p.price || 0,
+          list_price: p.list_price || 0,
           category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
           imageUrl: normalizeImageUrl(p.image_url),
         }));
@@ -1011,7 +1012,7 @@
                     <button class="stepper-btn minus" onclick="stepQty('${esc(p.id)}',-1)">−</button>
                     <input class="qty-input" type="number" min="0" max="999" value="0"
                       id="qty-${esc(p.id)}"
-                      data-id="${esc(p.id)}" data-price="${Number(p.price)}" data-display-price="${dispPrice}"
+                      data-id="${esc(p.id)}" data-price="${Number(p.list_price || p.price)}" data-display-price="${dispPrice}"
                       data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
                       data-name="${esc(p.name)}"
                       oninput="syncQty(this)">
@@ -1174,7 +1175,7 @@
     }
 
     try {
-      // 取引先別の卸価格（wholesale_price）を優先。未設定なら 基本単価 × 掛け率 でフォールバック。
+      // 取引先別の卸価格（wholesale_price）を優先。未設定なら 上代 × 掛け率 でフォールバック。
       // CUSTOMER_ID 経由フローでは _customerRates は loadProducts 時に既にロード済み。
       // フリー入力フローでは直前のブロックでロード（取引先未特定なら 1.0）。
       const orderItemsPayload = items.map(item => {
