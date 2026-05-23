@@ -854,7 +854,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="search-result-item" onclick="addEditItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
         <span class="search-result-name">${esc(p.product_name)}</span>
         <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
-        <span class="search-result-price">¥${Number(p.price || 0).toLocaleString()}</span>
+        <span class="search-result-price">¥${Number(p.list_price || p.price || 0).toLocaleString()}</span>
       </div>
     `).join('');
   }
@@ -1002,7 +1002,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   async function loadProductsForEntry() {
     if (!allProducts.length) {
-      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,product_code,price,is_food&order=product_name`);
+      const res = await sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,product_code,price,list_price,is_food&order=product_name`);
       allProducts = await res.json();
     }
     renderProductOptions(allProducts);
@@ -1056,7 +1056,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="search-result-item" onclick="addItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
         <span class="search-result-name">${esc(p.product_name)}</span>
         <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
-        <span class="search-result-price">¥${Number(p.price || 0).toLocaleString()}</span>
+        <span class="search-result-price">¥${Number(p.list_price || p.price || 0).toLocaleString()}</span>
       </div>
     `).join('');
   }
@@ -1089,14 +1089,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function getUnitPrice(productId) {
     const product = allProducts.find(p => p.id === productId);
     if (!product) return 0;
+    const basePrice = Number(product.list_price || product.price || 0);
     const pricing = allPricing.find(p => p.product_id === productId);
     if (pricing) {
       // 取引先別の卸価格が直接設定されていればそれを優先
       if (pricing.wholesale_price != null && pricing.wholesale_price > 0) return pricing.wholesale_price;
-      // 後方互換：wholesale_price 未設定なら 基本単価 × 掛け率 でフォールバック
-      if (pricing.rate != null) return Math.round(product.price * pricing.rate);
+      // 後方互換：wholesale_price 未設定なら 上代 × 掛け率 でフォールバック
+      if (pricing.rate != null) return Math.round(basePrice * pricing.rate);
     }
-    return product.price;
+    return basePrice;
   }
 
   function addNewItem() {
