@@ -161,7 +161,7 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
           <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・商品名で検索" oninput="onSearchInput(this.value)">
         </div>
         <table><thead><tr>
-          <th>取引先名</th><th>商品名</th><th>基本単価</th><th>卸価格</th><th>掛け率（参考）</th><th></th>
+          <th>取引先名</th><th>商品名</th><th>上代</th><th>卸価格</th><th>掛け率（参考）</th><th></th>
         </tr></thead>
         <tbody id="pricingTbody"></tbody></table>
       </div>
@@ -191,7 +191,8 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
           </div>
           <div class="form-group">
             <label class="form-label">掛け率（参考・0〜1）</label>
-            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.001" placeholder="例: 0.85" oninput="onRateInput()">
+            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.001" placeholder="例: 0.65" oninput="onRateInput()">
+            <div id="fRateNote" style="display:none;font-size:12px;color:#b45309;margin-top:6px;line-height:1.4">⚠ 商品マスタで上代を設定すると掛け率が使えます（卸価格は直接入力できます）</div>
           </div>
           <div class="preview-box" id="previewBox" style="display:none">
             <div class="preview-label">プレビュー</div>
@@ -253,15 +254,20 @@ async function loadAll() {
   try {
     const [custRes, prodRes, pricingRes] = await Promise.all([
       sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name&order=company_name`),
-      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price&order=product_name`),
-      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=id,rate,wholesale_price,customer_id,product_id,customers(company_name),products(product_name,price)&order=created_at`)
+      sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price,list_price&order=product_name`),
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=id,rate,wholesale_price,customer_id,product_id,customers(company_name),products(product_name,price,list_price)&order=created_at`)
     ]);
     if (!custRes.ok || !prodRes.ok || !pricingRes.ok) throw new Error('データ取得失敗');
 
     CUSTOMERS = (await custRes.json()).map(r => ({ id: r.id, name: r.company_name }));
-    PRODUCTS  = (await prodRes.json()).map(r => ({ id: r.id, name: r.product_name, basePrice: r.price }));
+    PRODUCTS  = (await prodRes.json()).map(r => ({
+      id: r.id, name: r.product_name,
+      basePrice: r.price || 0,
+      listPrice: r.list_price || 0
+    }));
     PRICING   = (await pricingRes.json()).map(r => {
       const basePrice = r.products?.price || 0;
+      const listPrice = r.products?.list_price || 0;
       const rate = Number(r.rate);
       // wholesale_price が NULL の既存データは rate × basePrice でフォールバック
       const wholesalePrice = r.wholesale_price != null
@@ -276,6 +282,7 @@ async function loadAll() {
         custName:       r.customers?.company_name || '',
         prodName:       r.products?.product_name  || '',
         basePrice:      basePrice,
+        listPrice:      listPrice,
       };
     });
 
@@ -404,7 +411,9 @@ function onProductSelectChange() {
   document.getElementById('fProductSearch').value = '';
   document.getElementById('fProductResults').style.display = 'none';
   document.getElementById('fProductResults').innerHTML = '';
-  // 商品が変わったら、すでに入っている卸価格に対する掛け率を再計算
+  // 商品が変わったら、上代の有無で掛け率入力欄の状態を切替
+  applyListPriceState();
+  // すでに入っている卸価格に対する掛け率を再計算
   onWholesalePriceInput();
 }
 
@@ -444,15 +453,15 @@ function renderPricing() {
   }
 
   function rowHtml(p) {
-    // 卸価格は wholesale_price を直接表示（基本単価を変えても変わらない）
+    // 卸価格は wholesale_price を直接表示（基本単価・上代を変えても変わらない）
     const wholesale = p.wholesalePrice > 0 ? p.wholesalePrice : null;
-    // 掛け率は参考表示（卸価格 ÷ 基本単価で計算）
-    const refRate = (p.basePrice > 0 && wholesale != null)
-      ? (wholesale / p.basePrice * 100).toFixed(1) + '%'
-      : (p.rate > 0 ? (p.rate * 100).toFixed(0) + '%' : '—');
+    // 掛け率は「卸価格 ÷ 上代」で計算（業務上正しい掛け率）。上代未設定なら「—」
+    const refRate = (p.listPrice > 0 && wholesale != null)
+      ? (wholesale / p.listPrice * 100).toFixed(1) + '%'
+      : '—';
     return `<td style="font-weight:600">${p.custName}</td>
       <td style="font-size:14px;color:var(--text-muted)">${p.prodName}</td>
-      <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${p.basePrice > 0 ? '¥'+p.basePrice.toLocaleString() : '—'}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${p.listPrice > 0 ? '¥'+p.listPrice.toLocaleString() : '—'}</td>
       <td style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${wholesale !== null ? '¥'+wholesale.toLocaleString() : '—'}</td>
       <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${refRate}</span></td>
       <td style="white-space:nowrap">
@@ -505,17 +514,36 @@ function toggleCustGroup(cgId) {
   if (collapsed) { delete _pricingCollapseState[custName]; } else { _pricingCollapseState[custName] = false; }
 }
 
-/* ── 双方向入力：卸価格⇄掛け率 ── */
+/* ── 双方向入力：卸価格⇄掛け率（上代ベース） ── */
 let _suppressSync = false; // 連動更新時の再入防止
 
-// 卸価格を入力された → 掛け率を逆算して表示
+// 選択中の商品の上代が未設定なら掛け率入力欄を無効化＋注記表示
+function applyListPriceState() {
+  const pid = document.getElementById('fProduct').value;
+  const prod = PRODUCTS.find(x => x.id === pid);
+  const hasListPrice = !!(prod && prod.listPrice > 0);
+  const rateInput = document.getElementById('fRate');
+  const note = document.getElementById('fRateNote');
+  if (pid && !hasListPrice) {
+    rateInput.disabled = true;
+    rateInput.value = '';
+    rateInput.placeholder = '上代未設定のため計算不可';
+    note.style.display = 'block';
+  } else {
+    rateInput.disabled = false;
+    rateInput.placeholder = '例: 0.65';
+    note.style.display = 'none';
+  }
+}
+
+// 卸価格を入力された → 掛け率を逆算して表示（上代ベース）
 function onWholesalePriceInput() {
   if (_suppressSync) return;
   const pid = document.getElementById('fProduct').value;
   const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
   const prod = PRODUCTS.find(x => x.id === pid);
-  if (prod && prod.basePrice > 0 && wholesale > 0) {
-    const rate = wholesale / prod.basePrice;
+  if (prod && prod.listPrice > 0 && wholesale > 0) {
+    const rate = wholesale / prod.listPrice;
     _suppressSync = true;
     document.getElementById('fRate').value = Number(rate.toFixed(3));
     _suppressSync = false;
@@ -527,14 +555,14 @@ function onWholesalePriceInput() {
   updatePreview();
 }
 
-// 掛け率を入力された → 卸価格を計算して表示
+// 掛け率を入力された → 卸価格を計算して表示（上代ベース）
 function onRateInput() {
   if (_suppressSync) return;
   const pid = document.getElementById('fProduct').value;
   const rate = parseFloat(document.getElementById('fRate').value);
   const prod = PRODUCTS.find(x => x.id === pid);
-  if (prod && prod.basePrice > 0 && rate > 0) {
-    const wholesale = Math.round(prod.basePrice * rate);
+  if (prod && prod.listPrice > 0 && rate > 0) {
+    const wholesale = Math.round(prod.listPrice * rate);
     _suppressSync = true;
     document.getElementById('fWholesalePrice').value = wholesale;
     _suppressSync = false;
@@ -546,21 +574,29 @@ function onRateInput() {
   updatePreview();
 }
 
-// 取引先・商品が変わったとき：プレビュー更新（既存呼び出し互換）
+// 取引先・商品が変わったとき：プレビュー更新
 function updatePreview() {
   const pid = document.getElementById('fProduct').value;
   const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
   const rate = parseFloat(document.getElementById('fRate').value);
   const box  = document.getElementById('previewBox');
   const prod = PRODUCTS.find(x => x.id === pid);
-  if (prod && prod.basePrice > 0 && (wholesale > 0 || rate > 0)) {
+  if (!prod || (!wholesale && !rate)) { box.style.display = 'none'; return; }
+
+  if (prod.listPrice > 0) {
+    // 上代がある → 上代ベースで掛け率を表示
     const effWholesale = wholesale > 0 ? wholesale
-      : (rate > 0 ? Math.round(prod.basePrice * rate) : 0);
-    const effRate = wholesale > 0 ? (wholesale / prod.basePrice)
+      : (rate > 0 ? Math.round(prod.listPrice * rate) : 0);
+    const effRate = wholesale > 0 ? (wholesale / prod.listPrice)
       : (rate > 0 ? rate : 0);
     document.getElementById('previewVal').textContent = '卸価格 ¥' + effWholesale.toLocaleString();
     document.getElementById('previewSub').textContent =
-      `基本単価 ¥${prod.basePrice.toLocaleString()}　・　掛け率 ${(effRate*100).toFixed(1)}%`;
+      `上代 ¥${prod.listPrice.toLocaleString()}　・　掛け率 ${(effRate*100).toFixed(1)}%`;
+    box.style.display = 'block';
+  } else if (wholesale > 0) {
+    // 上代がない → 卸価格のみ表示・掛け率は出さない
+    document.getElementById('previewVal').textContent = '卸価格 ¥' + wholesale.toLocaleString();
+    document.getElementById('previewSub').textContent = '※ 上代未設定のため掛け率は計算できません';
     box.style.display = 'block';
   } else { box.style.display = 'none'; }
 }
@@ -576,12 +612,14 @@ function editPricing(id) {
   // 卸価格を直接セット（双方向連動を抑制してから rate も整合させる）
   _suppressSync = true;
   document.getElementById('fWholesalePrice').value = p.wholesalePrice > 0 ? p.wholesalePrice : '';
-  // 掛け率は基本単価から逆算した参考値を表示
-  const refRate = (p.basePrice > 0 && p.wholesalePrice > 0)
-    ? Number((p.wholesalePrice / p.basePrice).toFixed(3))
-    : Number(p.rate || 0);
+  // 掛け率は上代から逆算した参考値を表示（上代がない場合は空欄）
+  const refRate = (p.listPrice > 0 && p.wholesalePrice > 0)
+    ? Number((p.wholesalePrice / p.listPrice).toFixed(3))
+    : 0;
   document.getElementById('fRate').value = refRate > 0 ? refRate : '';
   _suppressSync = false;
+  // 商品の上代有無で掛け率入力欄の状態を切替
+  applyListPriceState();
   // 検索窓と結果リストはクリア（プルダウンが選択状態を表示する）
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fProductSearch').value  = '';
@@ -612,6 +650,11 @@ function resetForm() {
   document.getElementById('formTitle').textContent   = '新規登録';
   document.getElementById('cancelBtn').style.display = 'none';
   document.getElementById('previewBox').style.display = 'none';
+  // 掛け率入力欄を通常状態に戻す
+  const rateInput = document.getElementById('fRate');
+  rateInput.disabled = false;
+  rateInput.placeholder = '例: 0.65';
+  document.getElementById('fRateNote').style.display = 'none';
 }
 
 async function writeAuditLog(action, recordId, recordLabel, oldValues, newValues) {
@@ -658,14 +701,20 @@ async function savePricing() {
   if (wholesale <= 0) { alert('卸価格は1円以上で入力してください'); return; }
 
   const prod = PRODUCTS.find(p => p.id === productId);
-  if (!prod || !prod.basePrice || prod.basePrice <= 0) {
-    alert('選択した商品の基本単価が0円のため卸価格を計算できません。商品マスタで基本単価を設定してください。');
+  if (!prod) { alert('商品が見つかりません'); return; }
+  // 掛け率は上代から逆算するのが業務的に正しい。
+  // 上代未設定の場合は rate カラム（NOT NULL）の保存のため基本単価でフォールバック。
+  let rate;
+  if (prod.listPrice > 0) {
+    rate = wholesale / prod.listPrice;
+    if (rate > 1) {
+      if (!confirm(`卸価格 ¥${wholesale.toLocaleString()} は上代 ¥${prod.listPrice.toLocaleString()} を超えています。このまま保存しますか？`)) return;
+    }
+  } else if (prod.basePrice > 0) {
+    rate = wholesale / prod.basePrice;
+  } else {
+    alert('選択した商品は基本単価も上代も設定されていません。商品マスタを先に設定してください。');
     return;
-  }
-  // 掛け率は基本単価から逆算（rate カラムが NOT NULL のため必須）
-  const rate = wholesale / prod.basePrice;
-  if (rate > 1) {
-    if (!confirm(`卸価格 ¥${wholesale.toLocaleString()} は基本単価 ¥${prod.basePrice.toLocaleString()} を超えています。このまま保存しますか？`)) return;
   }
 
   const btn = document.querySelector('.btn-primary');
