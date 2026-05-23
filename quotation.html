@@ -87,15 +87,18 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .quotation-meta td:first-child{color:var(--text-muted);font-weight:600;letter-spacing:0.5px}
 .quotation-meta td:last-child{color:var(--text);font-weight:600;font-family:'Space Grotesk',sans-serif}
 .quotation-parties{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:24px}
-.quotation-to{flex:1}
+.quotation-to{flex:1;min-width:0}
 .party-label{font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
-.party-name{font-size:21px;font-weight:700;font-family:'Noto Serif JP',serif}
-.party-name-suffix{font-size:16px;color:var(--text-muted);margin-left:8px;font-weight:500}
+.party-name{font-size:21px;font-weight:700;font-family:'Noto Serif JP',serif;white-space:nowrap;overflow:hidden;display:flex;align-items:baseline;gap:8px}
+.party-name-suffix{font-size:0.76em;color:var(--text-muted);font-weight:500;flex-shrink:0}
 .party-address{font-size:13px;color:var(--text-muted);margin-top:4px;line-height:1.6}
 .footer-section-title{font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase}
 .from-name{font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif;margin-bottom:2px}
-.quotation-from div{font-size:12px;line-height:1.6;color:var(--text-muted)}
-.quotation-from .from-name{font-size:15px;color:var(--text)}
+.quotation-from{max-width:320px;margin-left:auto}
+.quotation-from div{font-size:12px;line-height:1.6;color:var(--text-muted);word-break:break-word;overflow-wrap:break-word}
+.quotation-from .from-name{font-size:15px;color:var(--text);white-space:normal}
+.quotation-from .from-address{white-space:normal}
+.quotation-from .from-contact{white-space:normal}
 
 .amount-headline{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
 .amount-headline-label{font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px}
@@ -652,12 +655,26 @@ function renderPreview() {
   const customerPerson = c.contact_name || c.person || '';
 
   const s = _settings;
+  // TEL / FAX を1行にまとめる。同じ番号の場合は「TEL／FAX」として1つだけ表示。
+  const telDigits  = String(s.tel || '').replace(/[^0-9]/g, '');
+  const faxDigits  = String(s.fax || '').replace(/[^0-9]/g, '');
+  const sameTelFax = telDigits && faxDigits && telDigits === faxDigits;
+  let contactLine = '';
+  if (sameTelFax) {
+    contactLine = `<div class="from-contact">TEL／FAX: ${esc(s.tel)}</div>`;
+  } else if (s.tel && s.fax) {
+    contactLine = `<div class="from-contact">TEL: ${esc(s.tel)}　／　FAX: ${esc(s.fax)}</div>`;
+  } else if (s.tel) {
+    contactLine = `<div class="from-contact">TEL: ${esc(s.tel)}</div>`;
+  } else if (s.fax) {
+    contactLine = `<div class="from-contact">FAX: ${esc(s.fax)}</div>`;
+  }
+
   const fromBlock = s.name ? `
     <div class="from-name">${esc(s.name)}</div>
     ${s.person ? `<div>${esc(s.person)}</div>` : ''}
-    ${s.address ? `<div>${esc(s.address)}</div>` : ''}
-    ${s.tel ? `<div>TEL: ${esc(s.tel)}</div>` : ''}
-    ${s.fax ? `<div>FAX: ${esc(s.fax)}</div>` : ''}
+    ${s.address ? `<div class="from-address">${esc(s.address)}</div>` : ''}
+    ${contactLine}
     ${s.email ? `<div>${esc(s.email)}</div>` : ''}
     ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}
   ` : '<div style="color:#aaa;font-size:13px">⚙ 発行者情報を設定してください</div>';
@@ -749,6 +766,19 @@ function renderPreview() {
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('quotationBody').style.display = 'block';
   document.title = `お見積書 - ${customerName} - ${number}`;
+
+  // 取引先名が1行に収まらない場合はフォントサイズを段階的に縮小（最小13px）
+  fitPartyName();
+}
+
+function fitPartyName() {
+  const partyName = document.querySelector('.quotation-to .party-name');
+  if (!partyName) return;
+  const sizes = [21, 19, 17, 15, 13];
+  for (let i = 0; i < sizes.length; i++) {
+    partyName.style.fontSize = sizes[i] + 'px';
+    if (partyName.scrollWidth <= partyName.clientWidth + 1) break;
+  }
 }
 
 // プレビュー連動：発行日・有効期限・備考の入力でリアルタイム更新
