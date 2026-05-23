@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>掛け率管理 | MeguRee</title>
+<title>卸価格管理 | MeguRee</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -113,7 +113,7 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
     <div class="nav-label">マスタ管理</div>
     <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
     <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
-    <a class="nav-item active" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <a class="nav-item active" href="pricing.html"><span class="icon">💹</span>卸価格管理</a>
     <div class="nav-label">その他</div>
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
     <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
@@ -125,8 +125,8 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
 <main class="main">
   <div class="topbar">
     <div>
-      <div class="page-title">掛け率管理</div>
-      <div class="page-sub">取引先ごとの商品掛け率を設定します</div>
+      <div class="page-title">卸価格管理</div>
+      <div class="page-sub">取引先ごとの商品卸価格を設定します（掛け率も参考表示）</div>
     </div>
     <div class="topbar-user">
       <div>
@@ -146,22 +146,22 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
       <div class="kpi-card green">
         <div class="kpi-label">適用取引先数</div>
         <div class="kpi-value" id="kpiCustomers">—</div>
-        <div class="kpi-sub">掛け率設定済み</div>
+        <div class="kpi-sub">卸価格設定済み</div>
       </div>
       <div class="kpi-card yellow">
         <div class="kpi-label">対象商品数</div>
         <div class="kpi-value" id="kpiProducts">—</div>
-        <div class="kpi-sub">掛け率設定済み</div>
+        <div class="kpi-sub">卸価格設定済み</div>
       </div>
     </div>
     <div class="layout">
       <div class="card">
         <div class="card-header">
-          <div class="card-title">掛け率一覧</div>
+          <div class="card-title">卸価格一覧</div>
           <input type="text" id="searchInput" class="search-input" placeholder="🔍 取引先名・商品名で検索" oninput="onSearchInput(this.value)">
         </div>
         <table><thead><tr>
-          <th>取引先名</th><th>商品名</th><th>掛け率</th><th>適用単価</th><th></th>
+          <th>取引先名</th><th>商品名</th><th>基本単価</th><th>卸価格</th><th>掛け率（参考）</th><th></th>
         </tr></thead>
         <tbody id="pricingTbody"></tbody></table>
       </div>
@@ -186,11 +186,15 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
             <div id="fProductResults" class="search-results-wrap" style="display:none"></div>
           </div>
           <div class="form-group">
-            <label class="form-label">掛け率（0〜1）</label>
-            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.01" placeholder="例: 0.85" oninput="updatePreview()">
+            <label class="form-label">卸価格（円）</label>
+            <input type="number" class="form-input" id="fWholesalePrice" min="0" step="1" placeholder="例: 455" oninput="onWholesalePriceInput()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">掛け率（参考・0〜1）</label>
+            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.001" placeholder="例: 0.85" oninput="onRateInput()">
           </div>
           <div class="preview-box" id="previewBox" style="display:none">
-            <div class="preview-label">適用単価（プレビュー）</div>
+            <div class="preview-label">プレビュー</div>
             <div class="preview-val" id="previewVal">¥0</div>
             <div class="preview-sub" id="previewSub"></div>
           </div>
@@ -250,21 +254,30 @@ async function loadAll() {
     const [custRes, prodRes, pricingRes] = await Promise.all([
       sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name&order=company_name`),
       sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=id,product_name,price&order=product_name`),
-      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=id,rate,customer_id,product_id,customers(company_name),products(product_name,price)&order=created_at`)
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=id,rate,wholesale_price,customer_id,product_id,customers(company_name),products(product_name,price)&order=created_at`)
     ]);
     if (!custRes.ok || !prodRes.ok || !pricingRes.ok) throw new Error('データ取得失敗');
 
     CUSTOMERS = (await custRes.json()).map(r => ({ id: r.id, name: r.company_name }));
     PRODUCTS  = (await prodRes.json()).map(r => ({ id: r.id, name: r.product_name, basePrice: r.price }));
-    PRICING   = (await pricingRes.json()).map(r => ({
-      id:          r.id,
-      customer_id: r.customer_id,
-      product_id:  r.product_id,
-      rate:        Number(r.rate),
-      custName:    r.customers?.company_name || '',
-      prodName:    r.products?.product_name  || '',
-      basePrice:   r.products?.price         || 0,
-    }));
+    PRICING   = (await pricingRes.json()).map(r => {
+      const basePrice = r.products?.price || 0;
+      const rate = Number(r.rate);
+      // wholesale_price が NULL の既存データは rate × basePrice でフォールバック
+      const wholesalePrice = r.wholesale_price != null
+        ? Number(r.wholesale_price)
+        : (basePrice > 0 && rate > 0 ? Math.round(basePrice * rate) : 0);
+      return {
+        id:             r.id,
+        customer_id:    r.customer_id,
+        product_id:     r.product_id,
+        rate:           rate,
+        wholesalePrice: wholesalePrice,
+        custName:       r.customers?.company_name || '',
+        prodName:       r.products?.product_name  || '',
+        basePrice:      basePrice,
+      };
+    });
 
     CUSTOMERS.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     PRODUCTS.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
@@ -278,7 +291,7 @@ async function loadAll() {
   } catch(e) {
     console.error(e);
     document.getElementById('pricingTbody').innerHTML =
-      '<tr><td colspan="5" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
+      '<tr><td colspan="6" style="text-align:center;padding:20px;color:#991b1b">データ取得に失敗しました <button onclick="loadAll()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button></td></tr>';
   } finally {
     setTableLoading(false);
   }
@@ -286,7 +299,7 @@ async function loadAll() {
 
 function setTableLoading(on) {
   if (on) document.getElementById('pricingTbody').innerHTML =
-    '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
 }
 
 // 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
@@ -391,7 +404,8 @@ function onProductSelectChange() {
   document.getElementById('fProductSearch').value = '';
   document.getElementById('fProductResults').style.display = 'none';
   document.getElementById('fProductResults').innerHTML = '';
-  updatePreview();
+  // 商品が変わったら、すでに入っている卸価格に対する掛け率を再計算
+  onWholesalePriceInput();
 }
 
 // HTML エスケープ
@@ -418,23 +432,29 @@ function renderPricing() {
   updateKPIs();
   if (PRICING.length === 0) {
     document.getElementById('pricingTbody').innerHTML =
-      '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">掛け率の登録がありません</td></tr>';
+      '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">卸価格の登録がありません</td></tr>';
     return;
   }
   const q = currentSearch.toLowerCase();
   const list = q ? PRICING.filter(p => p.custName.toLowerCase().includes(q) || p.prodName.toLowerCase().includes(q)) : PRICING;
   if (list.length === 0) {
     document.getElementById('pricingTbody').innerHTML =
-      '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">該当する掛け率が見つかりません</td></tr>';
+      '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">該当する卸価格が見つかりません</td></tr>';
     return;
   }
 
   function rowHtml(p) {
-    const applied = p.basePrice > 0 && p.rate > 0 ? Math.round(p.basePrice * p.rate) : null;
+    // 卸価格は wholesale_price を直接表示（基本単価を変えても変わらない）
+    const wholesale = p.wholesalePrice > 0 ? p.wholesalePrice : null;
+    // 掛け率は参考表示（卸価格 ÷ 基本単価で計算）
+    const refRate = (p.basePrice > 0 && wholesale != null)
+      ? (wholesale / p.basePrice * 100).toFixed(1) + '%'
+      : (p.rate > 0 ? (p.rate * 100).toFixed(0) + '%' : '—');
     return `<td style="font-weight:600">${p.custName}</td>
       <td style="font-size:14px;color:var(--text-muted)">${p.prodName}</td>
-      <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${p.rate > 0 ? (p.rate*100).toFixed(0)+'%' : '—'}</span></td>
-      <td style="font-family:'Space Grotesk',sans-serif;font-weight:600">${applied !== null ? '¥'+applied.toLocaleString() : '—'}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted)">${p.basePrice > 0 ? '¥'+p.basePrice.toLocaleString() : '—'}</td>
+      <td style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--orange)">${wholesale !== null ? '¥'+wholesale.toLocaleString() : '—'}</td>
+      <td><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${refRate}</span></td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" style="background:var(--bg);border:1px solid var(--border);color:var(--text)" onclick="editPricing('${p.id}')">編集</button>
         <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;margin-left:4px" onclick="deletePricing('${p.id}')">削除</button>
@@ -454,7 +474,7 @@ function renderPricing() {
   custKeys.forEach((cust, idx) => {
     const cgId = 'pcg' + idx;
     html += `<tr class="cust-group-row" data-cgid="${cgId}" data-custname="${cust.replace(/"/g,'&quot;')}" onclick="toggleCustGroup('${cgId}')">
-      <td colspan="5">${cust}<span class="cust-count">${groups[cust].length}</span><span class="cust-toggle">▼</span></td>
+      <td colspan="6">${cust}<span class="cust-count">${groups[cust].length}</span><span class="cust-toggle">▼</span></td>
     </tr>`;
     groups[cust].forEach(p => {
       html += `<tr class="cust-pricing-row" data-cg="${cgId}">${rowHtml(p)}</tr>`;
@@ -485,19 +505,63 @@ function toggleCustGroup(cgId) {
   if (collapsed) { delete _pricingCollapseState[custName]; } else { _pricingCollapseState[custName] = false; }
 }
 
-/* ── プレビュー ── */
+/* ── 双方向入力：卸価格⇄掛け率 ── */
+let _suppressSync = false; // 連動更新時の再入防止
+
+// 卸価格を入力された → 掛け率を逆算して表示
+function onWholesalePriceInput() {
+  if (_suppressSync) return;
+  const pid = document.getElementById('fProduct').value;
+  const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
+  const prod = PRODUCTS.find(x => x.id === pid);
+  if (prod && prod.basePrice > 0 && wholesale > 0) {
+    const rate = wholesale / prod.basePrice;
+    _suppressSync = true;
+    document.getElementById('fRate').value = Number(rate.toFixed(3));
+    _suppressSync = false;
+  } else if (!wholesale) {
+    _suppressSync = true;
+    document.getElementById('fRate').value = '';
+    _suppressSync = false;
+  }
+  updatePreview();
+}
+
+// 掛け率を入力された → 卸価格を計算して表示
+function onRateInput() {
+  if (_suppressSync) return;
+  const pid = document.getElementById('fProduct').value;
+  const rate = parseFloat(document.getElementById('fRate').value);
+  const prod = PRODUCTS.find(x => x.id === pid);
+  if (prod && prod.basePrice > 0 && rate > 0) {
+    const wholesale = Math.round(prod.basePrice * rate);
+    _suppressSync = true;
+    document.getElementById('fWholesalePrice').value = wholesale;
+    _suppressSync = false;
+  } else if (!rate) {
+    _suppressSync = true;
+    document.getElementById('fWholesalePrice').value = '';
+    _suppressSync = false;
+  }
+  updatePreview();
+}
+
+// 取引先・商品が変わったとき：プレビュー更新（既存呼び出し互換）
 function updatePreview() {
-  const pid  = document.getElementById('fProduct').value;
+  const pid = document.getElementById('fProduct').value;
+  const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
   const rate = parseFloat(document.getElementById('fRate').value);
   const box  = document.getElementById('previewBox');
-  if (pid && rate > 0) {
-    const prod = PRODUCTS.find(x => x.id === pid);
-    if (prod && prod.basePrice > 0) {
-      const applied = Math.round(prod.basePrice * rate);
-      document.getElementById('previewVal').textContent = '¥' + applied.toLocaleString();
-      document.getElementById('previewSub').textContent = `基本単価 ¥${prod.basePrice.toLocaleString()} × ${(rate*100).toFixed(0)}%`;
-      box.style.display = 'block';
-    } else { box.style.display = 'none'; }
+  const prod = PRODUCTS.find(x => x.id === pid);
+  if (prod && prod.basePrice > 0 && (wholesale > 0 || rate > 0)) {
+    const effWholesale = wholesale > 0 ? wholesale
+      : (rate > 0 ? Math.round(prod.basePrice * rate) : 0);
+    const effRate = wholesale > 0 ? (wholesale / prod.basePrice)
+      : (rate > 0 ? rate : 0);
+    document.getElementById('previewVal').textContent = '卸価格 ¥' + effWholesale.toLocaleString();
+    document.getElementById('previewSub').textContent =
+      `基本単価 ¥${prod.basePrice.toLocaleString()}　・　掛け率 ${(effRate*100).toFixed(1)}%`;
+    box.style.display = 'block';
   } else { box.style.display = 'none'; }
 }
 
@@ -509,7 +573,15 @@ function editPricing(id) {
   document.getElementById('editKey').value          = id;
   document.getElementById('fCustomer').value         = p.customer_id;
   document.getElementById('fProduct').value          = p.product_id;
-  document.getElementById('fRate').value             = p.rate;
+  // 卸価格を直接セット（双方向連動を抑制してから rate も整合させる）
+  _suppressSync = true;
+  document.getElementById('fWholesalePrice').value = p.wholesalePrice > 0 ? p.wholesalePrice : '';
+  // 掛け率は基本単価から逆算した参考値を表示
+  const refRate = (p.basePrice > 0 && p.wholesalePrice > 0)
+    ? Number((p.wholesalePrice / p.basePrice).toFixed(3))
+    : Number(p.rate || 0);
+  document.getElementById('fRate').value = refRate > 0 ? refRate : '';
+  _suppressSync = false;
   // 検索窓と結果リストはクリア（プルダウンが選択状態を表示する）
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fProductSearch').value  = '';
@@ -517,7 +589,7 @@ function editPricing(id) {
   document.getElementById('fProductResults').style.display  = 'none';
   document.getElementById('fCustomerResults').innerHTML = '';
   document.getElementById('fProductResults').innerHTML = '';
-  document.getElementById('formTitle').textContent   = '掛け率を編集';
+  document.getElementById('formTitle').textContent   = '卸価格を編集';
   document.getElementById('cancelBtn').style.display = '';
   updatePreview();
   document.querySelector('.card:last-child').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -529,6 +601,7 @@ function resetForm() {
   document.getElementById('editKey').value          = '';
   document.getElementById('fCustomer').value         = '';
   document.getElementById('fProduct').value          = '';
+  document.getElementById('fWholesalePrice').value   = '';
   document.getElementById('fRate').value             = '';
   document.getElementById('fCustomerSearch').value   = '';
   document.getElementById('fProductSearch').value    = '';
@@ -565,7 +638,7 @@ async function deletePricing(id) {
     const res = await sbFetch('/rest/v1/pricing?id=eq.' + id, { method: 'DELETE' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await writeAuditLog('delete', id, `${p.custName} × ${p.prodName}`,
-      { customer_id: p.customer_id, product_id: p.product_id, rate: p.rate, custName: p.custName, prodName: p.prodName, basePrice: p.basePrice },
+      { customer_id: p.customer_id, product_id: p.product_id, wholesale_price: p.wholesalePrice, rate: p.rate, custName: p.custName, prodName: p.prodName, basePrice: p.basePrice },
       null
     );
     await loadAll();
@@ -580,27 +653,43 @@ async function savePricing() {
   const id         = document.getElementById('editKey').value;
   const customerId = document.getElementById('fCustomer').value;
   const productId  = document.getElementById('fProduct').value;
-  const rate       = parseFloat(document.getElementById('fRate').value);
-  if (!customerId || !productId || isNaN(rate)) { alert('すべての項目を入力してください'); return; }
-  if (rate <= 0 || rate > 1) { alert('掛け率は0より大きく1以下にしてください'); return; }
+  const wholesale  = parseInt(document.getElementById('fWholesalePrice').value, 10);
+  if (!customerId || !productId || isNaN(wholesale)) { alert('取引先・商品・卸価格をすべて入力してください'); return; }
+  if (wholesale <= 0) { alert('卸価格は1円以上で入力してください'); return; }
+
+  const prod = PRODUCTS.find(p => p.id === productId);
+  if (!prod || !prod.basePrice || prod.basePrice <= 0) {
+    alert('選択した商品の基本単価が0円のため卸価格を計算できません。商品マスタで基本単価を設定してください。');
+    return;
+  }
+  // 掛け率は基本単価から逆算（rate カラムが NOT NULL のため必須）
+  const rate = wholesale / prod.basePrice;
+  if (rate > 1) {
+    if (!confirm(`卸価格 ¥${wholesale.toLocaleString()} は基本単価 ¥${prod.basePrice.toLocaleString()} を超えています。このまま保存しますか？`)) return;
+  }
 
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '保存中...';
 
   const oldPricing = id ? PRICING.find(x => x.id === id) : null;
   const custName = CUSTOMERS.find(c => c.id === customerId)?.name || '';
-  const prod = PRODUCTS.find(p => p.id === productId);
   const prodName = prod?.name || '';
   const label = `${custName} × ${prodName}`;
 
   try {
-    const payload = { customer_id: customerId, product_id: productId, rate, tenant_id: tenantId };
+    const payload = {
+      customer_id: customerId,
+      product_id: productId,
+      rate: Number(rate.toFixed(6)), // 端数を持たせて再現性を確保
+      wholesale_price: wholesale,
+      tenant_id: tenantId
+    };
     if (id) {
       const res = await sbFetch('/rest/v1/pricing?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(payload) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       await writeAuditLog('update', id, label,
-        oldPricing ? { rate: oldPricing.rate, custName: oldPricing.custName, prodName: oldPricing.prodName } : null,
-        { rate, custName, prodName }
+        oldPricing ? { wholesale_price: oldPricing.wholesalePrice, rate: oldPricing.rate, custName: oldPricing.custName, prodName: oldPricing.prodName } : null,
+        { wholesale_price: wholesale, rate: Number(rate.toFixed(3)), custName, prodName }
       );
     } else {
       const res = await sbFetch('/rest/v1/pricing', { method: 'POST', body: JSON.stringify(payload) });
@@ -613,7 +702,7 @@ async function savePricing() {
       const newId = Array.isArray(created) ? created[0]?.id : created?.id;
       await writeAuditLog('create', newId || '', label,
         null,
-        { rate, custName, prodName, basePrice: prod?.basePrice || 0 }
+        { wholesale_price: wholesale, rate: Number(rate.toFixed(3)), custName, prodName, basePrice: prod?.basePrice || 0 }
       );
     }
     resetForm();
