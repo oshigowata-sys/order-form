@@ -336,7 +336,7 @@ async function init() {
       sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&limit=1`),
       sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=*&order=company_name.asc`),
       sbFetch(`/rest/v1/products?tenant_id=eq.${tenantId}&select=*&order=product_name.asc`),
-      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=customer_id,product_id,rate`),
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&select=customer_id,product_id,rate,wholesale_price`),
       sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc`)
     ]);
     if (!settingsRes.ok) console.error('settings fetch failed:', settingsRes.status, await settingsRes.clone().text());
@@ -487,16 +487,23 @@ async function writeQuotationHeader(method, qid, payload) {
   return res;
 }
 
-// 単価 = 商品の基本単価（products.price＝下代） × 取引先別掛け率（pricing.rate）
-// 掛け率未設定なら基本単価そのまま
+// 単価決定ロジック：
+//   1) 取引先別の卸価格（pricing.wholesale_price）が設定されていればそれを使う（基本単価変更に連動しない）
+//   2) 後方互換：wholesale_price 未設定なら 基本単価 × 掛け率 でフォールバック
+//   3) どちらも未設定なら基本単価そのまま
 function lookupPrice(customerId, productId, productData) {
   const prod = productData || _products.find(x => x.id === productId);
   if (!prod) return 0;
   const basePrice = Number(prod.price || prod.list_price || 0);
   if (customerId) {
     const p = _pricing.find(x => x.customer_id === customerId && x.product_id === productId);
-    if (p && p.rate != null) {
-      return Math.round(basePrice * Number(p.rate));
+    if (p) {
+      if (p.wholesale_price != null && Number(p.wholesale_price) > 0) {
+        return Number(p.wholesale_price);
+      }
+      if (p.rate != null) {
+        return Math.round(basePrice * Number(p.rate));
+      }
     }
   }
   return basePrice;

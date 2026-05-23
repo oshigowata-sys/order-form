@@ -152,7 +152,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     <div class="nav-label">マスタ管理</div>
     <a class="nav-item" href="customer.html"><span class="icon">🏢</span>取引先マスタ</a>
     <a class="nav-item" href="products.html"><span class="icon">📦</span>商品マスタ</a>
-    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>掛け率管理</a>
+    <a class="nav-item" href="pricing.html"><span class="icon">💹</span>卸価格管理</a>
     <div class="nav-label">その他</div>
     <a class="nav-item" href="settings.html"><span class="icon">⚙️</span>設定</a>
     <a class="nav-item" href="audit-log.html"><span class="icon">🕓</span>操作履歴</a>
@@ -639,7 +639,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 商品マスタ・取引先掛け率をロード
     await loadProductsForEntry();
     if (o.customer_id) {
-      const pRes = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&select=product_id,rate`);
+      const pRes = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&select=product_id,rate,wholesale_price`);
       allPricing = pRes.ok ? await pRes.json() : [];
     } else {
       allPricing = [];
@@ -1082,7 +1082,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   async function onCustomerChange() {
     const customerId = document.getElementById('newOrderCustomer').value;
     if (!customerId) { allPricing = []; return; }
-    const res = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate`);
+    const res = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate,wholesale_price`);
     allPricing = await res.json();
   }
 
@@ -1090,7 +1090,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     if (!product) return 0;
     const pricing = allPricing.find(p => p.product_id === productId);
-    if (pricing) return Math.round(product.price * pricing.rate);
+    if (pricing) {
+      // 取引先別の卸価格が直接設定されていればそれを優先
+      if (pricing.wholesale_price != null && pricing.wholesale_price > 0) return pricing.wholesale_price;
+      // 後方互換：wholesale_price 未設定なら 基本単価 × 掛け率 でフォールバック
+      if (pricing.rate != null) return Math.round(product.price * pricing.rate);
+    }
     return product.price;
   }
 

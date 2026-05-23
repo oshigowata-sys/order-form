@@ -890,7 +890,7 @@
 
   let products = [];
 
-  // 取引先別の掛け率マップ（product_id => rate）
+  // 取引先別の卸価格マップ（product_id => { wholesale_price, rate }）
   // CUSTOMER_ID が事前に特定できているフローでのみ事前ロード。
   // フリー入力客向けフローでは submitOrder 内で取引先確定後に遅延ロード。
   let _customerRates = {};
@@ -908,22 +908,34 @@
       const data = await res.json();
       const map = {};
       (data || []).forEach(r => {
-        if (r.product_id != null && r.rate != null) map[r.product_id] = Number(r.rate);
+        if (r.product_id != null) {
+          map[r.product_id] = {
+            wholesale_price: r.wholesale_price != null ? Number(r.wholesale_price) : null,
+            rate: r.rate != null ? Number(r.rate) : null
+          };
+        }
       });
       _customerRates = map;
     } catch(e) {
-      console.warn('掛け率の取得に失敗しました:', e);
+      console.warn('卸価格の取得に失敗しました:', e);
       _customerRates = {};
     }
   }
 
   function rateOf(productId) {
-    return _customerRates[productId] != null ? _customerRates[productId] : 1.0;
+    const r = _customerRates[productId];
+    return r && r.rate != null ? r.rate : 1.0;
   }
 
-  // 表示用の販売単価（基本単価 × 掛け率、四捨五入）
+  // 表示用の販売単価
+  // 優先：取引先別の wholesale_price（卸価格を直接保存している値）
+  // フォールバック：基本単価 × 掛け率（既存データ・wholesale_price 未設定時）
   function displayPriceOf(p) {
     const base = Number(p.price) || 0;
+    const r = _customerRates[p.id];
+    if (r && r.wholesale_price != null && r.wholesale_price > 0) {
+      return r.wholesale_price;
+    }
     return Math.round(base * rateOf(p.id));
   }
 
@@ -1162,12 +1174,15 @@
     }
 
     try {
-      // 基本単価 × 掛け率（_customerRates）を毎明細で計算。
+      // 取引先別の卸価格（wholesale_price）を優先。未設定なら 基本単価 × 掛け率 でフォールバック。
       // CUSTOMER_ID 経由フローでは _customerRates は loadProducts 時に既にロード済み。
       // フリー入力フローでは直前のブロックでロード（取引先未特定なら 1.0）。
       const orderItemsPayload = items.map(item => {
-        const rate = rateOf(item.id);
-        return { product_id: item.id, quantity: item.qty, unit_price: Math.round(item.price * rate) };
+        const r = _customerRates[item.id];
+        const unitPrice = (r && r.wholesale_price != null && r.wholesale_price > 0)
+          ? r.wholesale_price
+          : Math.round(item.price * rateOf(item.id));
+        return { product_id: item.id, quantity: item.qty, unit_price: unitPrice };
       });
 
       const today = new Date().toISOString().slice(0,10);
