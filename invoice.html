@@ -381,6 +381,9 @@
   .invoice-table tbody tr:nth-child(even) { background: #faf8f5; }
   .invoice-table tbody tr:hover { background: #f3ede4; }
 
+  /* 空枠行：画面では非表示、印刷時の納品書兼請求書モードのみ表示 */
+  .invoice-table tbody tr.empty-row { display: none; }
+
   .invoice-table tfoot tr { background: #faf8f5; }
 
   .invoice-table tfoot td {
@@ -625,6 +628,9 @@
     body.delivery-mode .invoice-table tfoot td { padding: 1px 4px; font-size: 8.5px; }
     body.delivery-mode .invoice-table tfoot tr.total-row td { padding: 2px 4px; font-size: 10px; }
 
+    /* 納品書兼請求書モードの印刷時のみ、明細を常に10行分の枠で固定（紙を半分に折る前提） */
+    body.delivery-mode .invoice-table tbody tr.empty-row { display: table-row; }
+
     /* 備考欄（下半分の最後）を縮める */
     body.delivery-mode .invoice-footer { margin-top: 2px; padding-top: 2px; gap: 6px; }
     body.delivery-mode .invoice-footer .footer-section-title { font-size: 8px; }
@@ -863,7 +869,7 @@
     const tax   = tax8 + tax10;
     const total = subtotal + tax;
 
-    const itemRows = items.length > 0
+    const dataRows = items.length > 0
       ? items.map(it => {
           const qty   = Number(it['数量'] || 0);
           const price = Number(it['単価'] || 0);
@@ -879,6 +885,9 @@
           </tr>`;
         }).join('')
       : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
+    const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+    const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
     const fromBlock = s.name
       ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
@@ -961,7 +970,7 @@
     const taxLabel = tax8 > 0 && tax10 > 0 ? '消費税（8%/10%）込み' : tax8 > 0 ? '消費税（8%）込み' : '消費税（10%）込み';
 
     // 明細行
-    const itemRows = items.length > 0
+    const dataRows = items.length > 0
       ? items.map(it => {
           const qty = Number(it['数量'] || 0);
           const price = Number(it['単価'] || 0);
@@ -978,6 +987,9 @@
             </tr>`;
         }).join('')
       : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
+    const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+    const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
     // 発行者情報
     const fromBlock = s.name
