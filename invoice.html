@@ -284,7 +284,13 @@
     font-family: 'Noto Serif JP', serif;
     color: var(--text);
     margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
   }
+  .party-name-suffix { flex-shrink: 0; }
 
   .party-name-suffix {
     font-size: 14px;
@@ -913,12 +919,26 @@
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
+    // TEL / FAX を1行にまとめる。同じ番号の場合は「TEL／FAX」として1つだけ表示。
+    const dTelDigits  = String(s.tel || '').replace(/[^0-9]/g, '');
+    const dFaxDigits  = String(s.fax || '').replace(/[^0-9]/g, '');
+    const dSameTelFax = dTelDigits && dFaxDigits && dTelDigits === dFaxDigits;
+    let dContactLine = '';
+    if (dSameTelFax) {
+      dContactLine = `<div style="font-size:12px;color:var(--text-muted)">TEL／FAX: ${esc(s.tel)}</div>`;
+    } else if (s.tel && s.fax) {
+      dContactLine = `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}　／　FAX: ${esc(s.fax)}</div>`;
+    } else if (s.tel) {
+      dContactLine = `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}</div>`;
+    } else if (s.fax) {
+      dContactLine = `<div style="font-size:12px;color:var(--text-muted)">FAX: ${esc(s.fax)}</div>`;
+    }
+
     const fromBlock = s.name
       ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
          ${s.person ? `<div style="font-size:12px;margin-top:2px">${esc(s.person)}</div>` : ''}
          ${s.address ? `<div style="font-size:12px;color:var(--text-muted)">${esc(s.address)}</div>` : ''}
-         ${s.tel ? `<div style="font-size:12px;color:var(--text-muted)">TEL: ${esc(s.tel)}</div>` : ''}
-         ${s.fax ? `<div style="font-size:12px;color:var(--text-muted)">FAX: ${esc(s.fax)}</div>` : ''}
+         ${dContactLine}
          ${s.invoice_num ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
 
@@ -969,6 +989,19 @@
         </table>
       </div>
     `;
+    fitPartyName(document.getElementById('deliveryBody'));
+  }
+
+  // 取引先名が長くて2行にならないよう、収まるまで段階的にフォントサイズを縮小
+  function fitPartyName(scope) {
+    const partyNames = (scope || document).querySelectorAll('.party-name');
+    const sizes = [17, 16, 15, 14, 13, 12, 11, 10];
+    partyNames.forEach(el => {
+      for (let i = 0; i < sizes.length; i++) {
+        el.style.fontSize = sizes[i] + 'px';
+        if (el.scrollWidth <= el.clientWidth + 1) break;
+      }
+    });
   }
 
   // ===== 請求書HTML生成 =====
@@ -1015,13 +1048,27 @@
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
+    // TEL / FAX を1行にまとめる。同じ番号の場合は「TEL／FAX」として1つだけ表示。
+    const iTelDigits  = String(s.tel || '').replace(/[^0-9]/g, '');
+    const iFaxDigits  = String(s.fax || '').replace(/[^0-9]/g, '');
+    const iSameTelFax = iTelDigits && iFaxDigits && iTelDigits === iFaxDigits;
+    let iContactLine = '';
+    if (iSameTelFax) {
+      iContactLine = `<div>TEL／FAX: ${esc(s.tel)}</div>`;
+    } else if (s.tel && s.fax) {
+      iContactLine = `<div>TEL: ${esc(s.tel)}　／　FAX: ${esc(s.fax)}</div>`;
+    } else if (s.tel) {
+      iContactLine = `<div>TEL: ${esc(s.tel)}</div>`;
+    } else if (s.fax) {
+      iContactLine = `<div>FAX: ${esc(s.fax)}</div>`;
+    }
+
     // 発行者情報
     const fromBlock = s.name
       ? `<div class="from-name">${esc(s.name)}</div>
          ${s.person ? `<div>${esc(s.person)}</div>` : ''}
          ${s.address ? `<div>${esc(s.address)}</div>` : ''}
-         ${s.tel ? `<div>TEL: ${esc(s.tel)}</div>` : ''}
-         ${s.fax ? `<div>FAX: ${esc(s.fax)}</div>` : ''}
+         ${iContactLine}
          ${s.email ? `<div>${esc(s.email)}</div>` : ''}
          ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
@@ -1184,6 +1231,8 @@
       document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
       updateBillingSummary();
     }
+    // 取引先名が長い場合に2行にならないよう、収まるまで縮小
+    fitPartyName(document.getElementById('invoiceBody'));
   }
 
   // 御入金金額の現在値（メモリ保持・編集中はnull可）
