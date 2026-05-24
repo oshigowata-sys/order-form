@@ -152,6 +152,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   @page{size:A4;margin:0}
   /* 印刷時は明細を常に10行分の枠で固定表示 */
   .quotation-table tbody tr.empty-row{display:table-row}
+  /* 印刷時、テーブル下の余白を消すため各行の高さを大きくして10行で領域いっぱいに広げる */
+  .quotation-table tbody td{height:14mm;vertical-align:middle}
 }
 </style>
 </head>
