@@ -543,45 +543,42 @@
     .invoice-table tbody tr:hover { background: transparent; }
     .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #sumPaid { cursor: default !important; }
-    @page { margin: 4mm; size: A4; }
+    @page { margin: 2mm; size: A4; }
 
-    /* 納品書兼請求書モード時：A4 1枚に確実に収まるよう高さを 280mm に抑える
-       （289mm 固定だとブラウザの印刷余白を「標準」(8〜10mm)にしている環境で
-       下端 4〜12mm がクリップされ請求書の合計／小計行が欠ける）。
-       請求書管理モードでは body に delivery-mode クラスが付かないので影響なし。 */
+    /* 納品書兼請求書モード時：A4 293mm（@page margin 2mm 込み）を上下半々で使う。
+       上半分 146.5mm = 紙の物理半分（148.5mm）にぴったり一致する設計。
+       下半分 146.5mm に padding-top で「請求書」タイトルを下にずらす。 */
     body.delivery-mode #invoice-wrap {
-      height: 280mm;
+      height: 293mm;
       display: flex;
       flex-direction: column;
     }
-    /* 上下半々で 140mm 固定（flex auto 分配だと min-content で deliveryBody が
-       縮み納品書テーブルがあふれるため、明示的に 140mm 固定） */
     body.delivery-mode #deliveryBody {
-      flex: 0 0 140mm;
+      flex: 0 0 146.5mm;
       min-height: 0;
       box-sizing: border-box;
       overflow: hidden;
     }
-    /* 紙の物理半分（148.5mm = 切り取りライン）の下に請求書ヘッダーが
-       来ないよう内側余白を確保。8mm/行で領域に収めるため小さめ。
-       padding-top と 「請求書」タイトルの上にあるブロックで切り取りから約1cm下になる */
+    /* 半分ラインから「請求書」タイトルまで 8mm（≒1cm）下に配置。
+       padding-top + ヘッダー全体で領域内に収めるため、ヘッダーは下記で更に圧縮 */
     body.delivery-mode #invoiceBody {
-      flex: 0 0 140mm;
+      flex: 0 0 146.5mm;
       min-height: 0;
       box-sizing: border-box;
-      padding-top: 6mm;
+      padding-top: 8mm;
       overflow: hidden;
     }
-    /* 請求書側ヘッダーをさらに圧縮して 8mm/行 + 10行が収まるようにする */
-    body.delivery-mode #invoiceBody .invoice-header { margin-bottom: 2px !important; padding-bottom: 2px !important; }
-    body.delivery-mode #invoiceBody .invoice-title { font-size: 13px !important; letter-spacing: 1px !important; }
-    body.delivery-mode #invoiceBody .invoice-subtitle { font-size: 7px !important; margin-top: 0 !important; }
-    body.delivery-mode #invoiceBody .invoice-meta table { font-size: 8px !important; }
-    body.delivery-mode #invoiceBody .invoice-meta td { padding: 0 0 0 8px !important; line-height: 1.15 !important; }
-    body.delivery-mode #invoiceBody .invoice-parties { margin-bottom: 2px !important; gap: 6px !important; }
-    body.delivery-mode #invoiceBody .party-label { font-size: 7px !important; margin-bottom: 1px !important; }
-    body.delivery-mode #invoiceBody .party-name { font-size: 11px !important; margin-bottom: 0 !important; }
-    body.delivery-mode #invoiceBody .party-address { font-size: 8px !important; line-height: 1.2 !important; margin-top: 0 !important; }
+    /* 請求書側ヘッダーをさらに圧縮して 8mm/行 + 10行 + 合計が領域内に収まるようにする */
+    body.delivery-mode #invoiceBody .invoice-header { margin-bottom: 1px !important; padding-bottom: 1px !important; }
+    body.delivery-mode #invoiceBody .invoice-title { font-size: 12px !important; letter-spacing: 1px !important; }
+    body.delivery-mode #invoiceBody .invoice-subtitle { font-size: 6px !important; margin-top: 0 !important; }
+    body.delivery-mode #invoiceBody .invoice-meta table { font-size: 7px !important; }
+    body.delivery-mode #invoiceBody .invoice-meta td { padding: 0 0 0 6px !important; line-height: 1.1 !important; }
+    body.delivery-mode #invoiceBody .invoice-parties { margin-bottom: 1px !important; gap: 4px !important; }
+    body.delivery-mode #invoiceBody .party-label { font-size: 6px !important; margin-bottom: 0 !important; }
+    body.delivery-mode #invoiceBody .party-name { font-size: 10px !important; margin-bottom: 0 !important; }
+    body.delivery-mode #invoiceBody .party-address { font-size: 7px !important; line-height: 1.1 !important; margin-top: 0 !important; }
+    body.delivery-mode #invoiceBody .invoice-parties > div:last-child > div { font-size: 7px !important; line-height: 1.15 !important; }
 
     /* A4 1枚に収めるための圧縮 */
     .invoice-header { margin-bottom: 4px; padding-bottom: 4px; }
