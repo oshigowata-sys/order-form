@@ -548,17 +548,22 @@
       display: flex;
       flex-direction: column;
     }
-    body.delivery-mode #deliveryBody,
-    body.delivery-mode #invoiceBody {
-      flex: 1;
+    /* 上下半々で 140mm 固定（flex auto 分配だと min-content で deliveryBody が
+       縮み納品書テーブルがあふれるため、明示的に 140mm 固定） */
+    body.delivery-mode #deliveryBody {
+      flex: 0 0 140mm;
       min-height: 0;
       box-sizing: border-box;
+      overflow: hidden;
     }
-    /* 紙を半分（148.5mm）に折って切り取ったとき、下半分の紙片の上端付近に
-       請求書のヘッダー（請求書タイトル）が来ないよう 25mm の内側余白を確保
-       （切り取りラインから「請求書」タイトルまで約2cm下に配置） */
+    /* 紙の物理半分（148.5mm = 切り取りライン）の下に請求書ヘッダーが
+       来ないよう 25mm の内側余白を確保（切り取りから請求書タイトル約2cm下） */
     body.delivery-mode #invoiceBody {
+      flex: 0 0 140mm;
+      min-height: 0;
+      box-sizing: border-box;
       padding-top: 25mm;
+      overflow: hidden;
     }
 
     /* A4 1枚に収めるための圧縮 */
