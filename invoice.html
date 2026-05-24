@@ -898,8 +898,7 @@
           </tr>`;
         }).join('')
       : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
-    // 納品書兼請求書モード（A4半分=140mm）を空枠で埋めるため 20行ベース
-    const emptyCount = Math.max(0, 20 - Math.max(items.length, 1));
+    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
@@ -1001,10 +1000,7 @@
             </tr>`;
         }).join('')
       : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
-    // 納品書兼請求書モード時の請求書（半分・padding-top 15mm 込み）は 15行、
-    // 請求明細書（A4全面）は 30行
-    const targetRows = showDelivery ? 15 : 30;
-    const emptyCount = Math.max(0, targetRows - Math.max(items.length, 1));
+    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 

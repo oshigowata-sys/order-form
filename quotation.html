@@ -705,8 +705,7 @@ function renderPreview() {
           </tr>`;
       }).join('')
     : '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
-  // 見積書（A4全面）を空枠で埋めるため 15行ベース
-  const emptyCount = Math.max(0, 15 - Math.max(_items.length, 1));
+  const emptyCount = Math.max(0, 10 - Math.max(_items.length, 1));
   const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
