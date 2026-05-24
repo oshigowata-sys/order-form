@@ -563,14 +563,25 @@
       overflow: hidden;
     }
     /* 紙の物理半分（148.5mm = 切り取りライン）の下に請求書ヘッダーが
-       来ないよう内側余白を確保（切り取りから請求書タイトル約1.3cm下） */
+       来ないよう内側余白を確保。8mm/行で領域に収めるため小さめ。
+       padding-top と 「請求書」タイトルの上にあるブロックで切り取りから約1cm下になる */
     body.delivery-mode #invoiceBody {
       flex: 0 0 140mm;
       min-height: 0;
       box-sizing: border-box;
-      padding-top: 18mm;
+      padding-top: 6mm;
       overflow: hidden;
     }
+    /* 請求書側ヘッダーをさらに圧縮して 8mm/行 + 10行が収まるようにする */
+    body.delivery-mode #invoiceBody .invoice-header { margin-bottom: 2px !important; padding-bottom: 2px !important; }
+    body.delivery-mode #invoiceBody .invoice-title { font-size: 13px !important; letter-spacing: 1px !important; }
+    body.delivery-mode #invoiceBody .invoice-subtitle { font-size: 7px !important; margin-top: 0 !important; }
+    body.delivery-mode #invoiceBody .invoice-meta table { font-size: 8px !important; }
+    body.delivery-mode #invoiceBody .invoice-meta td { padding: 0 0 0 8px !important; line-height: 1.15 !important; }
+    body.delivery-mode #invoiceBody .invoice-parties { margin-bottom: 2px !important; gap: 6px !important; }
+    body.delivery-mode #invoiceBody .party-label { font-size: 7px !important; margin-bottom: 1px !important; }
+    body.delivery-mode #invoiceBody .party-name { font-size: 11px !important; margin-bottom: 0 !important; }
+    body.delivery-mode #invoiceBody .party-address { font-size: 8px !important; line-height: 1.2 !important; margin-top: 0 !important; }
 
     /* A4 1枚に収めるための圧縮 */
     .invoice-header { margin-bottom: 4px; padding-bottom: 4px; }
@@ -656,8 +667,8 @@
     /* 印刷時は明細を常に10行分の枠で固定（請求明細書・納品書兼請求書のどちらも対象） */
     .invoice-table tbody tr.empty-row { display: table-row; }
 
-    /* 印刷時の行高さ。納品書／請求書は同じ4mm/行で揃える（空枠サイズが揃う） */
-    body.delivery-mode .invoice-table tbody td { height: 4mm; vertical-align: middle; }
+    /* 印刷時の行高さ。納品書・請求書とも同じ8mm/行に揃える */
+    body.delivery-mode .invoice-table tbody td { height: 8mm; vertical-align: middle; }
     body:not(.delivery-mode) .invoice-table tbody td { height: 14mm; vertical-align: middle; }
 
     /* 備考欄（下半分の最後）を縮める */
