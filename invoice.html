@@ -554,10 +554,11 @@
       min-height: 0;
       box-sizing: border-box;
     }
-    /* 紙を半分（148.5mm 折り目）に折ったとき、請求書タイトルが折り目に重ならないよう
-       下半分の「請求書」セクション上端から 15mm の内側余白を確保（折り目から約1cm下に配置） */
+    /* 紙を半分（148.5mm）に折って切り取ったとき、下半分の紙片の上端付近に
+       請求書のヘッダー（請求書タイトル）が来ないよう 25mm の内側余白を確保
+       （切り取りラインから「請求書」タイトルまで約2cm下に配置） */
     body.delivery-mode #invoiceBody {
-      padding-top: 15mm;
+      padding-top: 25mm;
     }
 
     /* A4 1枚に収めるための圧縮 */
@@ -646,7 +647,7 @@
 
     /* 印刷時、テーブル下の余白を消すため各行の高さを大きくして10行で領域いっぱいに広げる */
     body.delivery-mode #deliveryBody .invoice-table tbody td { height: 8mm; vertical-align: middle; }
-    body.delivery-mode #invoiceBody  .invoice-table tbody td { height: 6mm; vertical-align: middle; }
+    body.delivery-mode #invoiceBody  .invoice-table tbody td { height: 5mm; vertical-align: middle; }
     body:not(.delivery-mode) .invoice-table tbody td { height: 14mm; vertical-align: middle; }
 
     /* 備考欄（下半分の最後）を縮める */
