@@ -386,8 +386,11 @@
   .invoice-table tbody td,
   .invoice-table tfoot td { border: 1px solid var(--border); }
 
-  /* 空枠行：画面では非表示、印刷時の納品書兼請求書モードのみ表示 */
-  .invoice-table tbody tr.empty-row { display: none; }
+  /* 空枠行：画面表示時も印刷時も常に表示（明細10行枠固定） */
+  .invoice-table tbody tr.empty-row { display: table-row; }
+  /* 空枠行は背景なしで控えめに表示 */
+  .invoice-table tbody tr.empty-row { background: transparent !important; }
+  .invoice-table tbody tr.empty-row:hover { background: transparent !important; }
 
   .invoice-table tfoot tr { background: #faf8f5; }
 
@@ -550,6 +553,11 @@
       flex: 1;
       min-height: 0;
       box-sizing: border-box;
+    }
+    /* 紙を半分（148.5mm 折り目）に折ったとき、請求書タイトルが折り目に重ならないよう
+       下半分の「請求書」セクション上端から 15mm の内側余白を確保（折り目から約1cm下に配置） */
+    body.delivery-mode #invoiceBody {
+      padding-top: 15mm;
     }
 
     /* A4 1枚に収めるための圧縮 */
