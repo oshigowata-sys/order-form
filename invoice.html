@@ -381,6 +381,11 @@
   .invoice-table tbody tr:nth-child(even) { background: #faf8f5; }
   .invoice-table tbody tr:hover { background: #f3ede4; }
 
+  /* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に */
+  .invoice-table thead th,
+  .invoice-table tbody td,
+  .invoice-table tfoot td { border: 1px solid var(--border); }
+
   /* 空枠行：画面では非表示、印刷時の納品書兼請求書モードのみ表示 */
   .invoice-table tbody tr.empty-row { display: none; }
 
