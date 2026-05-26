@@ -998,13 +998,17 @@
             <div class="category-body">
               ${items.map(p => {
                 const dispPrice = displayPriceOf(p); // 販売単価（掛け率反映後）
+                const isAskPrice = dispPrice <= 0;   // 上代未設定＋卸価格未設定の商品（オープンプライス等）
+                const priceLabel = isAskPrice
+                  ? `<span style="color:#dc2626;font-weight:600">要相談</span>`
+                  : `¥${dispPrice.toLocaleString()}`;
                 return `
                 <div class="product-row" id="prow-${esc(p.id)}">
                   ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
                   <div class="product-info">
                     <span class="product-name">${esc(p.name)}</span>
                     <div class="product-meta">
-                      <span>¥${dispPrice.toLocaleString()}</span>
+                      <span>${priceLabel}</span>
                       <span class="tax-badge">税${p.taxRate}%</span>
                     </div>
                   </div>
@@ -1013,6 +1017,7 @@
                     <input class="qty-input" type="number" min="0" max="999" value="0"
                       id="qty-${esc(p.id)}"
                       data-id="${esc(p.id)}" data-price="${Number(p.list_price || p.price)}" data-display-price="${dispPrice}"
+                      data-ask-price="${isAskPrice ? '1' : '0'}"
                       data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
                       data-name="${esc(p.name)}"
                       oninput="syncQty(this)">
@@ -1057,6 +1062,7 @@
           id: el.dataset.id, name: el.dataset.name || '',
           price: basePrice,            // 基本単価（DB保存時に rate を掛けるため保持）
           displayPrice: dispPrice,     // 販売単価（画面表示・小計計算に使用）
+          isAskPrice: el.dataset.askPrice === '1', // 要相談商品（合計に含めない）
           taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
           qty: parseInt(el.value) || 0
         };
@@ -1066,13 +1072,14 @@
 
   function updateSummary() {
     const items = getOrderItems();
-    let subtotal = 0, tax8 = 0, tax10 = 0, totalQty = 0;
+    let subtotal = 0, tax8 = 0, tax10 = 0, totalQty = 0, askCount = 0;
     items.forEach(i => {
+      totalQty += i.qty;
+      if (i.isAskPrice) { askCount += 1; return; } // 要相談商品は合計計算から除外
       const amt = i.displayPrice * i.qty; // 販売単価ベースで合計
       subtotal += amt;
       if (i.taxRate === 8) tax8 += Math.round(amt * 0.08);
       else tax10 += Math.round(amt * 0.10);
-      totalQty += i.qty;
     });
     const total = subtotal + tax8 + tax10;
 
@@ -1083,13 +1090,17 @@
         itemsEl.innerHTML = '<div class="summary-items-empty">商品が選択されていません</div>';
       } else {
         itemsEl.innerHTML = items.map(i => {
-          const amt = i.displayPrice * i.qty;
+          const amtLabel = i.isAskPrice
+            ? `<span style="color:#dc2626;font-weight:600">要相談</span>`
+            : `¥${(i.displayPrice * i.qty).toLocaleString()}`;
           return `<div class="summary-item">
             <span class="summary-item-name" title="${esc(i.name)}">${esc(i.name)}</span>
             <span class="summary-item-qty">× ${i.qty}</span>
-            <span class="summary-item-amount">¥${amt.toLocaleString()}</span>
+            <span class="summary-item-amount">${amtLabel}</span>
           </div>`;
-        }).join('');
+        }).join('') + (askCount > 0
+          ? `<div class="summary-item-note" style="margin-top:8px;padding:8px 10px;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;font-size:12px;color:#9a3412;line-height:1.5">※ 要相談商品 ${askCount}件 — 受注確認後に確定金額をご連絡します（合計金額には含まれていません）</div>`
+          : '');
       }
     }
 

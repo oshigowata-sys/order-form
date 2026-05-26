@@ -383,9 +383,9 @@
       <div class="form-section-title">価格情報</div>
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">上代（円） *</label>
-          <input type="text" class="form-input" id="formListPrice" inputmode="numeric" placeholder="例：1,500" oninput="onYenInput(this)" />
-          <div class="form-hint">定価／メーカー希望小売価格</div>
+          <label class="form-label">上代（円）</label>
+          <input type="text" class="form-input" id="formListPrice" inputmode="numeric" placeholder="例：1,500（オープンプライスは空欄）" oninput="onYenInput(this)" />
+          <div class="form-hint">定価／メーカー希望小売価格。オープンプライス商品は空欄でOK（注文時は「要相談」と表示されます）</div>
         </div>
         <div class="form-group">
           <label class="form-label">仕入価格（円）</label>
@@ -686,9 +686,9 @@
     const janRaw    = janDigits(document.getElementById('formJanCode').value);
 
     if (!name)            { alert('商品名は必須です'); document.getElementById('formProductName').focus(); return; }
-    if (listPrice === '') { alert('上代は必須です');   document.getElementById('formListPrice').focus(); return; }
-    // price（基本単価）は画面から廃止。互換性維持のため listPrice と同じ値を保存する。
-    const price = listPrice;
+    // 上代は任意（オープンプライス商品対応）。未入力時は null 保存・下流画面で「要相談」表示。
+    // price（基本単価）は画面から廃止。互換性維持のため listPrice と同じ値を保存する（空なら 0）。
+    const price = listPrice === '' ? '0' : listPrice;
 
     if (janRaw && !/^[0-9]{8}$|^[0-9]{13}$/.test(janRaw)) {
       alert('JANコードは8桁または13桁の数字で入力してください');
