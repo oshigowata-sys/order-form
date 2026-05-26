@@ -329,7 +329,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         </div>
         <div class="entry-error" id="itemError">商品と数量を選択してください</div>
         <table class="entry-items-table" id="newItemsTable" style="display:none">
-          <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th style="text-align:right">小計</th><th></th></tr></thead>
+          <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
           <tbody id="newItemsTbody"></tbody>
         </table>
         <div class="entry-total" id="newOrderTotal" style="display:none"></div>
@@ -647,7 +647,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
     // 既存 order_items を編集用配列にロード
     try {
-      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,products(product_code,product_name,is_food,price)`);
+      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,remarks,products(product_code,product_name,is_food,price)`);
       if (!res.ok) throw new Error('order_items取得失敗');
       const items = await res.json();
       editItems = items.map(it => ({
@@ -658,6 +658,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         unitPrice: it.unit_price || 0,
         costPrice: it.cost_price || 0,
         isFood: it.products?.is_food || false,
+        remarks: it.remarks || '',
       }));
     } catch(e) {
       console.error('編集モード初期化失敗:', e);
@@ -746,20 +747,17 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     if (!product) return;
     const unitPrice = getUnitPrice(productId);
-    const existing = editItems.find(i => i.productId === productId);
-    if (existing) {
-      existing.qty += qty;
-    } else {
-      editItems.push({
-        productId,
-        name: product.product_name,
-        productCode: product.product_code || '',
-        qty,
-        unitPrice,
-        costPrice: 0,
-        isFood: product.is_food || false,
-      });
-    }
+    // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
+    editItems.push({
+      productId,
+      name: product.product_name,
+      productCode: product.product_code || '',
+      qty,
+      unitPrice,
+      costPrice: 0,
+      isFood: product.is_food || false,
+      remarks: '',
+    });
     document.getElementById('editItemProduct').value = '';
     document.getElementById('editItemQty').value = '1';
     const search = document.getElementById('editItemSearch');
@@ -778,11 +776,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const priceCell = it.unitPrice > 0
         ? `¥${it.unitPrice.toLocaleString()}`
         : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
+      const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
         <td style="font-weight:500;white-space:normal">${esc(it.name)}</td>
         <td class="num-right"><input type="number" min="1" value="${it.qty}" oninput="updateEditItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td class="num-right">${priceCell}</td>
+        <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateEditItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">¥${sub.toLocaleString()}</td>
         <td><span class="${it.isFood?'badge-food':'badge-regular'}">${it.isFood?'軽減8%':'標準10%'}</span></td>
         <td><button onclick="removeEditItem(${i})" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit">✕</button></td>
@@ -790,8 +790,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }).join('');
 
     document.getElementById('modalItems').innerHTML =
-      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th class="num-right">小計</th><th>税率</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
+      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
 
     const incl = excl + tax;
     document.getElementById('modalTotals').innerHTML = `
@@ -806,22 +806,26 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     editItems[idx].qty = qty;
     // 行小計＋合計だけ部分更新（テーブル全体を再描画するとフォーカスを奪うため）
     let excl = 0, tax = 0;
-    const tbody = document.querySelector('#modalItems tbody');
-    editItems.forEach((it, i) => {
+    editItems.forEach((it) => {
       const taxRate = it.isFood ? 0.08 : 0.10;
       const sub = it.qty * it.unitPrice;
       excl += sub;
       tax += Math.round(sub * taxRate);
-      if (i === idx && tbody && tbody.children[i]) {
-        const subCell = tbody.children[i].children[4];
-        if (subCell) subCell.textContent = '¥' + sub.toLocaleString();
-      }
     });
+    // data-edititem-sub 属性で対象セルを特定（列の挿入があっても安全）
+    const subCell = document.querySelector(`[data-edititem-sub="${idx}"]`);
+    if (subCell) subCell.textContent = '¥' + (editItems[idx].qty * editItems[idx].unitPrice).toLocaleString();
     const incl = excl + tax;
     document.getElementById('modalTotals').innerHTML = `
       <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
       <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
       <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+  }
+
+  // 編集モーダルの備考変更（フォーカスを奪わない＝配列書き戻しのみ）
+  function updateEditItemRemarks(idx, value) {
+    if (!editItems[idx]) return;
+    editItems[idx].remarks = value;
   }
 
   function removeEditItem(idx) {
@@ -889,20 +893,17 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     if (!product) return;
     const unitPrice = getUnitPrice(productId);
-    const existing = editItems.find(i => i.productId === productId);
-    if (existing) {
-      existing.qty += 1;
-    } else {
-      editItems.push({
-        productId,
-        name: product.product_name,
-        productCode: product.product_code || '',
-        qty: 1,
-        unitPrice,
-        costPrice: 0,
-        isFood: product.is_food || false,
-      });
-    }
+    // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル＝分配先別に行を分ける運用）
+    editItems.push({
+      productId,
+      name: product.product_name,
+      productCode: product.product_code || '',
+      qty: 1,
+      unitPrice,
+      costPrice: 0,
+      isFood: product.is_food || false,
+      remarks: '',
+    });
     document.getElementById('editItemSearch').value = '';
     renderEditSearchResults('', []);
     renderEditItems();
@@ -933,6 +934,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             quantity: item.qty,
             unit_price: item.unitPrice,
             cost_price: item.costPrice,
+            remarks: (item.remarks || '').trim() || null,
             tenant_id: tenantId
           })
         }).then(r => { if (!r.ok) throw new Error('明細追加失敗'); })
@@ -1134,12 +1136,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     errEl.classList.remove('show');
     const product = allProducts.find(p => p.id === productId);
     const unitPrice = getUnitPrice(productId);
-    const existing = newOrderItems.find(i => i.productId === productId);
-    if (existing) {
-      existing.qty += qty;
-    } else {
-      newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0 });
-    }
+    // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル＝分配先別に行を分ける運用）
+    newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, remarks: '' });
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
     const search = document.getElementById('newItemSearch');
@@ -1188,6 +1186,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderNewItems();
   }
 
+  // 備考はフォーカスを奪わないようテーブル再描画せず配列に書き戻すだけ
+  function updateNewItemRemarks(idx, value) {
+    if (!newOrderItems[idx]) return;
+    newOrderItems[idx].remarks = value;
+  }
+
   function renderNewItems() {
     const tbody = document.getElementById('newItemsTbody');
     const table = document.getElementById('newItemsTable');
@@ -1203,10 +1207,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const priceCell = item.unitPrice > 0
         ? `¥${item.unitPrice.toLocaleString()}`
         : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
+      const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
         <td style="text-align:right"><input type="number" min="1" value="${item.qty}" oninput="updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
+        <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateNewItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">¥${sub.toLocaleString()}</td>
         <td><button class="btn-danger-sm" onclick="removeNewItem(${i})">✕</button></td>
       </tr>`;
@@ -1243,7 +1249,7 @@ const errEl      = document.getElementById('orderError');
         sbFetch('/rest/v1/order_items', {
           method: 'POST',
           headers: { 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, tenant_id: tenantId })
+          body: JSON.stringify({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId })
         })
       ));
 
