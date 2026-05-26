@@ -555,8 +555,8 @@ function renderItems() {
               </td>
               <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
               <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-              <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0)}" oninput="updateItem(${i}, 'unit_price', this.value)"></td>
-              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${fmt(Number(it.quantity || 0) * Number(it.unit_price || 0))}</td>
+              <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0) > 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
+              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) > 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
             </tr>
@@ -573,7 +573,10 @@ function updateItem(idx, key, value) {
   const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
   if (cell) {
     const it = _items[idx];
-    cell.textContent = fmt(Number(it.quantity || 0) * Number(it.unit_price || 0));
+    const unit = Number(it.unit_price || 0);
+    cell.innerHTML = unit > 0
+      ? fmt(Number(it.quantity || 0) * unit)
+      : '<span style="color:#dc2626">要相談</span>';
   }
   renderPreview();
 }
@@ -611,15 +614,20 @@ function renderProductPicker(q) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">該当する商品がありません</div>';
     return;
   }
-  list.innerHTML = filtered.slice(0, 100).map(p => `
+  list.innerHTML = filtered.slice(0, 100).map(p => {
+    const basePrice = Number(p.list_price || p.price || 0);
+    const priceLabel = basePrice > 0
+      ? fmt(basePrice)
+      : `<span style="color:#dc2626;font-weight:600">要相談</span>`;
+    return `
     <div class="product-row" onclick="addProductFromPicker('${p.id}')">
       <div class="product-row-info">
         <div class="product-row-name">${esc(p.product_name)}</div>
         <div class="product-row-meta">${esc(p.product_code || '')}${p.jan_code ? ' / JAN: ' + esc(formatJan(p.jan_code)) : ''}${p.is_food ? ' / 食品' : ''}</div>
       </div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${p.price != null && p.price !== '' ? fmt(p.price) : ''}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text-muted)">${priceLabel}</div>
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 function addProductFromPicker(productId) {
@@ -695,14 +703,17 @@ function renderPreview() {
         const price = Number(it.unit_price || 0);
         const sub = qty * price;
         const rate = it.is_food ? '8%' : '10%';
+        // 見積書プレビュー：単価0は「要相談」表示・金額列も「要相談」
+        const priceCell = price > 0 ? fmt(price) : '<span style="color:#dc2626">要相談</span>';
+        const subCell = price > 0 ? fmt(sub) : '<span style="color:#dc2626">要相談</span>';
         return `
           <tr>
             <td style="text-align:right;width:80px">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
             <td>${esc(it.product_name || '-')}</td>
             <td style="text-align:right;width:55px">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
             <td style="text-align:right;width:50px">${qty.toLocaleString()}</td>
-            <td style="text-align:right;width:85px">${fmt(price)}</td>
-            <td style="text-align:right;width:100px">${fmt(sub)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
+            <td style="text-align:right;width:85px">${priceCell}</td>
+            <td style="text-align:right;width:100px">${subCell}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
             <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
           </tr>`;
       }).join('')

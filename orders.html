@@ -774,12 +774,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const sub = it.qty * it.unitPrice;
       excl += sub;
       tax += Math.round(sub * taxRate);
+      // 要相談商品（単価0）はインラインで単価入力可能にする
+      const priceCell = it.unitPrice > 0
+        ? `¥${it.unitPrice.toLocaleString()}`
+        : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
       return `<tr>
         <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
         <td style="font-weight:500;white-space:normal">${esc(it.name)}</td>
         <td class="num-right"><input type="number" min="1" value="${it.qty}" oninput="updateEditItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
-        <td class="num-right">¥${it.unitPrice.toLocaleString()}</td>
-        <td class="num-right" style="font-weight:600">¥${sub.toLocaleString()}</td>
+        <td class="num-right">${priceCell}</td>
+        <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">¥${sub.toLocaleString()}</td>
         <td><span class="${it.isFood?'badge-food':'badge-regular'}">${it.isFood?'軽減8%':'標準10%'}</span></td>
         <td><button onclick="removeEditItem(${i})" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit">✕</button></td>
       </tr>`;
@@ -825,6 +829,28 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderEditItems();
   }
 
+  // 要相談商品の単価をその場で確定（受注編集モーダル内）
+  function updateEditItemPrice(idx, value) {
+    if (!editItems[idx]) return;
+    const price = Math.max(0, parseInt(value, 10) || 0);
+    editItems[idx].unitPrice = price;
+    // 行小計と合計を部分更新
+    let excl = 0, tax = 0;
+    editItems.forEach((it) => {
+      const taxRate = it.isFood ? 0.08 : 0.10;
+      const sub = it.qty * it.unitPrice;
+      excl += sub;
+      tax += Math.round(sub * taxRate);
+    });
+    const subCell = document.querySelector(`[data-edititem-sub="${idx}"]`);
+    if (subCell) subCell.textContent = '¥' + (editItems[idx].qty * price).toLocaleString();
+    const incl = excl + tax;
+    document.getElementById('modalTotals').innerHTML = `
+      <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
+      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
+      <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+  }
+
   function filterEditProductOptions(q) {
     const raw = (q || '').trim();
     const query = normalizeSearch(raw);
@@ -854,7 +880,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="search-result-item" onclick="addEditItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
         <span class="search-result-name">${esc(p.product_name)}</span>
         <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
-        <span class="search-result-price">¥${Number(p.list_price || p.price || 0).toLocaleString()}</span>
+        <span class="search-result-price">${Number(p.list_price || p.price || 0) > 0 ? '¥' + Number(p.list_price || p.price || 0).toLocaleString() : '<span style="color:#dc2626;font-weight:600">要相談</span>'}</span>
       </div>
     `).join('');
   }
@@ -1056,7 +1082,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="search-result-item" onclick="addItemFromSearch('${esc(p.id)}')" title="クリックで追加（数量1）">
         <span class="search-result-name">${esc(p.product_name)}</span>
         <span class="search-result-code">${p.product_code ? esc(p.product_code) : ''}</span>
-        <span class="search-result-price">¥${Number(p.list_price || p.price || 0).toLocaleString()}</span>
+        <span class="search-result-price">${Number(p.list_price || p.price || 0) > 0 ? '¥' + Number(p.list_price || p.price || 0).toLocaleString() : '<span style="color:#dc2626;font-weight:600">要相談</span>'}</span>
       </div>
     `).join('');
   }
@@ -1141,6 +1167,22 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
+  // 要相談商品の単価をその場で確定する（入力後 blur or 別行操作で確定。即時に小計反映）
+  function updateNewItemPrice(idx, value) {
+    if (!newOrderItems[idx]) return;
+    const price = Math.max(0, parseInt(value, 10) || 0);
+    newOrderItems[idx].unitPrice = price;
+    const subCell = document.querySelector(`[data-newitem-sub="${idx}"]`);
+    if (subCell) {
+      subCell.textContent = '¥' + (newOrderItems[idx].qty * price).toLocaleString();
+    }
+    const total = newOrderItems.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
+    const totalEl = document.getElementById('newOrderTotal');
+    if (totalEl) {
+      totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</span>`;
+    }
+  }
+
   function removeNewItem(index) {
     newOrderItems.splice(index, 1);
     renderNewItems();
@@ -1157,10 +1199,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     tbody.innerHTML = newOrderItems.map((item, i) => {
       const sub = item.qty * item.unitPrice;
       total += sub;
+      // 要相談商品（単価0）は単価欄をその場で入力できるようインライン input にする
+      const priceCell = item.unitPrice > 0
+        ? `¥${item.unitPrice.toLocaleString()}`
+        : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
         <td style="text-align:right"><input type="number" min="1" value="${item.qty}" oninput="updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
-        <td style="text-align:right">¥${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right">${priceCell}</td>
         <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">¥${sub.toLocaleString()}</td>
         <td><button class="btn-danger-sm" onclick="removeNewItem(${i})">✕</button></td>
       </tr>`;
