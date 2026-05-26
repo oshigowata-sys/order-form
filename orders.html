@@ -1093,12 +1093,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     if (!product) return;
     const unitPrice = getUnitPrice(productId);
-    const existing = newOrderItems.find(i => i.productId === productId);
-    if (existing) {
-      existing.qty += 1;
-    } else {
-      newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0 });
-    }
+    // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
+    newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, remarks: '' });
     // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
     const search = document.getElementById('newItemSearch');
     if (search) search.value = '';
