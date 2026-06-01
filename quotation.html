@@ -35,7 +35,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .btn-danger:hover{background:#b91c1c}
 
 /* ===== メインコンテンツ ===== */
-.main{max-width:900px;margin:0 auto;padding:40px 24px}
+.main{max-width:1600px;margin:0 auto;padding:40px 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:flex-start}
+.main > #quotation-wrap{position:sticky;top:80px;max-height:calc(100vh - 120px);overflow-y:auto}
+@media (max-width:1279px){.main{grid-template-columns:1fr}.main > #quotation-wrap{position:static;max-height:none}}
 
 /* ===== 編集パネル ===== */
 .settings-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:32px}
@@ -146,7 +148,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 @media print{
   body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .action-bar,.settings-panel,.overlay,.toast,.no-print{display:none !important}
-  .main{max-width:none;padding:0;margin:0}
+  .main{display:block !important;max-width:none !important;padding:0 !important;margin:0 !important}
+  .main > #quotation-wrap{position:static !important;max-height:none !important;overflow:visible !important}
   #quotation-wrap{box-shadow:none;border-radius:0}
   .quotation{padding:30px 36px}
   @page{size:A4;margin:0}
@@ -671,6 +674,14 @@ function renderPreview() {
   const customerAddress = c.address || '';
   const customerTel = c.phone || c.tel || '';
   const customerPerson = c.contact_name || c.person || '';
+  // 郵便番号は住所と別行で表示（Wata要望：2026-06-01）
+  const customerPostal = c.postal_code || '';
+  const customerPostalLabel = customerPostal
+    ? (() => {
+        const d = String(customerPostal).replace(/[^0-9]/g, '');
+        return d.length === 7 ? '〒' + d.slice(0,3) + '-' + d.slice(3) : '〒' + customerPostal;
+      })()
+    : '';
 
   const s = _settings;
   // TEL / FAX を1行にまとめる。同じ番号の場合は「TEL／FAX」として1つだけ表示。
@@ -742,6 +753,7 @@ function renderPreview() {
         <div class="party-label">お見積先 / TO</div>
         <div class="party-name">${esc(customerName)}<span class="party-name-suffix">御中</span></div>
         ${customerPerson ? `<div class="party-address">${esc(customerPerson)} 様</div>` : ''}
+        ${customerPostalLabel ? `<div class="party-address">${esc(customerPostalLabel)}</div>` : ''}
         ${customerAddress ? `<div class="party-address">${esc(customerAddress)}</div>` : ''}
         ${customerTel ? `<div class="party-address">TEL: ${esc(customerTel)}</div>` : ''}
       </div>

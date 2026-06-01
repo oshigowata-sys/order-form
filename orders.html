@@ -131,6 +131,18 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .entry-error{color:#dc2626;font-size:14px;margin-top:4px;display:none}
 .entry-error.show{display:block}
 
+/* 受注新規・編集モーダルの2カラム拡張（左：商品登録／右：印刷プレビュー） */
+.modal-wide{width:min(1600px,96vw);max-width:96vw}
+.modal-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:flex-start}
+.modal-split>.split-edit{min-width:0}
+.modal-split>.split-preview{min-width:0;position:sticky;top:80px;max-height:calc(100vh - 180px);overflow-y:auto}
+.preview-pane-title{font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.preview-pane-title::before{content:'👁️';font-size:14px}
+@media (max-width:1279px){
+  .modal-split{grid-template-columns:1fr}
+  .modal-split>.split-preview{position:static;max-height:none}
+}
+
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
 .logout-item:hover{background:rgba(255,69,0,0.15);color:#ff9a7a}
@@ -226,7 +238,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   </div>
 </main>
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">受注詳細</div>
       <div style="display:flex;align-items:center;gap:10px" id="detailHeaderActions">
@@ -242,34 +254,42 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       </div>
     </div>
     <div class="modal-body">
-      <div id="editWarning" style="display:none"></div>
-      <div class="info-grid" id="modalInfo"></div>
-      <div class="items-section-title">注文商品</div>
-      <div class="table-wrapper">
-        <table id="modalItems"></table>
-      </div>
-      <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
-        <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-        <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
-        <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
-        <div class="add-item-row">
-          <select class="form-input2" id="editItemProduct">
-            <option value="">商品を選択してください</option>
-          </select>
-          <input type="number" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" />
-          <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
+      <div class="modal-split">
+        <div class="split-edit">
+          <div id="editWarning" style="display:none"></div>
+          <div class="info-grid" id="modalInfo"></div>
+          <div class="items-section-title">注文商品</div>
+          <div class="table-wrapper">
+            <table id="modalItems"></table>
+          </div>
+          <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+            <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+            <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
+            <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
+            <div class="add-item-row">
+              <select class="form-input2" id="editItemProduct">
+                <option value="">商品を選択してください</option>
+              </select>
+              <input type="number" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" />
+              <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
+            </div>
+            <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
+          </div>
+          <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
+            <select class="form-input2" id="detailStatusSelect" style="width:160px">
+              <option value="新規受注">新規受注</option>
+              <option value="処理中">処理中</option>
+              <option value="出荷済み">出荷済み</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="detailStatusBtn" onclick="updateOrderStatus()">保存</button>
+            <span id="detailStatusMsg" style="font-size:14px;color:var(--green);display:none">✓ 変更しました</span>
+          </div>
         </div>
-        <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
-      </div>
-      <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
-        <select class="form-input2" id="detailStatusSelect" style="width:160px">
-          <option value="新規受注">新規受注</option>
-          <option value="処理中">処理中</option>
-          <option value="出荷済み">出荷済み</option>
-        </select>
-        <button class="btn btn-primary btn-sm" id="detailStatusBtn" onclick="updateOrderStatus()">保存</button>
-        <span id="detailStatusMsg" style="font-size:14px;color:var(--green);display:none">✓ 変更しました</span>
+        <div class="split-preview">
+          <div class="preview-pane-title">納品書 + 請求書プレビュー</div>
+          <div id="editOrderPreviewWrap"></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -288,53 +308,61 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 </div>
 <!-- 新規受注入力モーダル -->
 <div class="overlay" id="newOrderOverlay" onclick="if(event.target===this)closeNewOrder()">
-  <div class="modal" style="width:700px">
+  <div class="modal modal-wide">
     <div class="modal-header">
       <div class="modal-title">新規受注入力</div>
       <button class="modal-close" onclick="closeNewOrder()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-row2">
-        <div class="form-group2">
-          <label class="form-label2">取引先 <span style="color:#dc2626">*</span></label>
-          <select class="form-input2" id="newOrderCustomer" onchange="onCustomerChange()">
-            <option value="">選択してください</option>
-          </select>
+      <div class="modal-split">
+        <div class="split-edit">
+          <div class="form-row2">
+            <div class="form-group2">
+              <label class="form-label2">取引先 <span style="color:#dc2626">*</span></label>
+              <select class="form-input2" id="newOrderCustomer" onchange="onCustomerChange()">
+                <option value="">選択してください</option>
+              </select>
+            </div>
+            <div class="form-group2">
+              <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
+              <input type="date" class="form-input2" id="newOrderDate" oninput="updateNewOrderPreview()" />
+            </div>
+          </div>
+          <div class="form-row2">
+            <div class="form-group2">
+              <label class="form-label2">ステータス</label>
+              <select class="form-input2" id="newOrderStatus">
+                <option value="新規受注">新規受注</option>
+                <option value="処理中">処理中</option>
+                <option value="出荷済み">出荷済み</option>
+              </select>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+            <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+            <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
+            <div id="searchResults" class="search-results-wrap" style="display:none"></div>
+            <div class="add-item-row">
+              <select class="form-input2" id="newItemProduct">
+                <option value="">商品を選択してください</option>
+              </select>
+              <input type="number" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" />
+              <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
+            </div>
+            <div class="entry-error" id="itemError">商品と数量を選択してください</div>
+            <table class="entry-items-table" id="newItemsTable" style="display:none">
+              <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
+              <tbody id="newItemsTbody"></tbody>
+            </table>
+            <div class="entry-total" id="newOrderTotal" style="display:none"></div>
+          </div>
+          <div class="entry-error" id="orderError" style="font-size:14px;margin-top:8px"></div>
         </div>
-        <div class="form-group2">
-          <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
-          <input type="date" class="form-input2" id="newOrderDate" />
+        <div class="split-preview">
+          <div class="preview-pane-title">納品書 + 請求書プレビュー</div>
+          <div id="newOrderPreviewWrap"></div>
         </div>
       </div>
-      <div class="form-row2">
-        <div class="form-group2">
-          <label class="form-label2">ステータス</label>
-          <select class="form-input2" id="newOrderStatus">
-            <option value="新規受注">新規受注</option>
-            <option value="処理中">処理中</option>
-            <option value="出荷済み">出荷済み</option>
-          </select>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
-        <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-        <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
-        <div id="searchResults" class="search-results-wrap" style="display:none"></div>
-        <div class="add-item-row">
-          <select class="form-input2" id="newItemProduct">
-            <option value="">商品を選択してください</option>
-          </select>
-          <input type="number" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" />
-          <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
-        </div>
-        <div class="entry-error" id="itemError">商品と数量を選択してください</div>
-        <table class="entry-items-table" id="newItemsTable" style="display:none">
-          <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
-          <tbody id="newItemsTbody"></tbody>
-        </table>
-        <div class="entry-total" id="newOrderTotal" style="display:none"></div>
-      </div>
-      <div class="entry-error" id="orderError" style="font-size:14px;margin-top:8px"></div>
     </div>
     <div class="modal-footer">
       <div></div>
@@ -348,6 +376,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
+<script src="preview-renderer.js?v=20260601-preview"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -540,6 +569,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('detailStatusSelect').value = o.status;
     document.getElementById('detailStatusMsg').style.display = 'none';
     document.getElementById('detailOverlay').classList.add('open');
+    // プレビュー初期化（取引先情報・発行者情報・振込先を取得してから描画）
+    window._viewModeItems = [];
+    _currentEditOrderCustomer = null;
+    Promise.all([
+      loadPreviewMetadata(),
+      o.customer_id ? ensureCustomerExtra(o.customer_id) : Promise.resolve(null)
+    ]).then(([_, extra]) => {
+      _currentEditOrderCustomer = extra;
+      updateEditOrderPreview();
+    });
     loadOrderDetail(orderId);
   }
 
@@ -610,6 +649,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
         <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
         <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+      // ビューモード用にプレビュー描画
+      window._viewModeItems = items.map(it => ({
+        product_code: it.products?.product_code || '',
+        product_name: it.products?.product_name || '',
+        quantity: it.quantity || 0,
+        unit_price: it.unit_price || 0,
+        is_food: it.products?.is_food || false,
+        remarks: it.remarks || ''
+      }));
+      updateEditOrderPreview();
     } catch(e) {
       console.error('注文明細取得失敗:', e);
       document.getElementById('modalItems').innerHTML =
@@ -626,6 +675,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       toggleEditUI(false);
     }
     document.getElementById('detailOverlay').classList.remove('open');
+    _currentEditOrderCustomer = null;
+    window._viewModeItems = [];
   }
 
   // ===== 受注編集モード =====
@@ -684,6 +735,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
     editMode = true;
     renderEditMode();
+    updateEditOrderPreview();
   }
 
   function cancelEditMode() {
@@ -764,6 +816,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const search = document.getElementById('editItemSearch');
     if (search) { search.value = ''; renderEditSearchResults('', []); }
     renderEditItems();
+    updateEditOrderPreview();
   }
 
   function renderEditItems() {
@@ -821,17 +874,20 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
       <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
       <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+    updateEditOrderPreview();
   }
 
   // 編集モーダルの備考変更（フォーカスを奪わない＝配列書き戻しのみ）
   function updateEditItemRemarks(idx, value) {
     if (!editItems[idx]) return;
     editItems[idx].remarks = value;
+    updateEditOrderPreview();
   }
 
   function removeEditItem(idx) {
     editItems.splice(idx, 1);
     renderEditItems();
+    updateEditOrderPreview();
   }
 
   // 要相談商品の単価をその場で確定（受注編集モーダル内）
@@ -854,6 +910,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
       <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
       <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+    updateEditOrderPreview();
   }
 
   function filterEditProductOptions(q) {
@@ -908,6 +965,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('editItemSearch').value = '';
     renderEditSearchResults('', []);
     renderEditItems();
+    updateEditOrderPreview();
   }
 
   async function saveEditMode() {
@@ -998,9 +1056,102 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   let allCustomers = [];
   let allProducts = [];
   let allPricing = [];
+  // プレビュー描画用：発行者情報・振込先・取引先キャッシュ
+  let _previewSettings = null;
+  let _previewBankAccounts = [];
+  let _currentNewOrderCustomer = null;
+  let _currentEditOrderCustomer = null;
+
+  async function loadPreviewMetadata() {
+    if (!_previewSettings) {
+      try {
+        const r = await sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&limit=1`);
+        if (r.ok) {
+          const arr = await r.json();
+          _previewSettings = arr[0] || {};
+        } else {
+          _previewSettings = {};
+        }
+      } catch(e) { console.error('settings取得失敗:', e); _previewSettings = {}; }
+    }
+    if (!_previewBankAccounts.length) {
+      try {
+        const r = await sbFetch(`/rest/v1/tenant_bank_accounts?tenant_id=eq.${tenantId}&select=*&order=display_order.asc`);
+        if (r.ok) _previewBankAccounts = await r.json();
+      } catch(e) { console.error('tenant_bank_accounts取得失敗:', e); }
+    }
+  }
+
+  function buildPreviewItems(items, source) {
+    // 受注の編集モードと新規モードで item の構造が異なる。共通フォーマットに正規化
+    // source: 'new' (newOrderItems) | 'edit' (editItems)
+    return items.map(it => {
+      const productId = source === 'edit' ? it.productId : it.productId;
+      const product = allProducts.find(p => p.id === productId) || {};
+      return {
+        product_code: it.productCode || product.product_code || '',
+        product_name: it.name || product.product_name || '',
+        quantity: source === 'edit' ? Number(it.qty || 0) : Number(it.qty || 0),
+        unit_price: Number(it.unitPrice || 0),
+        is_food: source === 'edit' ? !!it.isFood : !!product.is_food,
+        remarks: it.remarks || ''
+      };
+    });
+  }
+
+  function updateNewOrderPreview() {
+    if (typeof MeguReePreview === 'undefined') return;
+    const wrap = document.getElementById('newOrderPreviewWrap');
+    if (!wrap) return;
+    const orderDate = document.getElementById('newOrderDate')?.value || '';
+    MeguReePreview.renderOrder(wrap, {
+      customer: _currentNewOrderCustomer || {},
+      settings: _previewSettings || {},
+      bankAccounts: _previewBankAccounts || [],
+      items: buildPreviewItems(newOrderItems, 'new'),
+      orderId: null,                 // 保存時に確定
+      deliveryDate: orderDate || null,
+      invoiceNumber: null,
+      issuedDate: orderDate || null,
+      dueDate: null
+    });
+  }
+
+  function updateEditOrderPreview() {
+    if (typeof MeguReePreview === 'undefined') return;
+    const wrap = document.getElementById('editOrderPreviewWrap');
+    if (!wrap) return;
+    const o = allOrders.find(x => x.id === currentDetailId) || {};
+    const items = editMode
+      ? buildPreviewItems(editItems, 'edit')
+      : (window._viewModeItems || []);
+    MeguReePreview.renderOrder(wrap, {
+      customer: _currentEditOrderCustomer || {},
+      settings: _previewSettings || {},
+      bankAccounts: _previewBankAccounts || [],
+      items: items,
+      orderId: o.code || null,
+      deliveryDate: o.date || null,
+      invoiceNumber: null,
+      issuedDate: o.date || null,
+      dueDate: null
+    });
+  }
+
+  async function ensureCustomerExtra(customerId) {
+    // 指定 customer の郵便番号・住所・連絡先などプレビュー用追加情報を取得
+    if (!customerId) return null;
+    try {
+      const r = await sbFetch(`/rest/v1/customers?id=eq.${customerId}&select=id,company_name,contact_name,postal_code,address,phone&limit=1`);
+      if (!r.ok) return null;
+      const arr = await r.json();
+      return arr[0] || null;
+    } catch(e) { console.error('customer extra取得失敗:', e); return null; }
+  }
 
   async function openNewOrderModal() {
     newOrderItems = [];
+    _currentNewOrderCustomer = null;
     document.getElementById('newOrderDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('newOrderStatus').value = '新規受注';
     document.getElementById('newOrderCustomer').value = '';
@@ -1013,11 +1164,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('orderError').classList.remove('show');
     renderNewItems();
     document.getElementById('newOrderOverlay').classList.add('open');
-    await Promise.all([loadCustomersForEntry(), loadProductsForEntry()]);
+    await Promise.all([loadCustomersForEntry(), loadProductsForEntry(), loadPreviewMetadata()]);
+    updateNewOrderPreview();
   }
 
   function closeNewOrder() {
     document.getElementById('newOrderOverlay').classList.remove('open');
+    _currentNewOrderCustomer = null;
   }
 
   async function loadCustomersForEntry() {
@@ -1102,13 +1255,25 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderSearchResults('', []);
     document.getElementById('itemError').classList.remove('show');
     renderNewItems();
+    updateNewOrderPreview();
   }
 
   async function onCustomerChange() {
     const customerId = document.getElementById('newOrderCustomer').value;
-    if (!customerId) { allPricing = []; return; }
-    const res = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate,wholesale_price`);
-    allPricing = await res.json();
+    if (!customerId) {
+      allPricing = [];
+      _currentNewOrderCustomer = null;
+      updateNewOrderPreview();
+      return;
+    }
+    const [pricingRes, extra] = await Promise.all([
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate,wholesale_price`),
+      ensureCustomerExtra(customerId)
+    ]);
+    allPricing = pricingRes.ok ? await pricingRes.json() : [];
+    _currentNewOrderCustomer = extra;
+    // 取引先変更で既存明細の単価も再評価（後方互換：明示的な単価変更がなければ既存単価維持）
+    updateNewOrderPreview();
   }
 
   function getUnitPrice(productId) {
@@ -1143,6 +1308,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       renderSearchResults('', []);
     }
     renderNewItems();
+    updateNewOrderPreview();
   }
 
   function updateNewItemQty(idx, value) {
@@ -1160,6 +1326,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (totalEl) {
       totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</span>`;
     }
+    updateNewOrderPreview();
   }
 
   // 要相談商品の単価をその場で確定する（入力後 blur or 別行操作で確定。即時に小計反映）
@@ -1176,17 +1343,20 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (totalEl) {
       totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">¥${total.toLocaleString()}</span>`;
     }
+    updateNewOrderPreview();
   }
 
   function removeNewItem(index) {
     newOrderItems.splice(index, 1);
     renderNewItems();
+    updateNewOrderPreview();
   }
 
   // 備考はフォーカスを奪わないようテーブル再描画せず配列に書き戻すだけ
   function updateNewItemRemarks(idx, value) {
     if (!newOrderItems[idx]) return;
     newOrderItems[idx].remarks = value;
+    updateNewOrderPreview();
   }
 
   function renderNewItems() {
