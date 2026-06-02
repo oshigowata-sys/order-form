@@ -556,7 +556,7 @@ function openPdf(idx) {
     + '&period_start='  + encodeURIComponent(r.periodStart)
     + '&period_end='    + encodeURIComponent(r.periodEnd)
     + '&invoice_num='   + encodeURIComponent(r.invoiceNumber || '');
-  window.open(url, '_blank');
+  window.location.href = url;
 }
 
 // ── 発行モーダル ──
@@ -773,8 +773,7 @@ async function confirmIssue() {
       + '&period_start=' + encodeURIComponent(periodStart)
       + '&period_end='   + encodeURIComponent(periodEnd)
       + '&invoice_num='  + encodeURIComponent(num);
-    window.open(pdfUrl, '_blank');
-    await loadAll();
+    window.location.href = pdfUrl;
   } catch(e) {
     console.error(e);
     showToast('❌ 発行に失敗しました。もう一度お試しください。');
