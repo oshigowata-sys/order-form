@@ -306,6 +306,7 @@
     font-family: 'Noto Sans JP', sans-serif;
     line-height: 1.8;
     margin-top: 6px;
+    white-space: pre-line;
   }
 
   .invoice-amount-highlight {
@@ -887,14 +888,15 @@
   }
 
   // ===== 取引先住所フォーマット（郵便番号付き） =====
-  // 自社住所側と書式を揃える（〒XXX-XXXX 住所）。
+  // 自社住所側と書式を揃える（1行目：〒XXX-XXXX / 2行目：住所）。
   // postal_code が 7 桁数字なら自動で 3-4 区切りにする。
+  // 戻り値の \n は CSS white-space: pre-line で改行として表示される。
   function formatAddressWithZip(zip, address) {
     if (!zip && !address) return '';
     if (!zip) return address || '';
     const digits = String(zip).replace(/[^0-9]/g, '');
     const formatted = digits.length === 7 ? digits.slice(0, 3) + '-' + digits.slice(3) : String(zip);
-    return '〒' + formatted + (address ? ' ' + address : '');
+    return '〒' + formatted + (address ? '\n' + address : '');
   }
 
   // ===== 納品書HTML生成 =====
