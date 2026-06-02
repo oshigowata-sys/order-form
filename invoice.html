@@ -579,6 +579,14 @@
     body.delivery-mode #invoiceBody .party-name { font-size: 10px !important; margin-bottom: 0 !important; }
     body.delivery-mode #invoiceBody .party-address { font-size: 7px !important; line-height: 1.1 !important; margin-top: 0 !important; }
     body.delivery-mode #invoiceBody .invoice-parties > div:last-child > div { font-size: 7px !important; line-height: 1.15 !important; }
+    /* delivery-mode（A4半分ずつ）では紙面が狭いので住所を1行表示に戻す。
+       単独A4モードでは2行表示を維持。pre-line を normal で上書きしつつ、
+       テンプレートの \n は空白として扱われ1行結合される。 */
+    body.delivery-mode .party-address,
+    body.delivery-mode #deliveryBody .invoice-parties > div:last-child > div,
+    body.delivery-mode #invoiceBody .invoice-parties > div:last-child > div {
+      white-space: normal !important;
+    }
 
     /* A4 1枚に収めるための圧縮 */
     .invoice-header { margin-bottom: 4px; padding-bottom: 4px; }
