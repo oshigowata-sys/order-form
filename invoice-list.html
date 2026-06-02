@@ -379,13 +379,13 @@ async function loadAll() {
     const today = new Date();
     const [ordersRes, invoicesRes] = await Promise.all([
       sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
-      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,customers(company_name)&order=issued_date.desc`)
+      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name)&order=issued_date.desc`)
     ]);
     if (!ordersRes.ok || !invoicesRes.ok) throw new Error('データ取得失敗');
     const [orders, invoices] = await Promise.all([ordersRes.json(), invoicesRes.json()]);
 
-    // 発行済みセット（customer_id:period_end）
-    const invoicedSet = new Set(invoices.map(i => `${i.customer_id}:${i.period_end}`));
+    // 発行済みセット（customer_id:period_end）— 取消済は除外して再発行可能にする
+    const invoicedSet = new Set(invoices.filter(i => !i.cancelled_at).map(i => `${i.customer_id}:${i.period_end}`));
 
     // 発行済み請求書の受注件数集計（顧客×期間で該当ordersをカウント）
     const invoicePeriodsByCustomer = {};
@@ -410,6 +410,7 @@ async function loadAll() {
     // 発行済み行
     const issuedRows = invoices.map(inv => ({
       status: 'issued',
+      invoiceId: inv.id || '',
       customer: inv.customers?.company_name || '',
       customerId: inv.customer_id || '',
       periodStart: inv.period_start || '',
@@ -420,6 +421,7 @@ async function loadAll() {
       invoiceNumber: inv.invoice_number || '',
       issuedDate: (inv.issued_date || '').slice(0,10),
       paidAmount: inv.paid_amount != null ? inv.paid_amount : null,
+      cancelled: !!inv.cancelled_at,
     }));
 
     // 未発行・進行中行の集計
@@ -470,10 +472,12 @@ async function loadAll() {
 }
 
 function updateKPIs(pendingRows, issuedRows) {
+  // 取消済は発行済み件数・累計から除外
+  const activeIssued = issuedRows.filter(r => !r.cancelled);
   document.getElementById('kpiPending').textContent = pendingRows.length;
-  document.getElementById('kpiIssued').textContent  = issuedRows.length;
+  document.getElementById('kpiIssued').textContent  = activeIssued.length;
   document.getElementById('kpiPendingAmount').textContent = '¥' + pendingRows.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
-  document.getElementById('kpiIssuedAmount').textContent  = '¥' + issuedRows.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
+  document.getElementById('kpiIssuedAmount').textContent  = '¥' + activeIssued.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
 }
 
 function renderAll() {
@@ -506,10 +510,15 @@ function renderAll() {
       ordersCell     = `${r.orders}件`;
       issuedDateCell = '未発行';
     } else if (r.status === 'issued') {
-      const unpaidBadge = r.paidAmount == null
-        ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700">入金未登録</span>' : '';
-      badge          = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
-      action         = `<button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button>`;
+      if (r.cancelled) {
+        badge        = `<span class="badge" style="background:#f3f4f6;color:#6b7280;border:1px solid rgba(107,114,128,0.3);font-weight:700">取消済</span>`;
+        action       = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:600" onclick="confirmDeleteInvoice(${idx})">削除</button></div>`;
+      } else {
+        const unpaidBadge = r.paidAmount == null
+          ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700">入金未登録</span>' : '';
+        badge        = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
+        action       = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button><button class="btn btn-sm" style="background:#fff;color:#92400e;border:1.5px solid #fcd34d;font-weight:600" onclick="confirmCancelInvoice(${idx})">発行取り消し</button><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:600" onclick="confirmDeleteInvoice(${idx})">削除</button></div>`;
+      }
       ordersCell     = `${r.orders}件`;
       issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '未発行';
     } else {
@@ -598,13 +607,14 @@ async function confirmIssue() {
   const btn = document.getElementById('issueConfirmBtn');
   btn.disabled = true; btn.textContent = '発行中...';
   try {
-    // 同じ取引先・同じ期間に有効な請求書があるかチェック
+    // 同じ取引先・同じ期間に有効な請求書があるかチェック（取消済は除外）
     const existCheckRes = await sbFetch(
       `/rest/v1/invoices?tenant_id=eq.${encodeURIComponent(tenantId)}` +
       `&customer_id=eq.${encodeURIComponent(r.customerId)}` +
       `&period_start=eq.${encodeURIComponent(periodStart)}` +
       `&period_end=eq.${encodeURIComponent(periodEnd)}` +
       `&superseded_at=is.null` +
+      `&cancelled_at=is.null` +
       `&select=id,invoice_number,is_interim`
     );
     const existRows = existCheckRes.ok ? await existCheckRes.json() : [];
@@ -632,12 +642,13 @@ async function confirmIssue() {
       ));
     }
 
-    // 初回判定: その取引先の有効な過去請求書が一切なければ「初回」
+    // 初回判定: その取引先の有効な過去請求書が一切なければ「初回」（取消済は除外）
     let manualPrevAmount = null;
     const pastInvCheckRes = await sbFetch(
       `/rest/v1/invoices?tenant_id=eq.${encodeURIComponent(tenantId)}` +
       `&customer_id=eq.${encodeURIComponent(r.customerId)}` +
       `&superseded_at=is.null` +
+      `&cancelled_at=is.null` +
       `&period_end=lt.${encodeURIComponent(periodEnd)}` +
       `&select=id&limit=1`
     );
@@ -769,6 +780,99 @@ async function confirmIssue() {
     showToast('❌ 発行に失敗しました。もう一度お試しください。');
   } finally {
     btn.disabled = false; btn.textContent = '発行する';
+  }
+}
+
+// ── 発行取り消し ──
+async function confirmCancelInvoice(idx) {
+  const r = _renderedRows[idx];
+  if (!r || !r.invoiceId) return;
+  const ok = confirm(`「${r.customer}」の請求書（${r.invoiceNumber}）の発行を取り消します。\n同じ期間で再発行できるようになります。\nよろしいですか？`);
+  if (!ok) return;
+
+  try {
+    const nowIso = new Date().toISOString();
+    const res = await sbFetch(
+      '/rest/v1/invoices?id=eq.' + encodeURIComponent(r.invoiceId),
+      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ cancelled_at: nowIso }) }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    try {
+      await sbFetch('/rest/v1/audit_log', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          user_name: userName || '—',
+          action: 'cancel',
+          table_name: 'invoices',
+          record_id: String(r.invoiceId),
+          record_label: `${r.customer} ${r.invoiceNumber} 発行取り消し`,
+          old_values: { cancelled_at: null },
+          new_values: { cancelled_at: nowIso }
+        })
+      });
+    } catch(e) { console.warn('audit_log書き込み失敗:', e); }
+
+    showToast(`✅ 請求書（${r.invoiceNumber}）の発行を取り消しました`);
+    await loadAll();
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 発行取り消しに失敗しました。もう一度お試しください。');
+  }
+}
+
+// ── 請求書削除（物理削除） ──
+async function confirmDeleteInvoice(idx) {
+  const r = _renderedRows[idx];
+  if (!r || !r.invoiceId) return;
+  const ok = confirm(`「${r.customer}」の請求書（${r.invoiceNumber}）を削除します。\n元に戻せません。\nよろしいですか？`);
+  if (!ok) return;
+
+  try {
+    // 削除前に audit_log を書き込み（削除後では参照できなくなるため）
+    try {
+      await sbFetch('/rest/v1/audit_log', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          user_name: userName || '—',
+          action: 'delete',
+          table_name: 'invoices',
+          record_id: String(r.invoiceId),
+          record_label: `${r.customer} ${r.invoiceNumber} 削除`,
+          old_values: {
+            invoice_number: r.invoiceNumber,
+            period_start: r.periodStart,
+            period_end: r.periodEnd,
+            total_incl_tax: r.excl + r.tax
+          },
+          new_values: null
+        })
+      });
+    } catch(e) { console.warn('audit_log書き込み失敗:', e); }
+
+    // 明細を先に削除
+    const itemsRes = await sbFetch(
+      '/rest/v1/invoice_items?invoice_id=eq.' + encodeURIComponent(r.invoiceId),
+      { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } }
+    );
+    if (!itemsRes.ok) throw new Error('明細削除失敗 HTTP ' + itemsRes.status);
+
+    // 請求書本体を削除
+    const invRes = await sbFetch(
+      '/rest/v1/invoices?id=eq.' + encodeURIComponent(r.invoiceId),
+      { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } }
+    );
+    if (!invRes.ok) throw new Error('請求書削除失敗 HTTP ' + invRes.status);
+
+    showToast(`✅ 請求書（${r.invoiceNumber}）を削除しました`);
+    await loadAll();
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 削除に失敗しました。もう一度お試しください。');
   }
 }
 
