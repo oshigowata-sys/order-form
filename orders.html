@@ -246,7 +246,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;color:var(--orange);border:1.5px solid var(--orange);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
           ✏️ 編集
         </button>
-        <button id="detailPrintBtn" onclick="window.open('invoice.html?order_id=' + currentDetailId, '_blank')"
+        <button id="detailPrintBtn" onclick="window.location.href='invoice.html?order_id=' + currentDetailId"
           style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
           🖨 納品書・請求書を発行
         </button>
@@ -508,7 +508,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         <td class="num-right" style="color:var(--green);font-weight:600;font-family:'Space Grotesk',sans-serif">¥${profit.toLocaleString()}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-outline btn-sm" onclick="openDetail('${esc(o.id)}')">詳細 →</button>
-          <button onclick="window.open('invoice.html?order_id=${esc(o.id)}', '_blank')"
+          <button onclick="window.location.href='invoice.html?order_id=${esc(o.id)}'"
             style="margin-left:6px;padding:5px 10px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;vertical-align:middle;font-family:inherit;white-space:nowrap">納品書発行</button>
         </td>
       </tr>`;

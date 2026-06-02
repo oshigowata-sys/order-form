@@ -785,7 +785,7 @@
       _settings = {
         name:         s.company_name       || '',
         person:       s.company_person     || '',
-        address:      (s.company_zip ? '〒' + s.company_zip + ' ' : '') + (s.company_address || ''),
+        address:      (s.company_zip ? '〒' + s.company_zip + (s.company_address ? '\n' : '') : '') + (s.company_address || ''),
         tel:          s.company_tel        || '',
         fax:          s.company_fax        || '',
         email:        s.company_email      || '',
@@ -948,7 +948,7 @@
     const fromBlock = s.name
       ? `<div style="font-size:15px;font-weight:700;font-family:'Noto Serif JP',serif">${esc(s.name)}</div>
          ${s.person ? `<div style="font-size:12px;margin-top:2px">${esc(s.person)}</div>` : ''}
-         ${s.address ? `<div style="font-size:12px;color:var(--text-muted)">${esc(s.address)}</div>` : ''}
+         ${s.address ? `<div style="font-size:12px;color:var(--text-muted);white-space:pre-line">${esc(s.address)}</div>` : ''}
          ${dContactLine}
          ${s.invoice_num ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
       : `<div style="color:#aaa;font-size:13px;">⚙ 発行者情報を設定してください</div>`;
@@ -1081,7 +1081,7 @@
     const fromBlock = s.name
       ? `<div class="from-name">${esc(s.name)}</div>
          ${s.person ? `<div>${esc(s.person)}</div>` : ''}
-         ${s.address ? `<div>${esc(s.address)}</div>` : ''}
+         ${s.address ? `<div style="white-space:pre-line">${esc(s.address)}</div>` : ''}
          ${iContactLine}
          ${s.email ? `<div>${esc(s.email)}</div>` : ''}
          ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}`
