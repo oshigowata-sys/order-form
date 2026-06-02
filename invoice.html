@@ -583,8 +583,7 @@
        単独A4モードでは2行表示を維持。pre-line を normal で上書きしつつ、
        テンプレートの \n は空白として扱われ1行結合される。 */
     body.delivery-mode .party-address,
-    body.delivery-mode #deliveryBody .invoice-parties > div:last-child > div,
-    body.delivery-mode #invoiceBody .invoice-parties > div:last-child > div {
+    body.delivery-mode [style*="pre-line"] {
       white-space: normal !important;
     }
 
