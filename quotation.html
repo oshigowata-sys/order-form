@@ -432,7 +432,8 @@ async function loadExistingQuotation() {
       is_food: !!it.is_food,
       list_price: it.list_price != null ? Number(it.list_price) : null,
       case_quantity: it.case_quantity != null ? Number(it.case_quantity) : null,
-      jan_code: it.jan_code || ''
+      jan_code: it.jan_code || '',
+      remarks: it.remarks || ''
     }));
   document.getElementById('deleteBtn').style.display = 'inline-flex';
   document.getElementById('printBtn').style.display = 'inline-flex';
@@ -544,12 +545,15 @@ function renderItems() {
             <th class="num" style="width:80px">数量</th>
             <th class="num" style="width:100px">卸価格</th>
             <th class="num" style="width:110px">金額</th>
+            <th style="width:130px">備考</th>
             <th class="snapshot" style="width:130px">JANコード</th>
             <th style="width:60px"></th>
           </tr>
         </thead>
         <tbody>
-          ${_items.map((it, i) => `
+          ${_items.map((it, i) => {
+            const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
+            return `
             <tr>
               <td class="snapshot num">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
               <td>
@@ -560,14 +564,22 @@ function renderItems() {
               <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
               <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0) > 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) > 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
+              <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
-            </tr>
-          `).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
   `;
+}
+
+// 行ごと備考の更新（フォーカスを奪わないよう配列書き戻し＋プレビュー再描画）
+function updateItemRemarks(idx, value) {
+  if (!_items[idx]) return;
+  _items[idx].remarks = value;
+  renderPreview();
 }
 
 function updateItem(idx, key, value) {
@@ -648,7 +660,8 @@ function addProductFromPicker(productId) {
     // 商品マスタからのスナップショット（発行後に商品マスタが変わっても見積書の値は固定）
     list_price: p.list_price != null && p.list_price !== '' ? Number(p.list_price) : null,
     case_quantity: p.case_quantity != null && p.case_quantity !== '' ? Number(p.case_quantity) : null,
-    jan_code: p.jan_code || ''
+    jan_code: p.jan_code || '',
+    remarks: ''
   });
   closeProductPicker();
   renderItems();
@@ -717,6 +730,7 @@ function renderPreview() {
         // 見積書プレビュー：単価0は「要相談」表示・金額列も「要相談」
         const priceCell = price > 0 ? fmt(price) : '<span style="color:#dc2626">要相談</span>';
         const subCell = price > 0 ? fmt(sub) : '<span style="color:#dc2626">要相談</span>';
+        const remarks = it.remarks || '';
         return `
           <tr>
             <td style="text-align:right;width:80px">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
@@ -725,12 +739,13 @@ function renderPreview() {
             <td style="text-align:right;width:50px">${qty.toLocaleString()}</td>
             <td style="text-align:right;width:85px">${priceCell}</td>
             <td style="text-align:right;width:100px">${subCell}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
+            <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px">${esc(remarks)}</td>
             <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
           </tr>`;
       }).join('')
-    : '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
+    : '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
   const emptyCount = Math.max(0, 10 - Math.max(_items.length, 1));
-  const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
   document.getElementById('quotationBody').innerHTML = `
@@ -778,15 +793,16 @@ function renderPreview() {
             <th style="text-align:right;width:50px">数量</th>
             <th style="text-align:right;width:85px">卸価格</th>
             <th style="text-align:right;width:100px">金額</th>
+            <th style="width:90px">備考</th>
             <th style="width:110px">JANコード</th>
           </tr>
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
-          <tr><td colspan="3">小計</td><td colspan="4" style="text-align:right">${fmt(subtotal)}</td></tr>
-          ${tax8 > 0 ? `<tr><td colspan="3">消費税（8%）</td><td colspan="4" style="text-align:right">${fmt(tax8)}</td></tr>` : ''}
-          ${tax10 > 0 ? `<tr><td colspan="3">消費税（10%）</td><td colspan="4" style="text-align:right">${fmt(tax10)}</td></tr>` : ''}
-          <tr class="total-row"><td colspan="3">合計（税込）</td><td colspan="4" style="text-align:right">${fmt(total)}</td></tr>
+          <tr><td colspan="3">小計</td><td colspan="5" style="text-align:right">${fmt(subtotal)}</td></tr>
+          ${tax8 > 0 ? `<tr><td colspan="3">消費税（8%）</td><td colspan="5" style="text-align:right">${fmt(tax8)}</td></tr>` : ''}
+          ${tax10 > 0 ? `<tr><td colspan="3">消費税（10%）</td><td colspan="5" style="text-align:right">${fmt(tax10)}</td></tr>` : ''}
+          <tr class="total-row"><td colspan="3">合計（税込）</td><td colspan="5" style="text-align:right">${fmt(total)}</td></tr>
         </tfoot>
       </table>
     </div>
@@ -934,6 +950,7 @@ async function saveQuotation() {
         list_price: it.list_price != null ? Math.round(Number(it.list_price)) : null,
         case_quantity: it.case_quantity != null ? Math.round(Number(it.case_quantity)) : null,
         jan_code: it.jan_code || null,
+        remarks: (it.remarks || '').trim() || null,
         display_order: i
       }));
       const itemRes = await sbFetch(`/rest/v1/quotation_items`, {

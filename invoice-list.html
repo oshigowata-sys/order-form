@@ -224,7 +224,11 @@ tr.row-inprogress td{color:var(--text-muted)}
           <input type="date" class="form-input" id="issuePeriodEnd">
         </div>
       </div>
-      <div id="issuePreview" style="padding:12px;background:var(--bg);border-radius:8px;font-size:14px;color:var(--text-muted)"></div>
+      <div style="margin-top:14px">
+        <label class="form-label">帳票全体の備考（請求書フッターに表示・任意）</label>
+        <textarea class="form-input" id="issueNotes" maxlength="200" placeholder="（任意）" style="min-height:60px;resize:vertical;width:100%"></textarea>
+      </div>
+      <div id="issuePreview" style="padding:12px;background:var(--bg);border-radius:8px;font-size:14px;color:var(--text-muted);margin-top:14px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeIssueModal()">キャンセル</button>
@@ -563,7 +567,7 @@ function openPdf(idx) {
 let _issueTarget = null;
 let _isInterim   = false;
 
-function openIssueModal(r, isInterim = false) {
+async function openIssueModal(r, isInterim = false) {
   _issueTarget = r;
   _isInterim   = isInterim;
   document.getElementById('issueModalTitle').textContent   = isInterim ? '途中発行' : '請求書発行';
@@ -571,6 +575,24 @@ function openIssueModal(r, isInterim = false) {
   document.getElementById('issueCustomerName').textContent = r.customer;
   document.getElementById('issuePeriodStart').value        = r.periodStart;
   document.getElementById('issuePeriodEnd').value          = r.periodEnd;
+  // 備考欄の初期値：同じ期間に既存の途中発行があればその notes を引き継ぐ、無ければ空
+  const notesEl = document.getElementById('issueNotes');
+  if (notesEl) {
+    notesEl.value = '';
+    try {
+      const existRes = await sbFetch(
+        `/rest/v1/invoices?tenant_id=eq.${encodeURIComponent(tenantId)}` +
+        `&customer_id=eq.${encodeURIComponent(r.customerId)}` +
+        `&period_start=eq.${encodeURIComponent(r.periodStart)}` +
+        `&period_end=eq.${encodeURIComponent(r.periodEnd)}` +
+        `&superseded_at=is.null&cancelled_at=is.null&select=notes&limit=1`
+      );
+      if (existRes.ok) {
+        const arr = await existRes.json();
+        if (arr[0] && arr[0].notes) notesEl.value = arr[0].notes;
+      }
+    } catch (e) { /* 引き継ぎ失敗は致命的でないので無視 */ }
+  }
   updateIssuePreview();
   document.getElementById('issueModalOverlay').classList.add('open');
 }
@@ -674,6 +696,7 @@ async function confirmIssue() {
     const num    = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
     const incl   = r.excl + r.tax;
 
+    const notesValue = (document.getElementById('issueNotes')?.value || '').trim();
     const invoicePayloadBody = {
       invoice_number: num,
       customer_id:    r.customerId,
@@ -685,6 +708,7 @@ async function confirmIssue() {
       total_incl_tax: incl,
       tenant_id:      tenantId,
       is_interim:     _isInterim,
+      notes:          notesValue || null,
     };
     if (manualPrevAmount !== null) invoicePayloadBody.manual_prev_amount = manualPrevAmount;
 

@@ -1007,6 +1007,7 @@
           </tfoot>
         </table>
       </div>
+      <div class="invoice-footer-notes" style="margin-top:8px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;min-height:38px;font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap">${f['備考'] ? esc(f['備考']) : ''}</div>
     `;
     fitPartyName(document.getElementById('deliveryBody'));
   }
@@ -1201,7 +1202,8 @@
 
       <div class="invoice-footer">
         <div>
-          ${f['備考'] ? `<div class="footer-section-title">備考</div><div style="font-size:13px;line-height:1.8;color:var(--text-muted);">${esc(f['備考'])}</div>` : ''}
+          <div class="footer-section-title">備考</div>
+          <div class="invoice-footer-notes" style="margin-top:4px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;min-height:38px;font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap">${f['備考'] ? esc(f['備考']) : ''}</div>
         </div>
       </div>
     `;
@@ -1451,7 +1453,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount,manual_prev_amount,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount,manual_prev_amount,notes,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -1463,17 +1465,19 @@
 
         let currentInvoicePaidAmount = null;
         let currentInvoiceManualPrev = null;
+        let currentInvoiceNotes = '';
         let snapshotItems = [];
         if (curRes && curRes.ok) {
           const d = await curRes.json();
           if (d[0]) {
             currentInvoicePaidAmount = d[0].paid_amount;
             currentInvoiceManualPrev = d[0].manual_prev_amount;
+            currentInvoiceNotes = d[0].notes || '';
             snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
           }
         }
 
-        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev } : null;
+        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, notes: currentInvoiceNotes } : null;
 
         const f = {
           '受注ID':   targetInvoiceNum || '',
@@ -1484,6 +1488,7 @@
           '締め日':   customerExtra.closing_day != null ? customerExtra.closing_day : null,
           '支払月オフセット': customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : null,
           '支払日':   customerExtra.payment_day != null ? customerExtra.payment_day : null,
+          '備考':     currentInvoiceNotes,
         };
         // 明細スナップショットがあればそれを優先（発行時点の商品名・単価・税率を保持）
         // スナップショットが無い既発行分は orders を再集計（フォールバック）
@@ -1519,7 +1524,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1543,6 +1548,7 @@
           '締め日':   order.customers?.closing_day != null ? order.customers?.closing_day : null,
           '支払月オフセット': order.customers?.payment_month_offset != null ? order.customers?.payment_month_offset : null,
           '支払日':   order.customers?.payment_day != null ? order.customers?.payment_day : null,
+          '備考':     order.notes || '',
         };
         const items = (order.order_items || []).map(it => ({
           '商品コード': it.products?.product_code || '',

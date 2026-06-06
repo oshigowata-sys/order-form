@@ -262,6 +262,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <div class="table-wrapper">
             <table id="modalItems"></table>
           </div>
+          <div id="orderNotesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
+            <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
+            <textarea id="orderNotes" maxlength="200" placeholder="（任意）" oninput="updateOrderNotes(this.value)" style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);resize:vertical" disabled></textarea>
+          </div>
           <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
             <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
             <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
@@ -356,6 +360,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             </table>
             <div class="entry-total" id="newOrderTotal" style="display:none"></div>
           </div>
+          <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+            <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
+            <textarea id="newOrderNotes" maxlength="200" placeholder="（任意）" oninput="updateNewOrderPreview()" style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);resize:vertical"></textarea>
+          </div>
           <div class="entry-error" id="orderError" style="font-size:14px;margin-top:8px"></div>
         </div>
         <div class="split-preview">
@@ -423,7 +431,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
       const res = await sbFetch(
-        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,customers(company_name,contact_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
+        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,notes,customers(company_name,contact_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
@@ -452,6 +460,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           isUnlinked,
           date:     r.order_date || '',
           status:   r.status || '',
+          notes:    r.notes || '',
           excl,
           tax,
           incl: excl + tax,
@@ -569,6 +578,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('detailStatusSelect').value = o.status;
     document.getElementById('detailStatusMsg').style.display = 'none';
     document.getElementById('detailOverlay').classList.add('open');
+    // 帳票全体の備考欄を表示（ビューモードは読み取り専用）
+    const notesEl = document.getElementById('orderNotes');
+    if (notesEl) {
+      notesEl.value = o.notes || '';
+      notesEl.disabled = true;
+    }
+    _editOrderNotesOriginal = o.notes || '';
     // プレビュー初期化（取引先情報・発行者情報・振込先を取得してから描画）
     window._viewModeItems = [];
     _currentEditOrderCustomer = null;
@@ -683,6 +699,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   let editMode = false;
   let editItems = [];
   let editAffectedInvoices = [];
+  let _editOrderNotesOriginal = '';
+
+  // 帳票全体の備考欄の更新（編集モード時に textarea から呼ばれる）
+  function updateOrderNotes(value) {
+    updateEditOrderPreview();
+  }
 
   async function enterEditMode() {
     const o = allOrders.find(x => x.id === currentDetailId);
@@ -734,6 +756,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
 
     editMode = true;
+    // 帳票全体の備考欄を編集可能化
+    const notesEl = document.getElementById('orderNotes');
+    if (notesEl) notesEl.disabled = false;
     renderEditMode();
     updateEditOrderPreview();
   }
@@ -742,6 +767,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     editMode = false;
     editItems = [];
     editAffectedInvoices = [];
+    // 帳票全体の備考欄を読み取り専用に戻し、元値を復元
+    const notesEl = document.getElementById('orderNotes');
+    if (notesEl) {
+      notesEl.value = _editOrderNotesOriginal || '';
+      notesEl.disabled = true;
+    }
     toggleEditUI(false);
     loadOrderDetail(currentDetailId);
   }
@@ -826,9 +857,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const sub = it.qty * it.unitPrice;
       excl += sub;
       tax += Math.round(sub * taxRate);
-      // 要相談商品（単価0）はインラインで単価入力可能にする
+      // 単価は常にインライン編集可能。要相談（unitPrice===0）の時は赤枠・placeholder。
       const priceCell = it.unitPrice > 0
-        ? `¥${it.unitPrice.toLocaleString()}`
+        ? `<input type="number" min="0" value="${it.unitPrice}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)">`
         : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
@@ -1000,6 +1031,18 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       ));
 
       const o = allOrders.find(x => x.id === currentDetailId);
+      // 帳票全体の備考欄を orders.notes に保存
+      const notesEl = document.getElementById('orderNotes');
+      const notesValue = notesEl ? (notesEl.value || '').trim() : '';
+      const notesPatchRes = await sbFetch(`/rest/v1/orders?id=eq.${currentDetailId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ notes: notesValue || null })
+      });
+      if (!notesPatchRes.ok) throw new Error('受注メモ保存失敗');
+      _editOrderNotesOriginal = notesValue;
+      if (o) o.notes = notesValue;
+
       if (o && editAffectedInvoices.length > 0) {
         const supersededAt = new Date().toISOString();
         await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&superseded_at=is.null&period_start=lte.${o.order_date}&period_end=gte.${o.order_date}`, {
@@ -1012,6 +1055,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       editMode = false;
       editItems = [];
       editAffectedInvoices = [];
+      // 備考欄を読み取り専用に戻す
+      if (notesEl) notesEl.disabled = true;
       await loadOrders();
       toggleEditUI(false);
       loadOrderDetail(currentDetailId);
@@ -1104,6 +1149,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const wrap = document.getElementById('newOrderPreviewWrap');
     if (!wrap) return;
     const orderDate = document.getElementById('newOrderDate')?.value || '';
+    const notes = document.getElementById('newOrderNotes')?.value || '';
     MeguReePreview.renderOrder(wrap, {
       customer: _currentNewOrderCustomer || {},
       settings: _previewSettings || {},
@@ -1113,7 +1159,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       deliveryDate: orderDate || null,
       invoiceNumber: null,
       issuedDate: orderDate || null,
-      dueDate: null
+      dueDate: null,
+      notes
     });
   }
 
@@ -1125,6 +1172,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const items = editMode
       ? buildPreviewItems(editItems, 'edit')
       : (window._viewModeItems || []);
+    const notes = document.getElementById('orderNotes')?.value || '';
     MeguReePreview.renderOrder(wrap, {
       customer: _currentEditOrderCustomer || {},
       settings: _previewSettings || {},
@@ -1134,7 +1182,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       deliveryDate: o.date || null,
       invoiceNumber: null,
       issuedDate: o.date || null,
-      dueDate: null
+      dueDate: null,
+      notes
     });
   }
 
@@ -1157,6 +1206,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('newOrderCustomer').value = '';
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
+    const newNotesEl = document.getElementById('newOrderNotes');
+    if (newNotesEl) newNotesEl.value = '';
     const search = document.getElementById('newItemSearch');
     if (search) search.value = '';
     renderSearchResults('', []);
@@ -1370,9 +1421,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     tbody.innerHTML = newOrderItems.map((item, i) => {
       const sub = item.qty * item.unitPrice;
       total += sub;
-      // 要相談商品（単価0）は単価欄をその場で入力できるようインライン input にする
+      // 単価は常にインライン編集可能。要相談（unitPrice===0）の時は赤枠・placeholder。
       const priceCell = item.unitPrice > 0
-        ? `¥${item.unitPrice.toLocaleString()}`
+        ? `<input type="number" min="0" value="${item.unitPrice}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)">`
         : `<input type="number" min="0" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
@@ -1403,10 +1454,11 @@ const errEl      = document.getElementById('orderError');
 
     try {
       const code = 'M-' + orderDate.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+      const notesValue = (document.getElementById('newOrderNotes')?.value || '').trim();
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, tenant_id: tenantId })
+        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, tenant_id: tenantId, notes: notesValue || null })
       });
       if (!orderRes.ok) throw new Error('order POST failed');
       const orderData = await orderRes.json();
