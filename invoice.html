@@ -425,6 +425,85 @@
     padding: 11px 14px;
   }
 
+  /* ===== 合計＋備考 横並びレイアウト ===== */
+  .totals-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    align-items: stretch;
+  }
+  .totals-notes-box {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 60px;
+  }
+  .totals-notes-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .totals-notes-textarea {
+    width: 100%;
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    background: transparent;
+    padding: 0;
+    min-height: 36px;
+  }
+  .totals-notes-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .totals-summary-table {
+    width: 260px;
+    border-collapse: collapse;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .totals-summary-table td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+  }
+  .totals-summary-table td:first-child {
+    background: #faf8f5;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    width: 110px;
+  }
+  .totals-summary-table td:last-child {
+    text-align: right;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .totals-summary-table tr.total-row td {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    background: #fff;
+    border-top: 2px solid var(--text);
+  }
+  /* 印刷時の自動保存ボタンは隠す */
+  @media print { .notes-save-btn { display: none !important; } }
+  /* 印刷時：備考textareaのスクロールバーや見た目を整える */
+  @media print {
+    .totals-notes-textarea { resize: none !important; overflow: hidden !important; }
+  }
+
   /* 振込先・備考 */
   .invoice-footer {
     display: grid;
@@ -999,15 +1078,20 @@
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
-          <tfoot>
-            <tr><td colspan="2">税抜合計</td><td colspan="5">${fmt(subtotal)}</td></tr>
-            ${tax8  > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="5">${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="5">${fmt(tax10)}</td></tr>` : ''}
-            <tr class="total-row"><td colspan="2">合計（税込）</td><td colspan="5">${fmt(total)}</td></tr>
-          </tfoot>
         </table>
+        <div class="totals-row">
+          <div class="totals-notes-box">
+            <div class="totals-notes-label">備考 / NOTES</div>
+            <textarea class="totals-notes-textarea" id="deliveryNotesTextarea" maxlength="200" placeholder="（任意）" onblur="saveDeliveryNotes()">${esc(f['備考'] || '')}</textarea>
+          </div>
+          <table class="totals-summary-table">
+            <tr><td>税抜合計</td><td>${fmt(subtotal)}</td></tr>
+            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td>${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmt(tax10)}</td></tr>` : ''}
+            <tr class="total-row"><td>合計（税込）</td><td>${fmt(total)}</td></tr>
+          </table>
+        </div>
       </div>
-      <div class="invoice-footer-notes" style="margin-top:8px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;min-height:38px;font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap">${f['備考'] ? esc(f['備考']) : ''}</div>
     `;
     fitPartyName(document.getElementById('deliveryBody'));
   }
@@ -1188,22 +1272,18 @@
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
-          <tfoot>
-            <tr><td colspan="2">小計</td><td colspan="5">${fmt(subtotal)}</td></tr>
-            ${tax8  > 0 ? `<tr><td colspan="2">消費税（8%）</td><td colspan="5">${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td colspan="2">消費税（10%）</td><td colspan="5">${fmt(tax10)}</td></tr>` : ''}
-            <tr class="total-row">
-              <td colspan="2">合計（税込）</td>
-              <td colspan="5">${fmt(total)}</td>
-            </tr>
-          </tfoot>
         </table>
-      </div>
-
-      <div class="invoice-footer">
-        <div>
-          <div class="footer-section-title">備考</div>
-          <div class="invoice-footer-notes" style="margin-top:4px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;min-height:38px;font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap">${f['備考'] ? esc(f['備考']) : ''}</div>
+        <div class="totals-row">
+          <div class="totals-notes-box">
+            <div class="totals-notes-label">備考 / NOTES</div>
+            <textarea class="totals-notes-textarea" id="invoiceNotesTextarea" maxlength="200" placeholder="（任意）" onblur="saveInvoiceNotes()">${esc(f['備考'] || '')}</textarea>
+          </div>
+          <table class="totals-summary-table">
+            <tr><td>小計</td><td>${fmt(subtotal)}</td></tr>
+            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td>${fmt(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmt(tax10)}</td></tr>` : ''}
+            <tr class="total-row"><td>合計（税込）</td><td>${fmt(total)}</td></tr>
+          </table>
         </div>
       </div>
     `;
@@ -1420,6 +1500,49 @@
     }
   }
 
+  // ===== 備考の自動保存（onblur） =====
+  // 納品書側：orders.notes へ
+  async function saveDeliveryNotes() {
+    const el = document.getElementById('deliveryNotesTextarea');
+    if (!el) return;
+    const orderId = window._currentOrderId;
+    if (!orderId) return;
+    const v = (el.value || '').trim();
+    try {
+      const res = await sbFetch(`/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ notes: v || null })
+      });
+      if (!res.ok) console.error('納品書備考の保存に失敗', await res.text());
+    } catch (e) { console.error('納品書備考の保存に失敗', e); }
+  }
+  // 請求書側：
+  //   - 期間請求書モード（_currentInvoiceId あり）→ invoices.notes
+  //   - 単一受注モード（_currentOrderId のみ）→ orders.notes
+  async function saveInvoiceNotes() {
+    const el = document.getElementById('invoiceNotesTextarea');
+    if (!el) return;
+    const v = (el.value || '').trim();
+    try {
+      if (window._currentInvoiceId) {
+        const res = await sbFetch(`/rest/v1/invoices?id=eq.${encodeURIComponent(window._currentInvoiceId)}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ notes: v || null })
+        });
+        if (!res.ok) console.error('請求書備考の保存に失敗', await res.text());
+      } else if (window._currentOrderId) {
+        const res = await sbFetch(`/rest/v1/orders?id=eq.${encodeURIComponent(window._currentOrderId)}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ notes: v || null })
+        });
+        if (!res.ok) console.error('請求書備考の保存に失敗', await res.text());
+      }
+    } catch (e) { console.error('請求書備考の保存に失敗', e); }
+  }
+
   // ===== データ取得（Supabase）=====
   async function loadInvoiceData() {
     try {
@@ -1453,7 +1576,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=paid_amount,manual_prev_amount,notes,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -1473,6 +1596,7 @@
             currentInvoicePaidAmount = d[0].paid_amount;
             currentInvoiceManualPrev = d[0].manual_prev_amount;
             currentInvoiceNotes = d[0].notes || '';
+            window._currentInvoiceId = d[0].id;
             snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
           }
         }
@@ -1539,6 +1663,7 @@
         // 取引先マスタに紐付いていればそちらを優先、無ければ注文時の入力値をフォールバック表示
         const fallbackCompany = order.customers?.company_name || order.input_company_name || '';
         const fallbackContact = order.customers?.contact_name || order.input_contact_name || '';
+        window._currentOrderId = order.id;
         const f = {
           '受注ID':   order.order_code || order.id,
           '取引先名': fallbackCompany,
