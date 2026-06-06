@@ -283,6 +283,7 @@
             <tr class="grand-row"><td colspan="4">合計（税込）</td><td class="num" colspan="3">${fmtYen(total)}</td></tr>
           </tfoot>
         </table>
+        ${data.notes ? `<div class="mini-preview-notes">${esc(data.notes).replace(/\n/g,'<br>')}</div>` : ''}
       </div>
     `;
   }
@@ -360,6 +361,7 @@
             <tr class="grand-row"><td colspan="4">今回御請求額（税込）</td><td class="num" colspan="3">${fmtYen(total)}</td></tr>
           </tfoot>
         </table>
+        ${data.notes ? `<div class="mini-preview-notes">${esc(data.notes).replace(/\n/g,'<br>')}</div>` : ''}
       </div>
     `;
   }
