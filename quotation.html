@@ -276,7 +276,8 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function fmt(n) {
-  return '¥' + Number(n || 0).toLocaleString('ja-JP');
+  const v = Number(n || 0);
+  return v < 0 ? '-¥' + Math.abs(v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP');
 }
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -565,8 +566,8 @@ function renderItems() {
                 ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
               </td>
               <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
-              <td class="num"><input type="number" class="qty" min="0" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-              <td class="num"><input type="number" class="price" min="0" step="1" value="${Number(it.unit_price || 0) > 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
+              <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
+              <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) > 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
@@ -588,12 +589,13 @@ function updateItemRemarks(idx, value) {
 
 function updateItem(idx, key, value) {
   if (!_items[idx]) return;
+  // 単価・数量ともマイナス値を許容（手数料・送料・返品用）
   _items[idx][key] = Number(value || 0);
   const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
   if (cell) {
     const it = _items[idx];
     const unit = Number(it.unit_price || 0);
-    cell.innerHTML = unit > 0
+    cell.innerHTML = unit !== 0
       ? fmt(Number(it.quantity || 0) * unit)
       : '<span style="color:#dc2626">要相談</span>';
   }
@@ -731,9 +733,9 @@ function renderPreview() {
         const price = Number(it.unit_price || 0);
         const sub = qty * price;
         const rate = it.is_food ? '8%' : '10%';
-        // 見積書プレビュー：単価0は「要相談」表示・金額列も「要相談」
-        const priceCell = price > 0 ? fmt(price) : '<span style="color:#dc2626">要相談</span>';
-        const subCell = price > 0 ? fmt(sub) : '<span style="color:#dc2626">要相談</span>';
+        // 見積書プレビュー：単価0のみ「要相談」表示。マイナスは通常入力扱い（手数料・返品用）
+        const priceCell = price !== 0 ? fmt(price) : '<span style="color:#dc2626">要相談</span>';
+        const subCell = price !== 0 ? fmt(sub) : '<span style="color:#dc2626">要相談</span>';
         const remarks = it.remarks || '';
         return `
           <tr>
