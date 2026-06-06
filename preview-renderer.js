@@ -115,6 +115,14 @@
         margin-top:8px;padding:8px;background:#f7f3ee;
         border-radius:6px;font-size:10px;line-height:1.4;color:#1a1208;
       }
+      .mini-preview-totals-row{display:flex;gap:6px;align-items:stretch;margin-top:4px}
+      .mini-preview-totals-notes{flex:1;border:1px solid #e2d9ce;border-radius:4px;padding:5px 7px;background:#fff;font-size:9px;line-height:1.4;color:#1a1208;min-height:42px;white-space:pre-wrap}
+      .mini-preview-totals-notes-label{font-size:7px;letter-spacing:1px;color:#7a6a55;text-transform:uppercase;margin-bottom:2px}
+      .mini-preview-totals-table{width:160px;border-collapse:collapse;font-size:9px;flex-shrink:0}
+      .mini-preview-totals-table td{border:1px solid #e2d9ce;padding:3px 6px}
+      .mini-preview-totals-table td:first-child{background:#faf8f5;color:#7a6a55;width:72px}
+      .mini-preview-totals-table td:last-child{text-align:right;font-family:'Space Grotesk',sans-serif}
+      .mini-preview-totals-table tr.grand-row td{font-weight:700;background:#fff;color:#1a1208}
     `;
     document.head.appendChild(style);
   }
@@ -276,14 +284,19 @@
             <th>備考</th>
           </tr></thead>
           <tbody>${dataRows}</tbody>
-          <tfoot>
-            <tr class="total-row"><td colspan="4">税抜合計</td><td class="num" colspan="3">${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td colspan="4">消費税（8%）</td><td class="num" colspan="3">${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td colspan="4">消費税（10%）</td><td class="num" colspan="3">${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td colspan="4">合計（税込）</td><td class="num" colspan="3">${fmtYen(total)}</td></tr>
-          </tfoot>
         </table>
-        ${data.notes ? `<div class="mini-preview-notes">${esc(data.notes).replace(/\n/g,'<br>')}</div>` : ''}
+        <div class="mini-preview-totals-row">
+          <div class="mini-preview-totals-notes">
+            <div class="mini-preview-totals-notes-label">備考 / NOTES</div>
+            ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
+          </div>
+          <table class="mini-preview-totals-table">
+            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
+            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
+            <tr class="grand-row"><td>合計（税込）</td><td>${fmtYen(total)}</td></tr>
+          </table>
+        </div>
       </div>
     `;
   }
@@ -354,14 +367,19 @@
             <th>備考</th>
           </tr></thead>
           <tbody>${dataRows}</tbody>
-          <tfoot>
-            <tr class="total-row"><td colspan="4">税抜合計</td><td class="num" colspan="3">${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td colspan="4">消費税（8%）</td><td class="num" colspan="3">${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td colspan="4">消費税（10%）</td><td class="num" colspan="3">${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td colspan="4">今回御請求額（税込）</td><td class="num" colspan="3">${fmtYen(total)}</td></tr>
-          </tfoot>
         </table>
-        ${data.notes ? `<div class="mini-preview-notes">${esc(data.notes).replace(/\n/g,'<br>')}</div>` : ''}
+        <div class="mini-preview-totals-row">
+          <div class="mini-preview-totals-notes">
+            <div class="mini-preview-totals-notes-label">備考 / NOTES</div>
+            ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
+          </div>
+          <table class="mini-preview-totals-table">
+            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
+            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
+            <tr class="grand-row"><td>今回御請求額（税込）</td><td>${fmtYen(total)}</td></tr>
+          </table>
+        </div>
       </div>
     `;
   }
@@ -436,14 +454,19 @@
             <th>JAN</th>
           </tr></thead>
           <tbody>${dataRows}</tbody>
-          <tfoot>
-            <tr class="total-row"><td colspan="4">税抜合計</td><td class="num" colspan="3">${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td colspan="4">消費税（8%）</td><td class="num" colspan="3">${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td colspan="4">消費税（10%）</td><td class="num" colspan="3">${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td colspan="4">合計（税込）</td><td class="num" colspan="3">${fmtYen(total)}</td></tr>
-          </tfoot>
         </table>
-        ${data.notes ? `<div class="mini-preview-notes">${esc(data.notes).replace(/\n/g,'<br>')}</div>` : ''}
+        <div class="mini-preview-totals-row">
+          <div class="mini-preview-totals-notes">
+            <div class="mini-preview-totals-notes-label">備考 / NOTES</div>
+            ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
+          </div>
+          <table class="mini-preview-totals-table">
+            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
+            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
+            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
+            <tr class="grand-row"><td>合計（税込）</td><td>${fmtYen(total)}</td></tr>
+          </table>
+        </div>
       </div>
     `;
   }
