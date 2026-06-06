@@ -133,7 +133,8 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
   function fmtYen(n) {
-    return '¥' + Number(n || 0).toLocaleString('ja-JP');
+    const v = Number(n || 0);
+    return v < 0 ? '-¥' + Math.abs(v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP');
   }
   function fmtJa(dateStr) {
     if (!dateStr) return '';

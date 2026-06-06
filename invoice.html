@@ -970,7 +970,8 @@
 
   // ===== 金額フォーマット =====
   function fmt(n) {
-    return '¥' + Number(n || 0).toLocaleString('ja-JP');
+    const v = Number(n || 0);
+    return v < 0 ? '-¥' + Math.abs(v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP');
   }
 
   // ===== 取引先住所フォーマット（郵便番号付き） =====
