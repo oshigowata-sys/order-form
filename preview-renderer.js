@@ -224,7 +224,8 @@
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
     const sub = qty * price;
-    const isReq = !(price > 0);
+    // 単価0のみ「要相談」表示。マイナスは通常表示（手数料・送料・返品用）。
+    const isReq = price === 0;
     const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(price);
     const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
     return `<tr>
@@ -400,7 +401,8 @@
           const qty = Number(it.quantity || 0);
           const price = Number(it.unit_price || 0);
           const sub = qty * price;
-          const isReq = !(price > 0);
+          // 単価0のみ「要相談」表示。マイナスは通常表示（手数料・送料・返品用）。
+          const isReq = price === 0;
           const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(price);
           const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
           return `<tr>

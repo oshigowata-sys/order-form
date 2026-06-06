@@ -568,7 +568,7 @@ function renderItems() {
               <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
               <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
               <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
-              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) > 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
+              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
