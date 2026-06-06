@@ -211,7 +211,8 @@
     for (const it of items) {
       const qty = Number(it.quantity || 0);
       const price = Number(it.unit_price || 0);
-      if (price <= 0) continue;
+      // 単価0は「要相談」で合計除外。マイナス値（手数料・送料・返品）は合計に含める。
+      if (price === 0) continue;
       const sub = qty * price;
       subtotal += sub;
       if (it.is_food) tax8 += Math.round(sub * 0.08);
