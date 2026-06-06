@@ -462,10 +462,10 @@ async function loadAll() {
     const pendingRows    = Object.values(map).filter(r => r.status === 'pending' && r.orders > 0);
     const inProgressRows = Object.values(map).filter(r => r.status === 'in_progress');
 
-    // 並び順：未発行→発行済み→進行中
-    _allRows = [...pendingRows, ...issuedRows, ...inProgressRows];
+    // 並び順：未発行→進行中→発行済み（業務的に「これから請求書を出すもの」を優先表示）
+    _allRows = [...pendingRows, ...inProgressRows, ...issuedRows];
 
-    updateKPIs(pendingRows, issuedRows);
+    updateKPIs(pendingRows, issuedRows, inProgressRows);
     populateMonthFilter();
     renderAll();
   } catch(e) {
@@ -475,19 +475,23 @@ async function loadAll() {
   }
 }
 
-function updateKPIs(pendingRows, issuedRows) {
+function updateKPIs(pendingRows, issuedRows, inProgressRows = []) {
   // 取消済は発行済み件数・累計から除外
   const activeIssued = issuedRows.filter(r => !r.cancelled);
-  document.getElementById('kpiPending').textContent = pendingRows.length;
+  // 「未発行」KPI：締め切り済み未発行＋進行中（締め日前）を合算
+  // 業務的に「これから請求書を出す必要があるもの」の総数を表示する
+  const upcoming = [...pendingRows, ...inProgressRows];
+  document.getElementById('kpiPending').textContent = upcoming.length;
   document.getElementById('kpiIssued').textContent  = activeIssued.length;
-  document.getElementById('kpiPendingAmount').textContent = '¥' + pendingRows.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
+  document.getElementById('kpiPendingAmount').textContent = '¥' + upcoming.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
   document.getElementById('kpiIssuedAmount').textContent  = '¥' + activeIssued.reduce((s,r) => s + r.excl + r.tax, 0).toLocaleString();
 }
 
 function renderAll() {
   const tbody = document.getElementById('unifiedTbody');
   let rows = _allRows;
-  if (currentFilter === 'pending') rows = rows.filter(r => r.status === 'pending');
+  // 「未発行」フィルタは「これから請求書を出すもの」全体（締め切り済み未発行＋進行中）
+  if (currentFilter === 'pending') rows = rows.filter(r => r.status === 'pending' || r.status === 'in_progress');
   else if (currentFilter === 'issued') rows = rows.filter(r => r.status === 'issued');
   if (currentMonth !== 'all') {
     rows = rows.filter(r => r.periodEnd && r.periodEnd.slice(0, 7) === currentMonth);
