@@ -861,7 +861,8 @@
       const rows = [];
       if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
       if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
-      rows.push(`<tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`);
+      // 個人取引は税の概念なしなので「合計」のみ（「(税込)」「今回御請求額(税込)」も除去）
+      rows.push(`<tr class="total-row"><td>合計</td><td>${fmt(t.total)}</td></tr>`);
       return rows.join('');
     }
     return `
