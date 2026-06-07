@@ -753,7 +753,7 @@ async function confirmIssue() {
         + '&customer_id=eq.' + encodeURIComponent(r.customerId)
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
-        + '&select=id,order_date,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
         + '&order=order_date.asc'
       );
       if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
@@ -761,7 +761,13 @@ async function confirmIssue() {
 
       const itemsPayload = [];
       let dispOrder = 0;
+      let periodHandlingFee = 0;
+      let periodShippingFee = 0;
+      let periodIsPersonal = false;
       for (const ord of (ordersData || [])) {
+        periodHandlingFee += Number(ord.handling_fee) || 0;
+        periodShippingFee += Number(ord.shipping_fee) || 0;
+        if (ord.is_personal_trade) periodIsPersonal = true;
         for (const it of (ord.order_items || [])) {
           const unitPrice = Number(it.unit_price) || 0;
           const qty       = Number(it.quantity)   || 0;
@@ -786,6 +792,29 @@ async function confirmIssue() {
           body: JSON.stringify(itemsPayload),
         });
         if (!itemsRes.ok) throw new Error('HTTP ' + itemsRes.status);
+      }
+
+      // 期間集計後、個人取引フラグ・手数料・送料を invoices にスナップショット保存。
+      // 同時に、手数料・送料の控除分で total_excl_tax / tax_amount / total_incl_tax を補正。
+      if (periodIsPersonal || periodHandlingFee > 0 || periodShippingFee > 0) {
+        const patch = {
+          is_personal_trade: periodIsPersonal,
+          handling_fee:      periodHandlingFee,
+          shipping_fee:      periodShippingFee,
+        };
+        const feeSum = periodHandlingFee + periodShippingFee;
+        if (feeSum > 0) {
+          const newExcl = r.excl - feeSum;
+          const newTax  = r.tax  - Math.round(feeSum * 0.10);
+          patch.total_excl_tax = newExcl;
+          patch.tax_amount     = newTax;
+          patch.total_incl_tax = newExcl + newTax;
+        }
+        await sbFetch('/rest/v1/invoices?id=eq.' + encodeURIComponent(invoiceId), {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify(patch),
+        });
       }
     } catch (snapshotErr) {
       // 明細スナップショット保存失敗 → 請求書ヘッダを取り消してロールバック

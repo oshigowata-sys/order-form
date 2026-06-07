@@ -213,6 +213,23 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
         <label class="form-label">備考</label>
         <textarea class="form-textarea" id="notes" placeholder="お見積もりに関する備考があればこちらにご記入ください"></textarea>
       </div>
+      <div class="form-group full" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <label class="form-label" style="margin:0">手数料・送料（標準税率10%・コ）</label>
+          <span id="qFeesTaxMode" style="font-size:11px;color:var(--text-muted)"></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+            <input type="number" id="qHandlingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+            <input type="number" id="qShippingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">控除（マイナス計上）として合計から差し引きます。</div>
+      </div>
     </div>
 
     <div class="items-section">
@@ -278,6 +295,46 @@ function esc(s) {
 function fmt(n) {
   const v = Number(n || 0);
   return v < 0 ? '-¥' + Math.abs(v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP');
+}
+
+// 内部保存は税抜き。個人取引（isPersonalTrade=true）のみ表示時に税込み換算する。
+function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
+  if (!isPersonalTrade) return Math.round(unitPriceExcl);
+  const rate = isFood ? 0.08 : 0.10;
+  return Math.round(unitPriceExcl * (1 + rate));
+}
+function taxMarkText(isFood) { return isFood ? 'ケ' : 'コ'; }
+function calcQuotationTotals(items, handlingFee, shippingFee) {
+  let excl8 = 0, excl10 = 0;
+  items.forEach(it => {
+    const sub = Number(it.quantity || 0) * Number(it.unit_price || 0);
+    if (it.is_food) excl8 += sub;
+    else            excl10 += sub;
+  });
+  excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+  const tax8  = Math.round(excl8  * 0.08);
+  const tax10 = Math.round(excl10 * 0.10);
+  return {
+    excl8, excl10,
+    subtotal: excl8 + excl10,
+    tax8, tax10, tax: tax8 + tax10,
+    total: excl8 + excl10 + tax8 + tax10,
+    incl8: excl8 + tax8, incl10: excl10 + tax10,
+  };
+}
+function buildQuotationTotalsRows(t, isPersonalTrade) {
+  if (isPersonalTrade) {
+    const rows = [];
+    if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmt(t.incl8)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax8)}</td></tr>`);
+    if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.incl10)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax10)}</td></tr>`);
+    rows.push(`<tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`);
+    return rows.join('');
+  }
+  return `
+    <tr><td>小計</td><td>${fmt(t.subtotal)}</td></tr>
+    ${t.tax8  !== 0 ? `<tr><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>` : ''}
+    ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
+    <tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`;
 }
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -349,6 +406,9 @@ let _pricing = []; // { customer_id, product_id, unit_price }
 let _items = []; // { product_id, product_code, product_name, quantity, unit_price, is_food }
 let _selectedCustomer = null;
 let _existingNumber = null;
+let _handlingFee = 0;
+let _shippingFee = 0;
+let _isPersonalTrade = false;
 
 // ===== 初期ロード =====
 async function init() {
@@ -426,6 +486,16 @@ async function loadExistingQuotation() {
   } else if (q.customer_snapshot) {
     _selectedCustomer = q.customer_snapshot;
   }
+  // 発行時のスナップショットを優先、無ければ取引先マスタにフォールバック
+  _isPersonalTrade = (q.is_personal_trade != null)
+    ? !!q.is_personal_trade
+    : !!(_selectedCustomer && _selectedCustomer.is_personal_trade);
+  _handlingFee = Number(q.handling_fee) || 0;
+  _shippingFee = Number(q.shipping_fee) || 0;
+  document.getElementById('qHandlingFee').value = _handlingFee;
+  document.getElementById('qShippingFee').value = _shippingFee;
+  const modeEl = document.getElementById('qFeesTaxMode');
+  if (modeEl) modeEl.textContent = _isPersonalTrade ? '個人取引（税込み表示）' : '卸取引（税抜き表示）';
   _items = (q.quotation_items || [])
     .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     .map(it => ({
@@ -449,6 +519,9 @@ async function loadExistingQuotation() {
 function onCustomerChange() {
   const id = document.getElementById('customerSelect').value;
   _selectedCustomer = id ? _customers.find(c => c.id === id) : null;
+  _isPersonalTrade = !!(_selectedCustomer && _selectedCustomer.is_personal_trade);
+  const modeEl = document.getElementById('qFeesTaxMode');
+  if (modeEl) modeEl.textContent = _isPersonalTrade ? '個人取引（税込み表示）' : '卸取引（税抜き表示）';
   // 既存明細について、新しい取引先の掛け率で単価を再計算（手入力済みの値は尊重し、商品から追加された価格のみ更新）
   _items.forEach(it => {
     if (!it.product_id) return;
@@ -456,6 +529,12 @@ function onCustomerChange() {
     if (price != null) it.unit_price = price;
   });
   renderItems();
+  renderPreview();
+}
+
+function updateQuotationFees() {
+  _handlingFee = Math.max(0, Number(document.getElementById('qHandlingFee')?.value) || 0);
+  _shippingFee = Math.max(0, Number(document.getElementById('qShippingFee')?.value) || 0);
   renderPreview();
 }
 
@@ -567,8 +646,8 @@ function renderItems() {
               </td>
               <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
               <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-              <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? Number(it.unit_price) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}></td>
-              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * Number(it.unit_price || 0)) : '<span style="color:#dc2626">要相談</span>'}</td>
+              <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.is_food)}</span></td>
+              <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
               <td><button class="btn-remove-item" onclick="removeItem(${i})">削除</button></td>
@@ -589,14 +668,20 @@ function updateItemRemarks(idx, value) {
 
 function updateItem(idx, key, value) {
   if (!_items[idx]) return;
-  // 単価・数量ともマイナス値を許容（手数料・送料・返品用）
-  _items[idx][key] = Number(value || 0);
+  // 単価・数量ともマイナス値を許容（返品用）。個人取引時は単価を税込み入力として受け取り、内部は税抜きに換算して保存。
+  const num = Number(value || 0);
+  if (key === 'unit_price' && _isPersonalTrade) {
+    _items[idx].unit_price = Math.round(num / (1 + (_items[idx].is_food ? 0.08 : 0.10)));
+  } else {
+    _items[idx][key] = num;
+  }
   const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
   if (cell) {
     const it = _items[idx];
     const unit = Number(it.unit_price || 0);
+    const unitDisp = toDisplayPrice(unit, !!it.is_food, _isPersonalTrade);
     cell.innerHTML = unit !== 0
-      ? fmt(Number(it.quantity || 0) * unit)
+      ? fmt(Number(it.quantity || 0) * unitDisp)
       : '<span style="color:#dc2626">要相談</span>';
   }
   renderPreview();
@@ -682,11 +767,10 @@ function renderPreview() {
   const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
   const notes = document.getElementById('notes').value || '';
 
-  const subtotal = _items.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.unit_price || 0), 0);
-  const tax8 = _items.filter(i => i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.08), 0);
-  const tax10 = _items.filter(i => !i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.10), 0);
-  const tax = tax8 + tax10;
-  const total = subtotal + tax;
+  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee);
+  const subtotal = totals.subtotal;
+  const tax = totals.tax;
+  const total = totals.total;
 
   const c = _selectedCustomer || {};
   const customerName = c.company_name || c.name || '取引先を選択してください';
@@ -727,15 +811,35 @@ function renderPreview() {
     ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}
   ` : '<div style="color:#aaa;font-size:13px">⚙ 発行者情報を設定してください</div>';
 
+  const buildFeeRow = (label, fee) => {
+    const stored = -Math.abs(Number(fee) || 0);
+    const disp = toDisplayPrice(stored, false, _isPersonalTrade);
+    return `
+      <tr>
+        <td style="text-align:right;width:80px">—</td>
+        <td>${label}</td>
+        <td style="text-align:right;width:55px">—</td>
+        <td style="text-align:right;width:50px">1</td>
+        <td style="text-align:right;width:85px">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false)}</span></td>
+        <td style="text-align:right;width:100px">${fmt(disp)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">10%</span></td>
+        <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px"></td>
+        <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">—</td>
+      </tr>`;
+  };
+  let feeRows = '';
+  if (_handlingFee > 0) feeRows += buildFeeRow('手数料', _handlingFee);
+  if (_shippingFee > 0) feeRows += buildFeeRow('送料',   _shippingFee);
+
   const dataRows = _items.length > 0
     ? _items.map(it => {
         const qty = Number(it.quantity || 0);
-        const price = Number(it.unit_price || 0);
-        const sub = qty * price;
+        const priceStored = Number(it.unit_price || 0);
+        const priceDisp = toDisplayPrice(priceStored, !!it.is_food, _isPersonalTrade);
+        const subDisp = qty * priceDisp;
         const rate = it.is_food ? '8%' : '10%';
-        // 見積書プレビュー：単価0のみ「要相談」表示。マイナスは通常入力扱い（手数料・返品用）
-        const priceCell = price !== 0 ? fmt(price) : '<span style="color:#dc2626">要相談</span>';
-        const subCell = price !== 0 ? fmt(sub) : '<span style="color:#dc2626">要相談</span>';
+        // 見積書プレビュー：単価0のみ「要相談」表示。マイナスは通常入力扱い（返品用）
+        const priceCell = priceStored !== 0 ? `${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.is_food)}</span>` : '<span style="color:#dc2626">要相談</span>';
+        const subCell = priceStored !== 0 ? fmt(subDisp) : '<span style="color:#dc2626">要相談</span>';
         const remarks = it.remarks || '';
         return `
           <tr>
@@ -748,9 +852,10 @@ function renderPreview() {
             <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px">${esc(remarks)}</td>
             <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
           </tr>`;
-      }).join('')
+      }).join('') + feeRows
     : '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
-  const emptyCount = Math.max(0, 10 - Math.max(_items.length, 1));
+  const feeRowCount = (_handlingFee > 0 ? 1 : 0) + (_shippingFee > 0 ? 1 : 0);
+  const emptyCount = Math.max(0, 10 - Math.max(_items.length + feeRowCount, 1));
   const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
@@ -811,10 +916,7 @@ function renderPreview() {
           ${esc(notes)}
         </div>
         <table class="totals-table">
-          <tr><td>小計</td><td>${fmt(subtotal)}</td></tr>
-          ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmt(tax8)}</td></tr>` : ''}
-          ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmt(tax10)}</td></tr>` : ''}
-          <tr class="total-row"><td>合計（税込）</td><td>${fmt(total)}</td></tr>
+          ${buildQuotationTotalsRows(totals, _isPersonalTrade)}
         </table>
       </div>
     </div>
@@ -876,11 +978,10 @@ async function saveQuotation() {
   btn.textContent = '保存中...';
 
   try {
-    const subtotal = _items.reduce((sum, it) => sum + Number(it.quantity || 0) * Number(it.unit_price || 0), 0);
-    const tax8 = _items.filter(i => i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.08), 0);
-    const tax10 = _items.filter(i => !i.is_food).reduce((s, i) => s + Math.round(Number(i.quantity || 0) * Number(i.unit_price || 0) * 0.10), 0);
-    const tax = tax8 + tax10;
-    const total = subtotal + tax;
+    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee);
+    const subtotal = totals.subtotal;
+    const tax = totals.tax;
+    const total = totals.total;
 
     const customer = _customers.find(c => c.id === customerId) || null;
     const customerSnapshot = customer ? {
@@ -916,7 +1017,10 @@ async function saveQuotation() {
         subtotal,
         tax_amount: tax,
         total_incl_tax: total,
-        notes
+        notes,
+        is_personal_trade: !!_isPersonalTrade,
+        handling_fee: _handlingFee,
+        shipping_fee: _shippingFee,
       });
       const inserted = await insRes.json();
       qid = inserted[0]?.id;
@@ -931,7 +1035,10 @@ async function saveQuotation() {
         subtotal,
         tax_amount: tax,
         total_incl_tax: total,
-        notes
+        notes,
+        is_personal_trade: !!_isPersonalTrade,
+        handling_fee: _handlingFee,
+        shipping_fee: _shippingFee,
       });
       // 既存明細を削除
       const delRes = await sbFetch(`/rest/v1/quotation_items?quotation_id=eq.${qid}`, { method: 'DELETE' });
