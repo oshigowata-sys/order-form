@@ -206,33 +206,38 @@
     `;
   }
 
-  // 内部保存は税抜き。個人取引（isPersonal）のとき表示時に税込み換算する。
-  function toDispPrice(price, isFood, isPersonal) {
-    if (!isPersonal) return Math.round(price);
-    const r = isFood ? 0.08 : 0.10;
-    return Math.round(price * (1 + r));
+  // 個人取引：税込み単価そのまま／卸取引：税抜き単価そのまま。換算なし。
+  function toDispPrice(price, _isFood, _isPersonal) {
+    return Math.round(price);
   }
-  function taxMark(isFood) { return isFood ? 'ケ' : 'コ'; }
+  function taxMark(isFood) { return isFood ? 'ケコ' : 'コ'; }
 
-  function calcTotals(items, handlingFee, shippingFee) {
-    let excl8 = 0, excl10 = 0;
+  function calcTotals(items, handlingFee, shippingFee, isPersonal) {
+    let sum8 = 0, sum10 = 0;
     for (const it of items) {
       const qty = Number(it.quantity || 0);
       const price = Number(it.unit_price || 0);
       if (price === 0) continue;
       const sub = qty * price;
-      if (it.is_food) excl8 += sub;
-      else excl10 += sub;
+      if (it.is_food) sum8 += sub;
+      else sum10 += sub;
     }
-    excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
-    const tax8 = Math.round(excl8 * 0.08);
-    const tax10 = Math.round(excl10 * 0.10);
-    const subtotal = excl8 + excl10;
+    sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    if (isPersonal) {
+      return {
+        excl8: sum8, excl10: sum10, subtotal: sum8 + sum10,
+        tax8: 0, tax10: 0, tax: 0,
+        total: sum8 + sum10,
+        incl8: sum8, incl10: sum10,
+      };
+    }
+    const tax8 = Math.round(sum8 * 0.08);
+    const tax10 = Math.round(sum10 * 0.10);
     return {
-      excl8, excl10, subtotal,
+      excl8: sum8, excl10: sum10, subtotal: sum8 + sum10,
       tax8, tax10, tax: tax8 + tax10,
-      total: subtotal + tax8 + tax10,
-      incl8: excl8 + tax8, incl10: excl10 + tax10,
+      total: sum8 + sum10 + tax8 + tax10,
+      incl8: sum8 + tax8, incl10: sum10 + tax10,
     };
   }
 
@@ -240,8 +245,8 @@
     const grand = grandLabel || '合計（税込）';
     if (isPersonal) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmtYen(t.incl8)}</td></tr><tr><td style="font-size:9px;color:#7a6a55">　内税額</td><td style="font-size:9px;color:#7a6a55">${fmtYen(t.tax8)}</td></tr>`);
-      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmtYen(t.incl10)}</td></tr><tr><td style="font-size:9px;color:#7a6a55">　内税額</td><td style="font-size:9px;color:#7a6a55">${fmtYen(t.tax10)}</td></tr>`);
+      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmtYen(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmtYen(t.excl10)}</td></tr>`);
       rows.push(`<tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`);
       return rows.join('');
     }
@@ -252,11 +257,10 @@
       <tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`;
   }
 
-  function buildFeeRows(handlingFee, shippingFee, isPersonal) {
+  function buildFeeRows(handlingFee, shippingFee, _isPersonal) {
     const rows = [];
     const fmtFee = (label, fee) => {
-      const stored = -Math.abs(Number(fee) || 0);
-      const disp = toDispPrice(stored, false, isPersonal);
+      const disp = -Math.abs(Number(fee) || 0);
       return `<tr>
         <td class="code">—</td>
         <td>${label}</td>
@@ -272,14 +276,13 @@
     return rows.join('');
   }
 
-  function buildOrderItemRow(it, isPersonal) {
+  function buildOrderItemRow(it, _isPersonal) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
-    const dispPrice = toDispPrice(price, !!it.is_food, isPersonal);
-    const subDisp = qty * dispPrice;
+    const sub = qty * price;
     const isReq = price === 0;
-    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(dispPrice)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
-    const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(subDisp);
+    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(price)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
+    const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
     return `<tr>
       <td class="code">${esc(it.product_code || '—')}</td>
       <td>${esc(it.product_name || '-')}</td>
@@ -298,7 +301,7 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee);
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
 
     const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date().toISOString().slice(0,10));
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
@@ -364,7 +367,7 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee);
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
 
     const invoiceNumLabel = data.invoiceNumber || '<span class="mini-preview-undecided">（未確定）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
@@ -446,7 +449,7 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee);
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
 
     const numberLabel = data.quotationNumber || '<span class="mini-preview-undecided">（保存時に自動採番）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));

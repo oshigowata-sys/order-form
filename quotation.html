@@ -297,36 +297,43 @@ function fmt(n) {
   return v < 0 ? '-¥' + Math.abs(v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP');
 }
 
-// 内部保存は税抜き。個人取引（isPersonalTrade=true）のみ表示時に税込み換算する。
-function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
-  if (!isPersonalTrade) return Math.round(unitPriceExcl);
-  const rate = isFood ? 0.08 : 0.10;
-  return Math.round(unitPriceExcl * (1 + rate));
+// 個人取引：税込み単価そのまま／卸取引：税抜き単価そのまま。換算なし。
+function toDisplayPrice(unitPrice, _isFood, _isPersonalTrade) {
+  return Math.round(unitPrice);
 }
-function taxMarkText(isFood) { return isFood ? 'ケ' : 'コ'; }
-function calcQuotationTotals(items, handlingFee, shippingFee) {
-  let excl8 = 0, excl10 = 0;
+function taxMarkText(isFood) { return isFood ? 'ケコ' : 'コ'; }
+function calcQuotationTotals(items, handlingFee, shippingFee, isPersonalTrade) {
+  let sum8 = 0, sum10 = 0;
   items.forEach(it => {
     const sub = Number(it.quantity || 0) * Number(it.unit_price || 0);
-    if (it.is_food) excl8 += sub;
-    else            excl10 += sub;
+    if (it.is_food) sum8 += sub;
+    else            sum10 += sub;
   });
-  excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
-  const tax8  = Math.round(excl8  * 0.08);
-  const tax10 = Math.round(excl10 * 0.10);
+  sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+  if (isPersonalTrade) {
+    return {
+      excl8: sum8, excl10: sum10,
+      subtotal: sum8 + sum10,
+      tax8: 0, tax10: 0, tax: 0,
+      total: sum8 + sum10,
+      incl8: sum8, incl10: sum10,
+    };
+  }
+  const tax8  = Math.round(sum8 * 0.08);
+  const tax10 = Math.round(sum10 * 0.10);
   return {
-    excl8, excl10,
-    subtotal: excl8 + excl10,
+    excl8: sum8, excl10: sum10,
+    subtotal: sum8 + sum10,
     tax8, tax10, tax: tax8 + tax10,
-    total: excl8 + excl10 + tax8 + tax10,
-    incl8: excl8 + tax8, incl10: excl10 + tax10,
+    total: sum8 + sum10 + tax8 + tax10,
+    incl8: sum8 + tax8, incl10: sum10 + tax10,
   };
 }
 function buildQuotationTotalsRows(t, isPersonalTrade) {
   if (isPersonalTrade) {
     const rows = [];
-    if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmt(t.incl8)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax8)}</td></tr>`);
-    if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.incl10)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax10)}</td></tr>`);
+    if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
+    if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
     rows.push(`<tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`);
     return rows.join('');
   }
@@ -668,13 +675,9 @@ function updateItemRemarks(idx, value) {
 
 function updateItem(idx, key, value) {
   if (!_items[idx]) return;
-  // 単価・数量ともマイナス値を許容（返品用）。個人取引時は単価を税込み入力として受け取り、内部は税抜きに換算して保存。
-  const num = Number(value || 0);
-  if (key === 'unit_price' && _isPersonalTrade) {
-    _items[idx].unit_price = Math.round(num / (1 + (_items[idx].is_food ? 0.08 : 0.10)));
-  } else {
-    _items[idx][key] = num;
-  }
+  // 単価・数量ともマイナス値を許容（返品用）。
+  // 個人取引でも卸取引でも入力値をそのまま保存（個人取引は税込み・卸取引は税抜きという運用ルール）。
+  _items[idx][key] = Number(value || 0);
   const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
   if (cell) {
     const it = _items[idx];
@@ -767,7 +770,7 @@ function renderPreview() {
   const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
   const notes = document.getElementById('notes').value || '';
 
-  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee);
+  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade);
   const subtotal = totals.subtotal;
   const tax = totals.tax;
   const total = totals.total;
@@ -978,7 +981,7 @@ async function saveQuotation() {
   btn.textContent = '保存中...';
 
   try {
-    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee);
+    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;

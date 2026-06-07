@@ -795,7 +795,7 @@ async function confirmIssue() {
       }
 
       // 期間集計後、個人取引フラグ・手数料・送料を invoices にスナップショット保存。
-      // 同時に、手数料・送料の控除分で total_excl_tax / tax_amount / total_incl_tax を補正。
+      // 個人取引：単価＝税込みなので消費税計算なし／卸取引：手数料・送料の控除分で補正。
       if (periodIsPersonal || periodHandlingFee > 0 || periodShippingFee > 0) {
         const patch = {
           is_personal_trade: periodIsPersonal,
@@ -803,7 +803,13 @@ async function confirmIssue() {
           shipping_fee:      periodShippingFee,
         };
         const feeSum = periodHandlingFee + periodShippingFee;
-        if (feeSum > 0) {
+        if (periodIsPersonal) {
+          // 個人取引：単価＝税込み合計。手数料・送料を控除して合計。消費税なし。
+          const newExcl = r.excl - feeSum;
+          patch.total_excl_tax = newExcl;
+          patch.tax_amount     = 0;
+          patch.total_incl_tax = newExcl;
+        } else if (feeSum > 0) {
           const newExcl = r.excl - feeSum;
           const newTax  = r.tax  - Math.round(feeSum * 0.10);
           patch.total_excl_tax = newExcl;
