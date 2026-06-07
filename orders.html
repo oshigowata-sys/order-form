@@ -385,11 +385,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
-                <input type="number" id="newHandlingFee" value="0" min="0" oninput="updateNewOrderPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="number" id="newHandlingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
               </div>
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
-                <input type="number" id="newShippingFee" value="0" min="0" oninput="updateNewOrderPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="number" id="newShippingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
               </div>
             </div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">控除（マイナス計上）として合計から差し引きます。</div>
@@ -1530,6 +1530,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const h = Number(document.getElementById('newHandlingFee')?.value) || 0;
     const s = Number(document.getElementById('newShippingFee')?.value) || 0;
     return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s) };
+  }
+
+  function updateNewFees() {
+    renderNewTotals();
+    updateNewOrderPreview();
   }
 
   function renderNewTotals() {
