@@ -460,50 +460,55 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   let currentEditIsPersonalTrade = false;
   let currentNewIsPersonalTrade  = false;
 
-  // 内部保存は税抜き単価。個人間取引のときだけ表示時に税込み換算する。
-  function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
-    if (!isPersonalTrade) return Math.round(unitPriceExcl);
-    const rate = isFood ? 0.08 : 0.10;
-    return Math.round(unitPriceExcl * (1 + rate));
+  // 個人取引では単価を税込み金額そのまま保存・表示。卸取引では税抜き保存・税抜き表示。
+  // 換算ロジックは不要（入力と表示が同じ値）。
+  function toDisplayPrice(unitPrice, _isFood, _isPersonalTrade) {
+    return Math.round(unitPrice);
   }
-  // 個人間取引で税込み入力された単価を内部保存用の税抜きに戻す。
-  function toStoredPrice(displayPrice, isFood, isPersonalTrade) {
-    if (!isPersonalTrade) return Math.round(displayPrice);
-    const rate = isFood ? 0.08 : 0.10;
-    return Math.round(displayPrice / (1 + rate));
+  function toStoredPrice(displayPrice, _isFood, _isPersonalTrade) {
+    return Math.round(displayPrice);
   }
-  function taxMark(isFood) { return isFood ? 'ケ' : 'コ'; }
+  // 税率マーク：軽減税率込み='ケコ'、標準税率込み='コ'
+  function taxMark(isFood) { return isFood ? 'ケコ' : 'コ'; }
 
-  // 集計（手数料・送料は税抜き・標準税率10%として控除）
-  function calcOrderTotals(items, handlingFeeExcl, shippingFeeExcl) {
-    let excl8 = 0, excl10 = 0;
+  // 集計（卸取引：外税方式で消費税計算 / 個人取引：単価＝税込み金額として単純合計）
+  function calcOrderTotals(items, handlingFee, shippingFee, isPersonalTrade) {
+    let sum8 = 0, sum10 = 0;
     items.forEach(it => {
       const sub = (Number(it.qty) || 0) * (Number(it.unitPrice) || 0);
-      if (it.isFood) excl8 += sub;
-      else           excl10 += sub;
+      if (it.isFood) sum8 += sub;
+      else           sum10 += sub;
     });
-    excl10 -= (Number(handlingFeeExcl) || 0) + (Number(shippingFeeExcl) || 0);
-    const tax8  = Math.round(excl8  * 0.08);
-    const tax10 = Math.round(excl10 * 0.10);
+    sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    if (isPersonalTrade) {
+      // 単価は税込み・消費税計算なし（メルカリ等の販売価格そのまま）
+      return {
+        excl8: sum8, excl10: sum10,
+        exclTotal: sum8 + sum10,
+        tax8: 0, tax10: 0, taxTotal: 0,
+        inclTotal: sum8 + sum10,
+        incl8: sum8, incl10: sum10,
+      };
+    }
+    const tax8  = Math.round(sum8  * 0.08);
+    const tax10 = Math.round(sum10 * 0.10);
     return {
-      excl8, excl10,
-      exclTotal: excl8 + excl10,
+      excl8: sum8, excl10: sum10,
+      exclTotal: sum8 + sum10,
       tax8, tax10,
       taxTotal: tax8 + tax10,
-      inclTotal: excl8 + excl10 + tax8 + tax10,
-      // 内税方式表示用（税込み集計＋内税額）
-      incl8: excl8 + tax8,
-      incl10: excl10 + tax10,
+      inclTotal: sum8 + sum10 + tax8 + tax10,
+      incl8: sum8 + tax8, incl10: sum10 + tax10,
     };
   }
 
-  // 集計をHTMLにレンダリング（個人取引なら内税表示・既存取引先なら外税表示）
+  // 集計HTML（個人取引：税率別小計＋合計のみ・税計算なし／卸取引：外税方式）
   function renderTotalsHtml(t, isPersonalTrade) {
     const fmt = n => (n < 0 ? '-¥' + Math.abs(n).toLocaleString() : '¥' + n.toLocaleString());
     if (isPersonalTrade) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<div class="totals-item"><label>8%軽減込ケ</label><span>${fmt(t.incl8)}</span></div><div class="totals-item"><label style="font-size:12px;color:var(--text-muted)">　内税額</label><span style="font-size:12px;color:var(--text-muted)">${fmt(t.tax8)}</span></div>`);
-      if (t.excl10 !== 0) rows.push(`<div class="totals-item"><label>10%対象込コ</label><span>${fmt(t.incl10)}</span></div><div class="totals-item"><label style="font-size:12px;color:var(--text-muted)">　内税額</label><span style="font-size:12px;color:var(--text-muted)">${fmt(t.tax10)}</span></div>`);
+      if (t.excl8 !== 0)  rows.push(`<div class="totals-item"><label>8%軽減込ケコ</label><span>${fmt(t.excl8)}</span></div>`);
+      if (t.excl10 !== 0) rows.push(`<div class="totals-item"><label>10%対象込コ</label><span>${fmt(t.excl10)}</span></div>`);
       rows.push(`<div class="totals-item"><label>合計</label><span class="highlight">${fmt(t.inclTotal)}</span></div>`);
       return rows.join('');
     }
@@ -535,7 +540,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         // 受注時点のフラグを優先（スナップショット）。null/未設定なら取引先マスタへフォールバック。
         const isPersonalTrade = r.is_personal_trade ?? r.customers?.is_personal_trade ?? false;
         const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0) - handlingFee - shippingFee;
-        const tax8  = items.reduce((s, i) => {
+        const tax8  = isPersonalTrade ? 0 : items.reduce((s, i) => {
           if (!i.products?.is_food) return s;
           return s + Math.round(i.quantity * i.unit_price * 0.08);
         }, 0);
@@ -543,7 +548,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           if (i.products?.is_food) return s;
           return s + (i.quantity * i.unit_price);
         }, 0) - handlingFee - shippingFee;
-        const tax10 = Math.round(tax10raw * 0.10);
+        const tax10 = isPersonalTrade ? 0 : Math.round(tax10raw * 0.10);
         const tax  = tax8 + tax10;
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
@@ -750,7 +755,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         unitPrice: it.unit_price || 0,
         isFood: it.products?.is_food || false,
       }));
-      const totals = calcOrderTotals(calcItems, o.handlingFee || 0, o.shippingFee || 0);
+      const totals = calcOrderTotals(calcItems, o.handlingFee || 0, o.shippingFee || 0, currentEditIsPersonalTrade);
       const rows = items.map(it => {
         const qty     = it.quantity || 0;
         const priceStored = it.unit_price || 0;
@@ -1016,7 +1021,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   function renderEditTotals() {
     const { handlingFee, shippingFee } = getEditFees();
-    const totals = calcOrderTotals(editItems, handlingFee, shippingFee);
+    const totals = calcOrderTotals(editItems, handlingFee, shippingFee, currentEditIsPersonalTrade);
     document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
   }
 
@@ -1541,7 +1546,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const totalEl = document.getElementById('newOrderTotal');
     if (!totalEl) return;
     const { handlingFee, shippingFee } = getNewFees();
-    const totals = calcOrderTotals(newOrderItems, handlingFee, shippingFee);
+    const totals = calcOrderTotals(newOrderItems, handlingFee, shippingFee, currentNewIsPersonalTrade);
     totalEl.innerHTML = renderTotalsHtml(totals, currentNewIsPersonalTrade);
   }
 

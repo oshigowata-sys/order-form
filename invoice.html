@@ -820,39 +820,47 @@
       .replace(/'/g, '&#x27;');
   }
 
-  // 内部保存は税抜き。個人取引（isPersonalTrade=true）のみ表示時に税込み換算する。
-  function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
-    if (!isPersonalTrade) return Math.round(unitPriceExcl);
-    const rate = isFood ? 0.08 : 0.10;
-    return Math.round(unitPriceExcl * (1 + rate));
+  // 個人取引：税込み単価そのまま／卸取引：税抜き単価そのまま。換算なし。
+  function toDisplayPrice(unitPrice, _isFood, _isPersonalTrade) {
+    return Math.round(unitPrice);
   }
-  function taxMarkText(isFood) { return isFood ? 'ケ' : 'コ'; }
-  // 商品明細＋手数料・送料控除を税率別に集計
-  function calcInvoiceTotals(items, handlingFee, shippingFee) {
-    let excl8 = 0, excl10 = 0;
+  // 税率マーク：軽減税率込み='ケコ'、標準税率込み='コ'
+  function taxMarkText(isFood) { return isFood ? 'ケコ' : 'コ'; }
+  // 集計（卸取引：外税方式／個人取引：単価＝税込み金額として単純合計・消費税計算なし）
+  function calcInvoiceTotals(items, handlingFee, shippingFee, isPersonalTrade) {
+    let sum8 = 0, sum10 = 0;
     items.forEach(it => {
       const sub = Number(it['小計'] || it['subtotal'] || (Number(it['数量']||0) * Number(it['単価']||0)) || 0);
-      if (it.isFood) excl8 += sub;
-      else           excl10 += sub;
+      if (it.isFood) sum8 += sub;
+      else           sum10 += sub;
     });
-    excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
-    const tax8  = Math.round(excl8 * 0.08);
-    const tax10 = Math.round(excl10 * 0.10);
+    sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    if (isPersonalTrade) {
+      return {
+        excl8: sum8, excl10: sum10,
+        subtotal: sum8 + sum10,
+        tax8: 0, tax10: 0, tax: 0,
+        total: sum8 + sum10,
+        incl8: sum8, incl10: sum10,
+      };
+    }
+    const tax8  = Math.round(sum8 * 0.08);
+    const tax10 = Math.round(sum10 * 0.10);
     return {
-      excl8, excl10,
-      subtotal: excl8 + excl10,
+      excl8: sum8, excl10: sum10,
+      subtotal: sum8 + sum10,
       tax8, tax10, tax: tax8 + tax10,
-      total: excl8 + excl10 + tax8 + tax10,
-      incl8: excl8 + tax8, incl10: excl10 + tax10,
+      total: sum8 + sum10 + tax8 + tax10,
+      incl8: sum8 + tax8, incl10: sum10 + tax10,
     };
   }
-  // 集計表の中身（個人取引なら内税表示、それ以外なら外税表示）
+  // 集計表の中身（個人取引：税率別小計＋合計のみ／卸取引：外税方式）
   function buildInvoiceTotalsRows(t, isPersonalTrade, grandLabel) {
     const label = grandLabel || '合計（税込）';
     if (isPersonalTrade) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmt(t.incl8)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax8)}</td></tr>`);
-      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.incl10)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax10)}</td></tr>`);
+      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
       rows.push(`<tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`);
       return rows.join('');
     }
@@ -863,11 +871,10 @@
       <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
   }
   // 手数料・送料の明細行HTML（あれば返す）
-  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade) {
+  function buildFeeRowsInvoice(handlingFee, shippingFee, _isPersonalTrade) {
     const rows = [];
     const buildOne = (label, fee) => {
-      const stored = -Math.abs(Number(fee) || 0);
-      const disp = toDisplayPrice(stored, false, isPersonalTrade);
+      const disp = -Math.abs(Number(fee) || 0);
       return `<tr>
         <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
         <td>${label}</td>
@@ -1055,7 +1062,7 @@
     const isPersonal = !!f.isPersonalTrade;
     const handlingFee = Number(f.handlingFee) || 0;
     const shippingFee = Number(f.shippingFee) || 0;
-    const totals = calcInvoiceTotals(items, handlingFee, shippingFee);
+    const totals = calcInvoiceTotals(items, handlingFee, shippingFee, isPersonal);
 
     const dataRows = items.length > 0
       ? items.map(it => {
@@ -1188,7 +1195,7 @@
     }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // 明細から合計を再計算（8%/10% 自動判定・手数料/送料控除込み）
-    const totals = calcInvoiceTotals(items, handlingFee, shippingFee);
+    const totals = calcInvoiceTotals(items, handlingFee, shippingFee, isPersonal);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
@@ -1441,17 +1448,17 @@
     }
     document.getElementById('sumCarry').textContent     = fmt(carryOver);
     document.getElementById('sumThisTotal').textContent = fmt(t.total);
-    // 個人取引：「税抜御買上額」「消費税」を「8%軽減込ケ」「10%対象込コ」表示に置換
+    // 個人取引：「税抜御買上額」「消費税」を「8%軽減込ケコ」「10%対象込コ」表示に置換（消費税計算なし）
     const sumExclEl = document.getElementById('sumExcl');
     const sumTaxEl  = document.getElementById('sumTax');
     if (sumExclEl && sumTaxEl) {
       const exclLabelEl = sumExclEl.parentElement?.querySelector('.summary-cell-label');
       const taxLabelEl  = sumTaxEl.parentElement?.querySelector('.summary-cell-label');
       if (t.isPersonal) {
-        if (exclLabelEl) exclLabelEl.textContent = '8%軽減込ケ';
+        if (exclLabelEl) exclLabelEl.textContent = '8%軽減込ケコ';
         if (taxLabelEl)  taxLabelEl.textContent  = '10%対象込コ';
-        sumExclEl.textContent = fmt(t.incl8 || 0);
-        sumTaxEl.textContent  = fmt(t.incl10 || 0);
+        sumExclEl.textContent = fmt(t.excl8 || 0);
+        sumTaxEl.textContent  = fmt(t.excl10 || 0);
       } else {
         if (exclLabelEl) exclLabelEl.textContent = '税抜御買上額';
         if (taxLabelEl)  taxLabelEl.textContent  = '消費税';
