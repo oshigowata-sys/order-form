@@ -206,29 +206,80 @@
     `;
   }
 
-  function calcTotals(items) {
-    let subtotal = 0, tax8 = 0, tax10 = 0;
+  // 内部保存は税抜き。個人取引（isPersonal）のとき表示時に税込み換算する。
+  function toDispPrice(price, isFood, isPersonal) {
+    if (!isPersonal) return Math.round(price);
+    const r = isFood ? 0.08 : 0.10;
+    return Math.round(price * (1 + r));
+  }
+  function taxMark(isFood) { return isFood ? 'ケ' : 'コ'; }
+
+  function calcTotals(items, handlingFee, shippingFee) {
+    let excl8 = 0, excl10 = 0;
     for (const it of items) {
       const qty = Number(it.quantity || 0);
       const price = Number(it.unit_price || 0);
-      // 単価0は「要相談」で合計除外。マイナス値（手数料・送料・返品）は合計に含める。
       if (price === 0) continue;
       const sub = qty * price;
-      subtotal += sub;
-      if (it.is_food) tax8 += Math.round(sub * 0.08);
-      else tax10 += Math.round(sub * 0.10);
+      if (it.is_food) excl8 += sub;
+      else excl10 += sub;
     }
-    return { subtotal, tax8, tax10, tax: tax8 + tax10, total: subtotal + tax8 + tax10 };
+    excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    const tax8 = Math.round(excl8 * 0.08);
+    const tax10 = Math.round(excl10 * 0.10);
+    const subtotal = excl8 + excl10;
+    return {
+      excl8, excl10, subtotal,
+      tax8, tax10, tax: tax8 + tax10,
+      total: subtotal + tax8 + tax10,
+      incl8: excl8 + tax8, incl10: excl10 + tax10,
+    };
   }
 
-  function buildOrderItemRow(it) {
+  function buildTotalsRows(t, isPersonal, grandLabel) {
+    const grand = grandLabel || '合計（税込）';
+    if (isPersonal) {
+      const rows = [];
+      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmtYen(t.incl8)}</td></tr><tr><td style="font-size:9px;color:#7a6a55">　内税額</td><td style="font-size:9px;color:#7a6a55">${fmtYen(t.tax8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmtYen(t.incl10)}</td></tr><tr><td style="font-size:9px;color:#7a6a55">　内税額</td><td style="font-size:9px;color:#7a6a55">${fmtYen(t.tax10)}</td></tr>`);
+      rows.push(`<tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`);
+      return rows.join('');
+    }
+    return `
+      <tr><td>税抜合計</td><td>${fmtYen(t.subtotal)}</td></tr>
+      ${t.tax8 !== 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(t.tax8)}</td></tr>` : ''}
+      ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(t.tax10)}</td></tr>` : ''}
+      <tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`;
+  }
+
+  function buildFeeRows(handlingFee, shippingFee, isPersonal) {
+    const rows = [];
+    const fmtFee = (label, fee) => {
+      const stored = -Math.abs(Number(fee) || 0);
+      const disp = toDispPrice(stored, false, isPersonal);
+      return `<tr>
+        <td class="code">—</td>
+        <td>${label}</td>
+        <td class="num">1</td>
+        <td class="num">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false)}</span></td>
+        <td class="num">${fmtYen(disp)}</td>
+        <td class="muted" style="text-align:center">10%</td>
+        <td class="muted"></td>
+      </tr>`;
+    };
+    if ((Number(handlingFee) || 0) > 0) rows.push(fmtFee('手数料', handlingFee));
+    if ((Number(shippingFee) || 0) > 0) rows.push(fmtFee('送料', shippingFee));
+    return rows.join('');
+  }
+
+  function buildOrderItemRow(it, isPersonal) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
-    const sub = qty * price;
-    // 単価0のみ「要相談」表示。マイナスは通常表示（手数料・送料・返品用）。
+    const dispPrice = toDispPrice(price, !!it.is_food, isPersonal);
+    const subDisp = qty * dispPrice;
     const isReq = price === 0;
-    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(price);
-    const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
+    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(dispPrice)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
+    const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(subDisp);
     return `<tr>
       <td class="code">${esc(it.product_code || '—')}</td>
       <td>${esc(it.product_name || '-')}</td>
@@ -244,14 +295,18 @@
     const items = data.items || [];
     const c = data.customer || {};
     const s = data.settings || {};
-    const { subtotal, tax8, tax10, total } = calcTotals(items);
+    const isPersonal = !!data.isPersonalTrade;
+    const handlingFee = Number(data.handlingFee) || 0;
+    const shippingFee = Number(data.shippingFee) || 0;
+    const totals = calcTotals(items, handlingFee, shippingFee);
 
     const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date().toISOString().slice(0,10));
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
 
-    const dataRows = items.length > 0
-      ? items.map(buildOrderItemRow).join('')
+    const itemRows = items.length > 0
+      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
+    const dataRows = itemRows;
 
     return `
       <div class="mini-preview-sheet">
@@ -294,10 +349,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td>合計（税込）</td><td>${fmtYen(total)}</td></tr>
+            ${buildTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
         </div>
       </div>
@@ -309,14 +361,17 @@
     const c = data.customer || {};
     const s = data.settings || {};
     const banks = data.bankAccounts || [];
-    const { subtotal, tax8, tax10, total } = calcTotals(items);
+    const isPersonal = !!data.isPersonalTrade;
+    const handlingFee = Number(data.handlingFee) || 0;
+    const shippingFee = Number(data.shippingFee) || 0;
+    const totals = calcTotals(items, handlingFee, shippingFee);
 
     const invoiceNumLabel = data.invoiceNumber || '<span class="mini-preview-undecided">（未確定）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
     const dueLabel = data.dueDate ? fmtJa(data.dueDate) : '<span class="mini-preview-undecided">（未確定）</span>';
 
     const dataRows = items.length > 0
-      ? items.map(buildOrderItemRow).join('')
+      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
 
     const bankBlock = banks.length > 0
@@ -377,10 +432,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td>今回御請求額（税込）</td><td>${fmtYen(total)}</td></tr>
+            ${buildTotalsRows(totals, isPersonal, '今回御請求額（税込）')}
           </table>
         </div>
       </div>
@@ -391,31 +443,52 @@
     const items = data.items || [];
     const c = data.customer || {};
     const s = data.settings || {};
-    const { subtotal, tax8, tax10, total } = calcTotals(items);
+    const isPersonal = !!data.isPersonalTrade;
+    const handlingFee = Number(data.handlingFee) || 0;
+    const shippingFee = Number(data.shippingFee) || 0;
+    const totals = calcTotals(items, handlingFee, shippingFee);
 
     const numberLabel = data.quotationNumber || '<span class="mini-preview-undecided">（保存時に自動採番）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
     const expiryLabel = data.expiryLabel || '<span class="mini-preview-undecided">（未確定）</span>';
 
+    const buildQItem = it => {
+      const qty = Number(it.quantity || 0);
+      const price = Number(it.unit_price || 0);
+      const dispPrice = toDispPrice(price, !!it.is_food, isPersonal);
+      const subDisp = qty * dispPrice;
+      const isReq = price === 0;
+      const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(dispPrice)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
+      const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(subDisp);
+      return `<tr>
+        <td class="num" style="width:60px">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>
+        <td>${esc(it.product_name || '-')}</td>
+        <td class="num" style="width:45px">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
+        <td class="num" style="width:40px">${qty.toLocaleString()}</td>
+        <td class="num" style="width:65px">${priceCell}</td>
+        <td class="num" style="width:75px">${subCell}</td>
+        <td class="code" style="width:90px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
+      </tr>`;
+    };
+    const buildQFeeRow = (label, fee) => {
+      const stored = -Math.abs(Number(fee) || 0);
+      const disp = toDispPrice(stored, false, isPersonal);
+      return `<tr>
+        <td class="num" style="width:60px">—</td>
+        <td>${label}</td>
+        <td class="num" style="width:45px">—</td>
+        <td class="num" style="width:40px">1</td>
+        <td class="num" style="width:65px">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false)}</span></td>
+        <td class="num" style="width:75px">${fmtYen(disp)}</td>
+        <td class="code" style="width:90px">—</td>
+      </tr>`;
+    };
+    let feeRowsQ = '';
+    if (handlingFee > 0) feeRowsQ += buildQFeeRow('手数料', handlingFee);
+    if (shippingFee > 0) feeRowsQ += buildQFeeRow('送料', shippingFee);
+
     const dataRows = items.length > 0
-      ? items.map(it => {
-          const qty = Number(it.quantity || 0);
-          const price = Number(it.unit_price || 0);
-          const sub = qty * price;
-          // 単価0のみ「要相談」表示。マイナスは通常表示（手数料・送料・返品用）。
-          const isReq = price === 0;
-          const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(price);
-          const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
-          return `<tr>
-            <td class="num" style="width:60px">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>
-            <td>${esc(it.product_name || '-')}</td>
-            <td class="num" style="width:45px">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
-            <td class="num" style="width:40px">${qty.toLocaleString()}</td>
-            <td class="num" style="width:65px">${priceCell}</td>
-            <td class="num" style="width:75px">${subCell}</td>
-            <td class="code" style="width:90px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
-          </tr>`;
-        }).join('')
+      ? items.map(buildQItem).join('') + feeRowsQ
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
 
     return `
@@ -445,7 +518,7 @@
         </div>
         <div class="mini-preview-amount-headline">
           <div class="mini-preview-amount-headline-label">お見積金額（税込）</div>
-          <div class="mini-preview-amount-headline-value">${fmtYen(total)}</div>
+          <div class="mini-preview-amount-headline-value">${fmtYen(totals.total)}</div>
         </div>
         <table class="mini-preview-table">
           <thead><tr>
@@ -465,10 +538,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            <tr><td>税抜合計</td><td>${fmtYen(subtotal)}</td></tr>
-            ${tax8 > 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(tax10)}</td></tr>` : ''}
-            <tr class="grand-row"><td>合計（税込）</td><td>${fmtYen(total)}</td></tr>
+            ${buildTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
         </div>
       </div>

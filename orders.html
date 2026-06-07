@@ -262,6 +262,23 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <div class="table-wrapper">
             <table id="modalItems"></table>
           </div>
+          <div id="orderFeesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%・コ）</label>
+              <span id="editFeesTaxMode" style="font-size:11px;color:var(--text-muted)"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+                <input type="number" id="editHandlingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+                <input type="number" id="editShippingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">控除（マイナス計上）として合計から差し引きます。</div>
+          </div>
           <div id="orderNotesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
             <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
             <textarea id="orderNotes" maxlength="200" placeholder="（任意）" oninput="updateOrderNotes(this.value)" style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);resize:vertical" disabled></textarea>
@@ -358,7 +375,24 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
               <tbody id="newItemsTbody"></tbody>
             </table>
-            <div class="entry-total" id="newOrderTotal" style="display:none"></div>
+            <div class="totals" id="newOrderTotal" style="display:none;justify-content:flex-end;padding:12px 0 4px"></div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%・コ）</label>
+              <span id="newFeesTaxMode" style="font-size:11px;color:var(--text-muted)"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+                <input type="number" id="newHandlingFee" value="0" min="0" oninput="updateNewOrderPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+                <input type="number" id="newShippingFee" value="0" min="0" oninput="updateNewOrderPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">控除（マイナス計上）として合計から差し引きます。</div>
           </div>
           <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
             <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
@@ -420,6 +454,65 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   let currentFilter = 'all';
   let currentSearch = '';
 
+  // 現在編集中・新規入力中の受注の個人間取引フラグ
+  // true  = 取引先が個人間取引（メルカリ等）→ 単価表示は税込み・集計は内税方式
+  // false = 既存卸取引先 → 単価表示は税抜き・集計は外税方式
+  let currentEditIsPersonalTrade = false;
+  let currentNewIsPersonalTrade  = false;
+
+  // 内部保存は税抜き単価。個人間取引のときだけ表示時に税込み換算する。
+  function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
+    if (!isPersonalTrade) return Math.round(unitPriceExcl);
+    const rate = isFood ? 0.08 : 0.10;
+    return Math.round(unitPriceExcl * (1 + rate));
+  }
+  // 個人間取引で税込み入力された単価を内部保存用の税抜きに戻す。
+  function toStoredPrice(displayPrice, isFood, isPersonalTrade) {
+    if (!isPersonalTrade) return Math.round(displayPrice);
+    const rate = isFood ? 0.08 : 0.10;
+    return Math.round(displayPrice / (1 + rate));
+  }
+  function taxMark(isFood) { return isFood ? 'ケ' : 'コ'; }
+
+  // 集計（手数料・送料は税抜き・標準税率10%として控除）
+  function calcOrderTotals(items, handlingFeeExcl, shippingFeeExcl) {
+    let excl8 = 0, excl10 = 0;
+    items.forEach(it => {
+      const sub = (Number(it.qty) || 0) * (Number(it.unitPrice) || 0);
+      if (it.isFood) excl8 += sub;
+      else           excl10 += sub;
+    });
+    excl10 -= (Number(handlingFeeExcl) || 0) + (Number(shippingFeeExcl) || 0);
+    const tax8  = Math.round(excl8  * 0.08);
+    const tax10 = Math.round(excl10 * 0.10);
+    return {
+      excl8, excl10,
+      exclTotal: excl8 + excl10,
+      tax8, tax10,
+      taxTotal: tax8 + tax10,
+      inclTotal: excl8 + excl10 + tax8 + tax10,
+      // 内税方式表示用（税込み集計＋内税額）
+      incl8: excl8 + tax8,
+      incl10: excl10 + tax10,
+    };
+  }
+
+  // 集計をHTMLにレンダリング（個人取引なら内税表示・既存取引先なら外税表示）
+  function renderTotalsHtml(t, isPersonalTrade) {
+    const fmt = n => (n < 0 ? '-¥' + Math.abs(n).toLocaleString() : '¥' + n.toLocaleString());
+    if (isPersonalTrade) {
+      const rows = [];
+      if (t.excl8 !== 0)  rows.push(`<div class="totals-item"><label>8%軽減込ケ</label><span>${fmt(t.incl8)}</span></div><div class="totals-item"><label style="font-size:12px;color:var(--text-muted)">　内税額</label><span style="font-size:12px;color:var(--text-muted)">${fmt(t.tax8)}</span></div>`);
+      if (t.excl10 !== 0) rows.push(`<div class="totals-item"><label>10%対象込コ</label><span>${fmt(t.incl10)}</span></div><div class="totals-item"><label style="font-size:12px;color:var(--text-muted)">　内税額</label><span style="font-size:12px;color:var(--text-muted)">${fmt(t.tax10)}</span></div>`);
+      rows.push(`<div class="totals-item"><label>合計</label><span class="highlight">${fmt(t.inclTotal)}</span></div>`);
+      return rows.join('');
+    }
+    return `
+      <div class="totals-item"><label>税抜合計</label><span>${fmt(t.exclTotal)}</span></div>
+      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">${fmt(t.taxTotal)}</span></div>
+      <div class="totals-item"><label>税込合計</label><span class="highlight">${fmt(t.inclTotal)}</span></div>`;
+  }
+
   function esc(s) {
     if (s == null) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -431,17 +524,27 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
       const res = await sbFetch(
-        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,notes,customers(company_name,contact_name),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
+        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       allOrders = data.map(r => {
         const items = r.order_items || [];
-        const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
-        const tax   = items.reduce((s, i) => {
-          const rate = i.products?.is_food ? 0.08 : 0.10;
-          return s + Math.round(i.quantity * i.unit_price * rate);
+        const handlingFee = Number(r.handling_fee) || 0;
+        const shippingFee = Number(r.shipping_fee) || 0;
+        // 受注時点のフラグを優先（スナップショット）。null/未設定なら取引先マスタへフォールバック。
+        const isPersonalTrade = r.is_personal_trade ?? r.customers?.is_personal_trade ?? false;
+        const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0) - handlingFee - shippingFee;
+        const tax8  = items.reduce((s, i) => {
+          if (!i.products?.is_food) return s;
+          return s + Math.round(i.quantity * i.unit_price * 0.08);
         }, 0);
+        const tax10raw = items.reduce((s, i) => {
+          if (i.products?.is_food) return s;
+          return s + (i.quantity * i.unit_price);
+        }, 0) - handlingFee - shippingFee;
+        const tax10 = Math.round(tax10raw * 0.10);
+        const tax  = tax8 + tax10;
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
         const masterCompany = r.customers?.company_name || '';
@@ -461,6 +564,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           date:     r.order_date || '',
           status:   r.status || '',
           notes:    r.notes || '',
+          isPersonalTrade,
+          handlingFee,
+          shippingFee,
           excl,
           tax,
           incl: excl + tax,
@@ -630,6 +736,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   async function loadOrderDetail(orderId) {
     const o = allOrders.find(x => x.id === orderId);
     if (!o) return;
+    currentEditIsPersonalTrade = !!o.isPersonalTrade;
     try {
       const res = await sbFetch(
         `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food)&order_id=eq.${orderId}`
@@ -637,35 +744,46 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const items = await res.json();
 
-      let excl = 0, tax = 0;
       const fmtYen = n => n < 0 ? '-¥' + Math.abs(n).toLocaleString() : '¥' + n.toLocaleString();
+      const calcItems = items.map(it => ({
+        qty: it.quantity || 0,
+        unitPrice: it.unit_price || 0,
+        isFood: it.products?.is_food || false,
+      }));
+      const totals = calcOrderTotals(calcItems, o.handlingFee || 0, o.shippingFee || 0);
       const rows = items.map(it => {
         const qty     = it.quantity || 0;
-        const price   = it.unit_price || 0;
+        const priceStored = it.unit_price || 0;
         const isFood  = it.products?.is_food || false;
-        const taxRate = isFood ? 0.08 : 0.10;
-        const sub     = qty * price;
-        excl  += sub;
-        tax   += Math.round(sub * taxRate);
+        const priceDisp = toDisplayPrice(priceStored, isFood, currentEditIsPersonalTrade);
+        const subDisp   = qty * priceDisp;
         return `<tr>
           <td style="font-size:14px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
           <td style="font-weight:500;white-space:normal">${esc(it.products?.product_name || '—')}</td>
           <td class="num-right">${qty}</td>
-          <td class="num-right">${fmtYen(price)}</td>
+          <td class="num-right">${fmtYen(priceDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(isFood)}</span></td>
           <td style="color:var(--text-muted)">${esc(it.remarks || '')}</td>
-          <td class="num-right" style="font-weight:600">${fmtYen(sub)}</td>
+          <td class="num-right" style="font-weight:600">${fmtYen(subDisp)}</td>
           <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減8%':'標準10%'}</span></td>
         </tr>`;
       }).join('');
+      // 手数料・送料を明細末尾に表示（あれば）
+      const feeRows = [];
+      if ((o.handlingFee || 0) > 0) {
+        const fee = -o.handlingFee;
+        const feeDisp = toDisplayPrice(fee, false, currentEditIsPersonalTrade);
+        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>手数料</td><td class="num-right">1</td><td class="num-right">${fmtYen(feeDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(feeDisp)}</td><td><span class="badge-regular">標準10%</span></td></tr>`);
+      }
+      if ((o.shippingFee || 0) > 0) {
+        const fee = -o.shippingFee;
+        const feeDisp = toDisplayPrice(fee, false, currentEditIsPersonalTrade);
+        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>送料</td><td class="num-right">1</td><td class="num-right">${fmtYen(feeDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(feeDisp)}</td><td><span class="badge-regular">標準10%</span></td></tr>`);
+      }
 
-      const incl = excl + tax;
       document.getElementById('modalItems').innerHTML =
         `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
-      document.getElementById('modalTotals').innerHTML = `
-        <div class="totals-item"><label>税抜合計</label><span>${fmtYen(excl)}</span></div>
-        <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">${fmtYen(tax)}</span></div>
-        <div class="totals-item"><label>税込合計</label><span class="highlight">${fmtYen(incl)}</span></div>`;
+        <tbody>${rows + feeRows.join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
+      document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
       // ビューモード用にプレビュー描画
       window._viewModeItems = items.map(it => ({
         product_code: it.products?.product_code || '',
@@ -760,6 +878,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 帳票全体の備考欄を編集可能化
     const notesEl = document.getElementById('orderNotes');
     if (notesEl) notesEl.disabled = false;
+    // 手数料・送料・個人取引フラグの初期化
+    currentEditIsPersonalTrade = !!o.isPersonalTrade;
+    document.getElementById('editHandlingFee').value = Number(o.handlingFee) || 0;
+    document.getElementById('editShippingFee').value = Number(o.shippingFee) || 0;
+    document.getElementById('orderFeesSection').style.display = 'block';
+    document.getElementById('editFeesTaxMode').textContent = currentEditIsPersonalTrade ? '個人取引（税込み入力）' : '卸取引（税抜き入力）';
     renderEditMode();
     updateEditOrderPreview();
   }
@@ -774,6 +898,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       notesEl.value = _editOrderNotesOriginal || '';
       notesEl.disabled = true;
     }
+    // 手数料・送料セクションを隠す（ビューモードでは loadOrderDetail が明細に表示）
+    document.getElementById('orderFeesSection').style.display = 'none';
     toggleEditUI(false);
     loadOrderDetail(currentDetailId);
   }
@@ -853,17 +979,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   function renderEditItems() {
-    let excl = 0, tax = 0;
     const rows = editItems.map((it, i) => {
-      const taxRate = it.isFood ? 0.08 : 0.10;
-      const sub = it.qty * it.unitPrice;
-      excl += sub;
-      tax += Math.round(sub * taxRate);
+      // 単価表示：個人取引のみ税込み換算
+      const priceDisp = toDisplayPrice(it.unitPrice, it.isFood, currentEditIsPersonalTrade);
+      const subDisp   = it.qty * priceDisp;
       // 単価は常にインライン編集可能。
-      // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（手数料・送料・返品用）。
+      // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = it.unitPrice !== 0
-        ? `<input type="number" value="${it.unitPrice}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)">`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
+        ? `<input type="number" value="${priceDisp}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood)}</span>`
+        : `<input type="number" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood)}</span>`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
@@ -871,7 +995,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         <td class="num-right"><input type="number" value="${it.qty}" oninput="updateEditItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td class="num-right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateEditItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
-        <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">${sub < 0 ? '-¥' + Math.abs(sub).toLocaleString() : '¥' + sub.toLocaleString()}</td>
+        <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
         <td><span class="${it.isFood?'badge-food':'badge-regular'}">${it.isFood?'軽減8%':'標準10%'}</span></td>
         <td><button onclick="removeEditItem(${i})" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit">✕</button></td>
       </tr>`;
@@ -881,11 +1005,24 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th><th></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
 
-    const incl = excl + tax;
-    document.getElementById('modalTotals').innerHTML = `
-      <div class="totals-item"><label>税抜合計</label><span>¥${excl.toLocaleString()}</span></div>
-      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">¥${tax.toLocaleString()}</span></div>
-      <div class="totals-item"><label>税込合計</label><span class="highlight">¥${incl.toLocaleString()}</span></div>`;
+    renderEditTotals();
+  }
+
+  function getEditFees() {
+    const h = Number(document.getElementById('editHandlingFee')?.value) || 0;
+    const s = Number(document.getElementById('editShippingFee')?.value) || 0;
+    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s) };
+  }
+
+  function renderEditTotals() {
+    const { handlingFee, shippingFee } = getEditFees();
+    const totals = calcOrderTotals(editItems, handlingFee, shippingFee);
+    document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
+  }
+
+  function updateEditFees() {
+    renderEditTotals();
+    updateEditOrderPreview();
   }
 
   function updateEditItemQty(idx, value) {
@@ -894,25 +1031,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const parsed = parseInt(value, 10);
     const qty = isNaN(parsed) ? 0 : parsed;
     editItems[idx].qty = qty;
-    // 行小計＋合計だけ部分更新（テーブル全体を再描画するとフォーカスを奪うため）
-    let excl = 0, tax = 0;
-    editItems.forEach((it) => {
-      const taxRate = it.isFood ? 0.08 : 0.10;
-      const sub = it.qty * it.unitPrice;
-      excl += sub;
-      tax += Math.round(sub * taxRate);
-    });
-    // data-edititem-sub 属性で対象セルを特定（列の挿入があっても安全）
+    // 行小計の部分更新（テーブル全体を再描画するとフォーカスを奪うため）
     const subCell = document.querySelector(`[data-edititem-sub="${idx}"]`);
     if (subCell) {
-      const lineSub = editItems[idx].qty * editItems[idx].unitPrice;
+      const it = editItems[idx];
+      const priceDisp = toDisplayPrice(it.unitPrice, it.isFood, currentEditIsPersonalTrade);
+      const lineSub = it.qty * priceDisp;
       subCell.textContent = lineSub < 0 ? '-¥' + Math.abs(lineSub).toLocaleString() : '¥' + lineSub.toLocaleString();
     }
-    const incl = excl + tax;
-    document.getElementById('modalTotals').innerHTML = `
-      <div class="totals-item"><label>税抜合計</label><span>${excl < 0 ? '-¥' + Math.abs(excl).toLocaleString() : '¥' + excl.toLocaleString()}</span></div>
-      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">${tax < 0 ? '-¥' + Math.abs(tax).toLocaleString() : '¥' + tax.toLocaleString()}</span></div>
-      <div class="totals-item"><label>税込合計</label><span class="highlight">${incl < 0 ? '-¥' + Math.abs(incl).toLocaleString() : '¥' + incl.toLocaleString()}</span></div>`;
+    renderEditTotals();
     updateEditOrderPreview();
   }
 
@@ -929,30 +1056,21 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     updateEditOrderPreview();
   }
 
-  // 単価のインライン編集（手数料・送料・返品用に負の値も許容）
+  // 単価のインライン編集（返品用に負の値も許容）。
+  // 個人取引（税込み入力）なら入力値を税抜きに換算してから保存する。
   function updateEditItemPrice(idx, value) {
     if (!editItems[idx]) return;
     const parsed = parseInt(value, 10);
-    const price = isNaN(parsed) ? 0 : parsed;
-    editItems[idx].unitPrice = price;
-    // 行小計と合計を部分更新
-    let excl = 0, tax = 0;
-    editItems.forEach((it) => {
-      const taxRate = it.isFood ? 0.08 : 0.10;
-      const sub = it.qty * it.unitPrice;
-      excl += sub;
-      tax += Math.round(sub * taxRate);
-    });
+    const inputPrice = isNaN(parsed) ? 0 : parsed;
+    const it = editItems[idx];
+    it.unitPrice = toStoredPrice(inputPrice, it.isFood, currentEditIsPersonalTrade);
     const subCell = document.querySelector(`[data-edititem-sub="${idx}"]`);
     if (subCell) {
-      const lineSub = editItems[idx].qty * price;
+      const priceDisp = toDisplayPrice(it.unitPrice, it.isFood, currentEditIsPersonalTrade);
+      const lineSub = it.qty * priceDisp;
       subCell.textContent = lineSub < 0 ? '-¥' + Math.abs(lineSub).toLocaleString() : '¥' + lineSub.toLocaleString();
     }
-    const incl = excl + tax;
-    document.getElementById('modalTotals').innerHTML = `
-      <div class="totals-item"><label>税抜合計</label><span>${excl < 0 ? '-¥' + Math.abs(excl).toLocaleString() : '¥' + excl.toLocaleString()}</span></div>
-      <div class="totals-item"><label>消費税</label><span style="color:var(--text-muted)">${tax < 0 ? '-¥' + Math.abs(tax).toLocaleString() : '¥' + tax.toLocaleString()}</span></div>
-      <div class="totals-item"><label>税込合計</label><span class="highlight">${incl < 0 ? '-¥' + Math.abs(incl).toLocaleString() : '¥' + incl.toLocaleString()}</span></div>`;
+    renderEditTotals();
     updateEditOrderPreview();
   }
 
@@ -1043,17 +1161,28 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       ));
 
       const o = allOrders.find(x => x.id === currentDetailId);
-      // 帳票全体の備考欄を orders.notes に保存
+      // 帳票全体の備考欄＋手数料・送料・個人取引フラグを orders に保存
       const notesEl = document.getElementById('orderNotes');
       const notesValue = notesEl ? (notesEl.value || '').trim() : '';
+      const { handlingFee, shippingFee } = getEditFees();
       const notesPatchRes = await sbFetch(`/rest/v1/orders?id=eq.${currentDetailId}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ notes: notesValue || null })
+        body: JSON.stringify({
+          notes: notesValue || null,
+          is_personal_trade: !!currentEditIsPersonalTrade,
+          handling_fee: handlingFee,
+          shipping_fee: shippingFee,
+        })
       });
       if (!notesPatchRes.ok) throw new Error('受注メモ保存失敗');
       _editOrderNotesOriginal = notesValue;
-      if (o) o.notes = notesValue;
+      if (o) {
+        o.notes = notesValue;
+        o.isPersonalTrade = !!currentEditIsPersonalTrade;
+        o.handlingFee = handlingFee;
+        o.shippingFee = shippingFee;
+      }
 
       if (o && editAffectedInvoices.length > 0) {
         const supersededAt = new Date().toISOString();
@@ -1143,14 +1272,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 受注の編集モードと新規モードで item の構造が異なる。共通フォーマットに正規化
     // source: 'new' (newOrderItems) | 'edit' (editItems)
     return items.map(it => {
-      const productId = source === 'edit' ? it.productId : it.productId;
+      const productId = it.productId;
       const product = allProducts.find(p => p.id === productId) || {};
+      const isFood = (it.isFood != null) ? !!it.isFood : !!product.is_food;
       return {
         product_code: it.productCode || product.product_code || '',
         product_name: it.name || product.product_name || '',
-        quantity: source === 'edit' ? Number(it.qty || 0) : Number(it.qty || 0),
+        quantity: Number(it.qty || 0),
         unit_price: Number(it.unitPrice || 0),
-        is_food: source === 'edit' ? !!it.isFood : !!product.is_food,
+        is_food: isFood,
         remarks: it.remarks || ''
       };
     });
@@ -1162,6 +1292,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (!wrap) return;
     const orderDate = document.getElementById('newOrderDate')?.value || '';
     const notes = document.getElementById('newOrderNotes')?.value || '';
+    const { handlingFee, shippingFee } = getNewFees();
     MeguReePreview.renderOrder(wrap, {
       customer: _currentNewOrderCustomer || {},
       settings: _previewSettings || {},
@@ -1172,7 +1303,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       invoiceNumber: null,
       issuedDate: orderDate || null,
       dueDate: null,
-      notes
+      notes,
+      isPersonalTrade: !!currentNewIsPersonalTrade,
+      handlingFee,
+      shippingFee,
     });
   }
 
@@ -1185,6 +1319,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       ? buildPreviewItems(editItems, 'edit')
       : (window._viewModeItems || []);
     const notes = document.getElementById('orderNotes')?.value || '';
+    // 編集モードなら入力中の手数料・送料・フラグを使用、ビューモードなら保存済みの値を使用
+    const fees = editMode ? getEditFees() : { handlingFee: Number(o.handlingFee) || 0, shippingFee: Number(o.shippingFee) || 0 };
+    const isPersonal = editMode ? currentEditIsPersonalTrade : !!o.isPersonalTrade;
     MeguReePreview.renderOrder(wrap, {
       customer: _currentEditOrderCustomer || {},
       settings: _previewSettings || {},
@@ -1195,7 +1332,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       invoiceNumber: null,
       issuedDate: o.date || null,
       dueDate: null,
-      notes
+      notes,
+      isPersonalTrade: isPersonal,
+      handlingFee: fees.handlingFee,
+      shippingFee: fees.shippingFee,
     });
   }
 
@@ -1225,6 +1365,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderSearchResults('', []);
     document.getElementById('itemError').classList.remove('show');
     document.getElementById('orderError').classList.remove('show');
+    document.getElementById('newHandlingFee').value = 0;
+    document.getElementById('newShippingFee').value = 0;
+    currentNewIsPersonalTrade = false;
+    document.getElementById('newFeesTaxMode').textContent = '';
     renderNewItems();
     document.getElementById('newOrderOverlay').classList.add('open');
     await Promise.all([loadCustomersForEntry(), loadProductsForEntry(), loadPreviewMetadata()]);
@@ -1238,11 +1382,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   async function loadCustomersForEntry() {
     if (allCustomers.length) return;
-    const res = await sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name&order=company_name`);
+    const res = await sbFetch(`/rest/v1/customers?tenant_id=eq.${tenantId}&select=id,company_name,is_personal_trade&order=company_name`);
     allCustomers = await res.json();
     const sel = document.getElementById('newOrderCustomer');
     sel.innerHTML = '<option value="">選択してください</option>' +
-      allCustomers.map(c => `<option value="${esc(c.id)}">${esc(c.company_name)}</option>`).join('');
+      allCustomers.map(c => `<option value="${esc(c.id)}">${esc(c.company_name)}${c.is_personal_trade ? '（個人取引）' : ''}</option>`).join('');
   }
 
   async function loadProductsForEntry() {
@@ -1311,7 +1455,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (!product) return;
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
-    newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, remarks: '' });
+    newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, remarks: '', isFood: !!product.is_food });
     // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
     const search = document.getElementById('newItemSearch');
     if (search) search.value = '';
@@ -1326,6 +1470,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (!customerId) {
       allPricing = [];
       _currentNewOrderCustomer = null;
+      currentNewIsPersonalTrade = false;
+      document.getElementById('newFeesTaxMode').textContent = '';
+      renderNewItems();
       updateNewOrderPreview();
       return;
     }
@@ -1335,7 +1482,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     ]);
     allPricing = pricingRes.ok ? await pricingRes.json() : [];
     _currentNewOrderCustomer = extra;
-    // 取引先変更で既存明細の単価も再評価（後方互換：明示的な単価変更がなければ既存単価維持）
+    // 取引先の個人間取引フラグを反映
+    const customer = allCustomers.find(c => c.id === customerId);
+    currentNewIsPersonalTrade = !!(customer && customer.is_personal_trade);
+    document.getElementById('newFeesTaxMode').textContent = currentNewIsPersonalTrade ? '個人取引（税込み入力）' : '卸取引（税抜き入力）';
+    renderNewItems();
     updateNewOrderPreview();
   }
 
@@ -1363,7 +1514,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル＝分配先別に行を分ける運用）
-    newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, remarks: '' });
+    newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, remarks: '', isFood: !!product.is_food });
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
     const search = document.getElementById('newItemSearch');
@@ -1375,43 +1526,52 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     updateNewOrderPreview();
   }
 
+  function getNewFees() {
+    const h = Number(document.getElementById('newHandlingFee')?.value) || 0;
+    const s = Number(document.getElementById('newShippingFee')?.value) || 0;
+    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s) };
+  }
+
+  function renderNewTotals() {
+    const totalEl = document.getElementById('newOrderTotal');
+    if (!totalEl) return;
+    const { handlingFee, shippingFee } = getNewFees();
+    const totals = calcOrderTotals(newOrderItems, handlingFee, shippingFee);
+    totalEl.innerHTML = renderTotalsHtml(totals, currentNewIsPersonalTrade);
+  }
+
   // 数量のインライン編集（返品伝票用に負の値も許容）
   function updateNewItemQty(idx, value) {
     if (!newOrderItems[idx]) return;
     const parsed = parseInt(value, 10);
     const qty = isNaN(parsed) ? 0 : parsed;
     newOrderItems[idx].qty = qty;
-    // 行小計セルだけ書き換え（テーブル全体を再描画しない＝入力フォーカスを奪わない）
     const subCell = document.querySelector(`[data-newitem-sub="${idx}"]`);
     if (subCell) {
-      const lineSub = qty * newOrderItems[idx].unitPrice;
+      const it = newOrderItems[idx];
+      const priceDisp = toDisplayPrice(it.unitPrice, it.isFood, currentNewIsPersonalTrade);
+      const lineSub = qty * priceDisp;
       subCell.textContent = lineSub < 0 ? '-¥' + Math.abs(lineSub).toLocaleString() : '¥' + lineSub.toLocaleString();
     }
-    // 合計も部分更新
-    const total = newOrderItems.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
-    const totalEl = document.getElementById('newOrderTotal');
-    if (totalEl) {
-      totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">${total < 0 ? '-¥' + Math.abs(total).toLocaleString() : '¥' + total.toLocaleString()}</span>`;
-    }
+    renderNewTotals();
     updateNewOrderPreview();
   }
 
-  // 単価のインライン編集（手数料・送料・返品用に負の値も許容）
+  // 単価のインライン編集（返品用に負の値も許容）。
+  // 個人取引（税込み入力）なら入力値を税抜きに換算してから保存する。
   function updateNewItemPrice(idx, value) {
     if (!newOrderItems[idx]) return;
     const parsed = parseInt(value, 10);
-    const price = isNaN(parsed) ? 0 : parsed;
-    newOrderItems[idx].unitPrice = price;
+    const inputPrice = isNaN(parsed) ? 0 : parsed;
+    const it = newOrderItems[idx];
+    it.unitPrice = toStoredPrice(inputPrice, it.isFood, currentNewIsPersonalTrade);
     const subCell = document.querySelector(`[data-newitem-sub="${idx}"]`);
     if (subCell) {
-      const lineSub = newOrderItems[idx].qty * price;
+      const priceDisp = toDisplayPrice(it.unitPrice, it.isFood, currentNewIsPersonalTrade);
+      const lineSub = it.qty * priceDisp;
       subCell.textContent = lineSub < 0 ? '-¥' + Math.abs(lineSub).toLocaleString() : '¥' + lineSub.toLocaleString();
     }
-    const total = newOrderItems.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
-    const totalEl = document.getElementById('newOrderTotal');
-    if (totalEl) {
-      totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">${total < 0 ? '-¥' + Math.abs(total).toLocaleString() : '¥' + total.toLocaleString()}</span>`;
-    }
+    renderNewTotals();
     updateNewOrderPreview();
   }
 
@@ -1434,27 +1594,26 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const totalEl = document.getElementById('newOrderTotal');
     if (newOrderItems.length === 0) { table.style.display = 'none'; totalEl.style.display = 'none'; return; }
     table.style.display = 'table';
-    totalEl.style.display = 'block';
-    let total = 0;
+    totalEl.style.display = 'flex';
     tbody.innerHTML = newOrderItems.map((item, i) => {
-      const sub = item.qty * item.unitPrice;
-      total += sub;
+      const priceDisp = toDisplayPrice(item.unitPrice, item.isFood, currentNewIsPersonalTrade);
+      const subDisp   = item.qty * priceDisp;
       // 単価は常にインライン編集可能。
-      // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（手数料・送料・返品用）。
+      // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = item.unitPrice !== 0
-        ? `<input type="number" value="${item.unitPrice}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)">`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626">`;
+        ? `<input type="number" value="${priceDisp}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood)}</span>`
+        : `<input type="number" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood)}</span>`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
         <td style="text-align:right"><input type="number" value="${item.qty}" oninput="updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateNewItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
-        <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">${sub < 0 ? '-¥' + Math.abs(sub).toLocaleString() : '¥' + sub.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
         <td><button class="btn-danger-sm" onclick="removeNewItem(${i})">✕</button></td>
       </tr>`;
     }).join('');
-    totalEl.innerHTML = `税抜合計 <span style="color:var(--orange);font-family:'Space Grotesk',sans-serif">${total < 0 ? '-¥' + Math.abs(total).toLocaleString() : '¥' + total.toLocaleString()}</span>`;
+    renderNewTotals();
   }
 
   async function saveNewOrder() {
@@ -1474,10 +1633,21 @@ const errEl      = document.getElementById('orderError');
     try {
       const code = 'M-' + orderDate.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
       const notesValue = (document.getElementById('newOrderNotes')?.value || '').trim();
+      const { handlingFee, shippingFee } = getNewFees();
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ order_code: code, customer_id: customerId, order_date: orderDate, status, tenant_id: tenantId, notes: notesValue || null })
+        body: JSON.stringify({
+          order_code: code,
+          customer_id: customerId,
+          order_date: orderDate,
+          status,
+          tenant_id: tenantId,
+          notes: notesValue || null,
+          is_personal_trade: !!currentNewIsPersonalTrade,
+          handling_fee: handlingFee,
+          shipping_fee: shippingFee,
+        })
       });
       if (!orderRes.ok) throw new Error('order POST failed');
       const orderData = await orderRes.json();

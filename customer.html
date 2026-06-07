@@ -249,6 +249,13 @@
           </select>
         </div>
       </div>
+      <div class="form-group" style="background:var(--bg);border-radius:10px;padding:14px 16px;margin-bottom:0">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0">
+          <input type="checkbox" id="fIsPersonalTrade" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer">
+          <span style="font-size:14px;font-weight:700;color:var(--text)">個人間取引（メルカリ等）</span>
+        </label>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:6px;margin-left:28px;line-height:1.5">チェックすると、納品書・請求書・見積書で単価を税込み表示（内税方式）に切替えます。卸取引先はオフのままで税抜き表示（外税方式）を維持します。</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
@@ -379,6 +386,7 @@
         closing:        r.closing_day        != null ? r.closing_day        : '',
         paymentOffset:  r.payment_month_offset != null ? r.payment_month_offset : '',
         payment:        r.payment_day        != null ? r.payment_day        : '',
+        isPersonalTrade: !!r.is_personal_trade,
       }));
       customers.sort((a, b) => a.company.localeCompare(b.company, 'ja'));
       render();
@@ -411,7 +419,7 @@
       return;
     }
     tbody.innerHTML = list.map(c => `<tr>
-      <td style="font-weight:600">${esc(c.company)}</td>
+      <td style="font-weight:600">${esc(c.company)}${c.isPersonalTrade ? ' <span style="display:inline-block;font-size:11px;font-weight:600;color:var(--orange);background:var(--orange-pale);padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle">個人取引</span>' : ''}</td>
       <td style="color:var(--text-muted)">${esc(c.contact)}</td>
       <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);font-size:14px">${esc(c.phone)}</td>
       <td style="color:var(--text-muted);font-size:14px">${esc(c.email)}</td>
@@ -456,6 +464,7 @@
     });
     document.getElementById('fZip').value = '';
     document.getElementById('zipStatus').textContent = '';
+    document.getElementById('fIsPersonalTrade').checked = false;
     _phones = [];
     _faxes  = [];
     renderContactRows();
@@ -477,6 +486,7 @@
     document.getElementById('fClosing').value        = c.closing;
     document.getElementById('fPaymentOffset').value  = c.paymentOffset;
     document.getElementById('fPayment').value        = c.payment;
+    document.getElementById('fIsPersonalTrade').checked = !!c.isPersonalTrade;
     _phones = [];
     _faxes  = [];
     renderContactRows();
@@ -600,6 +610,7 @@
       closing_day:           Number(document.getElementById('fClosing').value)        || null,
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
       payment_day:           Number(document.getElementById('fPayment').value)        || null,
+      is_personal_trade:     document.getElementById('fIsPersonalTrade').checked,
       tenant_id:    tenantId,
     };
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');

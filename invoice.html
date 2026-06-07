@@ -820,6 +820,69 @@
       .replace(/'/g, '&#x27;');
   }
 
+  // 内部保存は税抜き。個人取引（isPersonalTrade=true）のみ表示時に税込み換算する。
+  function toDisplayPrice(unitPriceExcl, isFood, isPersonalTrade) {
+    if (!isPersonalTrade) return Math.round(unitPriceExcl);
+    const rate = isFood ? 0.08 : 0.10;
+    return Math.round(unitPriceExcl * (1 + rate));
+  }
+  function taxMarkText(isFood) { return isFood ? 'ケ' : 'コ'; }
+  // 商品明細＋手数料・送料控除を税率別に集計
+  function calcInvoiceTotals(items, handlingFee, shippingFee) {
+    let excl8 = 0, excl10 = 0;
+    items.forEach(it => {
+      const sub = Number(it['小計'] || it['subtotal'] || (Number(it['数量']||0) * Number(it['単価']||0)) || 0);
+      if (it.isFood) excl8 += sub;
+      else           excl10 += sub;
+    });
+    excl10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    const tax8  = Math.round(excl8 * 0.08);
+    const tax10 = Math.round(excl10 * 0.10);
+    return {
+      excl8, excl10,
+      subtotal: excl8 + excl10,
+      tax8, tax10, tax: tax8 + tax10,
+      total: excl8 + excl10 + tax8 + tax10,
+      incl8: excl8 + tax8, incl10: excl10 + tax10,
+    };
+  }
+  // 集計表の中身（個人取引なら内税表示、それ以外なら外税表示）
+  function buildInvoiceTotalsRows(t, isPersonalTrade, grandLabel) {
+    const label = grandLabel || '合計（税込）';
+    if (isPersonalTrade) {
+      const rows = [];
+      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケ</td><td>${fmt(t.incl8)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.incl10)}</td></tr><tr><td style="font-size:10px;color:var(--text-muted)">　内税額</td><td style="font-size:10px;color:var(--text-muted)">${fmt(t.tax10)}</td></tr>`);
+      rows.push(`<tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`);
+      return rows.join('');
+    }
+    return `
+      <tr><td>${label === '小計' || label === '合計（税込）' ? '小計' : '税抜合計'}</td><td>${fmt(t.subtotal)}</td></tr>
+      ${t.tax8  !== 0 ? `<tr><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>` : ''}
+      ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
+      <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
+  }
+  // 手数料・送料の明細行HTML（あれば返す）
+  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade) {
+    const rows = [];
+    const buildOne = (label, fee) => {
+      const stored = -Math.abs(Number(fee) || 0);
+      const disp = toDisplayPrice(stored, false, isPersonalTrade);
+      return `<tr>
+        <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
+        <td>${label}</td>
+        <td style="text-align:right">1</td>
+        <td style="text-align:right">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false)}</span></td>
+        <td style="text-align:right">${fmt(disp)}</td>
+        <td style="text-align:center;font-size:11px;color:var(--text-muted)">10%</td>
+        <td class="remarks-cell" style="font-size:11px;color:var(--text-muted)"></td>
+      </tr>`;
+    };
+    if ((Number(handlingFee) || 0) > 0) rows.push(buildOne('手数料', handlingFee));
+    if ((Number(shippingFee) || 0) > 0) rows.push(buildOne('送料',   shippingFee));
+    return rows.join('');
+  }
+
 
   function sbFetch(path, options = {}) {
     const { headers: extraHeaders, ...rest } = options;
@@ -989,31 +1052,32 @@
   // ===== 納品書HTML生成 =====
   function renderDeliveryNote(f, items, s) {
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-    const subtotal = items.reduce((sum, it) => sum + Number(it['小計'] || 0), 0);
-    const tax8  = items.filter(i => i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||0) * 0.08), 0);
-    const tax10 = items.filter(i => !i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||0) * 0.10), 0);
-    const tax   = tax8 + tax10;
-    const total = subtotal + tax;
+    const isPersonal = !!f.isPersonalTrade;
+    const handlingFee = Number(f.handlingFee) || 0;
+    const shippingFee = Number(f.shippingFee) || 0;
+    const totals = calcInvoiceTotals(items, handlingFee, shippingFee);
 
     const dataRows = items.length > 0
       ? items.map(it => {
           const qty   = Number(it['数量'] || 0);
-          const price = Number(it['単価'] || 0);
-          const sub   = Number(it['小計'] || qty * price || 0);
+          const priceStored = Number(it['単価'] || 0);
+          const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
+          const subDisp   = qty * priceDisp;
           const taxLabel = it.isFood ? '8%' : '10%';
           const remarks = it['備考'] || '';
           return `<tr>
             <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
             <td>${esc(it['商品名'] || '-')}</td>
             <td style="text-align:right">${qty.toLocaleString()}</td>
-            <td style="text-align:right">${fmt(price)}</td>
-            <td style="text-align:right">${fmt(sub)}</td>
+            <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood)}</span></td>
+            <td style="text-align:right">${fmt(subDisp)}</td>
             <td style="text-align:center;font-size:11px;color:var(--text-muted)">${taxLabel}</td>
             <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
           </tr>`;
-        }).join('')
+        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal)
       : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
-    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
+    const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
+    const emptyCount = Math.max(0, 10 - Math.max(items.length + feeRowCount, 1));
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
@@ -1086,10 +1150,7 @@
             <textarea class="totals-notes-textarea" id="deliveryNotesTextarea" maxlength="200" placeholder="（任意）" onblur="saveDeliveryNotes()">${esc(f['備考'] || '')}</textarea>
           </div>
           <table class="totals-summary-table">
-            <tr><td>税抜合計</td><td>${fmt(subtotal)}</td></tr>
-            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td>${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmt(tax10)}</td></tr>` : ''}
-            <tr class="total-row"><td>合計（税込）</td><td>${fmt(total)}</td></tr>
+            ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
         </div>
       </div>
@@ -1114,6 +1175,9 @@
     window._orderData = { order, items };
     const s = _settings;
     const f = order.fields || order;
+    const isPersonal = !!f.isPersonalTrade;
+    const handlingFee = Number(f.handlingFee) || 0;
+    const shippingFee = Number(f.shippingFee) || 0;
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -1123,20 +1187,19 @@
       payment_day:          f['支払日']
     }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // 明細から合計を再計算（8%/10% 自動判定）
-    const subtotal = items.reduce((sum, it) => sum + (Number(it['小計'] || it['subtotal'] || 0)), 0);
-    const tax8  = items.filter(i => i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||i['subtotal']||0) * 0.08), 0);
-    const tax10 = items.filter(i => !i.isFood).reduce((s, i) => s + Math.round(Number(i['小計']||i['subtotal']||0) * 0.10), 0);
-    const tax = tax8 + tax10;
-    const total = subtotal + tax;
-    const taxLabel = tax8 > 0 && tax10 > 0 ? '消費税（8%/10%）込み' : tax8 > 0 ? '消費税（8%）込み' : '消費税（10%）込み';
+    // 明細から合計を再計算（8%/10% 自動判定・手数料/送料控除込み）
+    const totals = calcInvoiceTotals(items, handlingFee, shippingFee);
+    const subtotal = totals.subtotal;
+    const tax = totals.tax;
+    const total = totals.total;
 
     // 明細行
     const dataRows = items.length > 0
       ? items.map(it => {
           const qty = Number(it['数量'] || 0);
-          const price = Number(it['単価'] || 0);
-          const sub = Number(it['小計'] || qty * price || 0);
+          const priceStored = Number(it['単価'] || 0);
+          const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
+          const subDisp = qty * priceDisp;
           const rate = it.isFood ? '8%' : '10%';
           const remarks = it['備考'] || '';
           return `
@@ -1144,14 +1207,15 @@
               <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
               <td>${esc(it['商品名'] || '-')}</td>
               <td style="text-align:right">${qty.toLocaleString()}</td>
-              <td style="text-align:right">${fmt(price)}</td>
-              <td style="text-align:right">${fmt(sub)}</td>
+              <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood)}</span></td>
+              <td style="text-align:right">${fmt(subDisp)}</td>
               <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
               <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
             </tr>`;
-        }).join('')
+        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal)
       : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
-    const emptyCount = Math.max(0, 10 - Math.max(items.length, 1));
+    const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
+    const emptyCount = Math.max(0, 10 - Math.max(items.length + feeRowCount, 1));
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
@@ -1280,10 +1344,7 @@
             <textarea class="totals-notes-textarea" id="invoiceNotesTextarea" maxlength="200" placeholder="（任意）" onblur="saveInvoiceNotes()">${esc(f['備考'] || '')}</textarea>
           </div>
           <table class="totals-summary-table">
-            <tr><td>小計</td><td>${fmt(subtotal)}</td></tr>
-            ${tax8  > 0 ? `<tr><td>消費税（8%）</td><td>${fmt(tax8)}</td></tr>` : ''}
-            ${tax10 > 0 ? `<tr><td>消費税（10%）</td><td>${fmt(tax10)}</td></tr>` : ''}
-            <tr class="total-row"><td>合計（税込）</td><td>${fmt(total)}</td></tr>
+            ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
         </div>
       </div>
@@ -1305,6 +1366,10 @@
     // isFirstInvoice    = この取引先の初回請求書か（編集ボタン表示判定）
     window._invoiceTotals = {
       subtotal, tax, total,
+      excl8:  totals.excl8,  excl10: totals.excl10,
+      tax8:   totals.tax8,   tax10:  totals.tax10,
+      incl8:  totals.incl8,  incl10: totals.incl10,
+      isPersonal,
       currentPaidAmount: currentInvoice != null ? currentInvoice.paid_amount : undefined,
       prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined,
       manualPrevAmount: manualPrev,
@@ -1376,8 +1441,24 @@
     }
     document.getElementById('sumCarry').textContent     = fmt(carryOver);
     document.getElementById('sumThisTotal').textContent = fmt(t.total);
-    document.getElementById('sumExcl').textContent      = fmt(t.subtotal);
-    document.getElementById('sumTax').textContent       = fmt(t.tax);
+    // 個人取引：「税抜御買上額」「消費税」を「8%軽減込ケ」「10%対象込コ」表示に置換
+    const sumExclEl = document.getElementById('sumExcl');
+    const sumTaxEl  = document.getElementById('sumTax');
+    if (sumExclEl && sumTaxEl) {
+      const exclLabelEl = sumExclEl.parentElement?.querySelector('.summary-cell-label');
+      const taxLabelEl  = sumTaxEl.parentElement?.querySelector('.summary-cell-label');
+      if (t.isPersonal) {
+        if (exclLabelEl) exclLabelEl.textContent = '8%軽減込ケ';
+        if (taxLabelEl)  taxLabelEl.textContent  = '10%対象込コ';
+        sumExclEl.textContent = fmt(t.incl8 || 0);
+        sumTaxEl.textContent  = fmt(t.incl10 || 0);
+      } else {
+        if (exclLabelEl) exclLabelEl.textContent = '税抜御買上額';
+        if (taxLabelEl)  taxLabelEl.textContent  = '消費税';
+        sumExclEl.textContent = fmt(t.subtotal);
+        sumTaxEl.textContent  = fmt(t.tax);
+      }
+    }
     document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
 
     // 初回請求書（前回請求書なし＋手入力された前回請求額あり）の時だけ「✏️ 修正」ボタン表示
@@ -1554,7 +1635,7 @@
         const res = await sbFetch(
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
-          '&select=id,order_code,order_date,customers(company_name,contact_name),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))'
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
         orders = await res.json();
@@ -1577,7 +1658,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,is_personal_trade,handling_fee,shipping_fee,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -1591,6 +1672,9 @@
         let currentInvoiceManualPrev = null;
         let currentInvoiceNotes = '';
         let snapshotItems = [];
+        let currentIsPersonal = null;
+        let currentHandlingFee = null;
+        let currentShippingFee = null;
         if (curRes && curRes.ok) {
           const d = await curRes.json();
           if (d[0]) {
@@ -1599,10 +1683,22 @@
             currentInvoiceNotes = d[0].notes || '';
             window._currentInvoiceId = d[0].id;
             snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
+            currentIsPersonal = !!d[0].is_personal_trade;
+            currentHandlingFee = Number(d[0].handling_fee) || 0;
+            currentShippingFee = Number(d[0].shipping_fee) || 0;
           }
         }
 
         const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, notes: currentInvoiceNotes } : null;
+
+        // 個人取引フラグ・手数料・送料：発行済 invoices のスナップショットを優先、
+        // 無ければ期間内 orders を集計（フォールバック：全 orders で AND を取る方が安全だが、運用上は全て同じ取引先＝同じフラグになる前提）
+        const periodHandlingFee = currentHandlingFee != null ? currentHandlingFee
+          : (orders || []).reduce((s, o) => s + (Number(o.handling_fee) || 0), 0);
+        const periodShippingFee = currentShippingFee != null ? currentShippingFee
+          : (orders || []).reduce((s, o) => s + (Number(o.shipping_fee) || 0), 0);
+        const periodIsPersonal = currentIsPersonal != null ? currentIsPersonal
+          : !!((orders[0] && (orders[0].is_personal_trade ?? orders[0].customers?.is_personal_trade)));
 
         const f = {
           '受注ID':   targetInvoiceNum || '',
@@ -1614,6 +1710,9 @@
           '支払月オフセット': customerExtra.payment_month_offset != null ? customerExtra.payment_month_offset : null,
           '支払日':   customerExtra.payment_day != null ? customerExtra.payment_day : null,
           '備考':     currentInvoiceNotes,
+          isPersonalTrade: periodIsPersonal,
+          handlingFee:    periodHandlingFee,
+          shippingFee:    periodShippingFee,
         };
         // 明細スナップショットがあればそれを優先（発行時点の商品名・単価・税率を保持）
         // スナップショットが無い既発行分は orders を再集計（フォールバック）
@@ -1649,7 +1748,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1675,6 +1774,9 @@
           '支払月オフセット': order.customers?.payment_month_offset != null ? order.customers?.payment_month_offset : null,
           '支払日':   order.customers?.payment_day != null ? order.customers?.payment_day : null,
           '備考':     order.notes || '',
+          isPersonalTrade: !!(order.is_personal_trade ?? order.customers?.is_personal_trade),
+          handlingFee:    Number(order.handling_fee) || 0,
+          shippingFee:    Number(order.shipping_fee) || 0,
         };
         const items = (order.order_items || []).map(it => ({
           '商品コード': it.products?.product_code || '',
