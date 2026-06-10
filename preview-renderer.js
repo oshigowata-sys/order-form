@@ -210,7 +210,13 @@
   function toDispPrice(price, _isFood, _isPersonal) {
     return Math.round(price);
   }
-  function taxMark(isFood) { return isFood ? 'ケコ' : 'コ'; }
+  // 税率マーク：
+  //   個人取引（税込み単価表示）：軽減='ケコ'（軽減税率込）/ 標準='コ'（税込）
+  //   得意先取引（税抜き単価表示）：軽減='ケ'（軽減税率）/ 標準=''（マーク無し）
+  function taxMark(isFood, isPersonal) {
+    if (isPersonal) return isFood ? 'ケコ' : 'コ';
+    return isFood ? 'ケ' : '';
+  }
 
   function calcTotals(items, handlingFee, shippingFee, isPersonal) {
     let sum8 = 0, sum10 = 0;
@@ -257,7 +263,7 @@
       <tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`;
   }
 
-  function buildFeeRows(handlingFee, shippingFee, _isPersonal) {
+  function buildFeeRows(handlingFee, shippingFee, isPersonal) {
     const rows = [];
     const fmtFee = (label, fee) => {
       const disp = -Math.abs(Number(fee) || 0);
@@ -265,7 +271,7 @@
         <td class="code">—</td>
         <td>${label}</td>
         <td class="num">1</td>
-        <td class="num">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false)}</span></td>
+        <td class="num">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false, isPersonal)}</span></td>
         <td class="num">${fmtYen(disp)}</td>
         <td class="muted" style="text-align:center">10%</td>
         <td class="muted"></td>
@@ -276,12 +282,12 @@
     return rows.join('');
   }
 
-  function buildOrderItemRow(it, _isPersonal) {
+  function buildOrderItemRow(it, isPersonal) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
     const sub = qty * price;
     const isReq = price === 0;
-    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(price)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
+    const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(price)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food, isPersonal)}</span>`;
     const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
     return `<tr>
       <td class="code">${esc(it.product_code || '—')}</td>
@@ -461,7 +467,7 @@
       const dispPrice = toDispPrice(price, !!it.is_food, isPersonal);
       const subDisp = qty * dispPrice;
       const isReq = price === 0;
-      const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(dispPrice)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food)}</span>`;
+      const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(dispPrice)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food, isPersonal)}</span>`;
       const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(subDisp);
       return `<tr>
         <td class="num" style="width:60px">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>
@@ -481,7 +487,7 @@
         <td>${label}</td>
         <td class="num" style="width:45px">—</td>
         <td class="num" style="width:40px">1</td>
-        <td class="num" style="width:65px">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false)}</span></td>
+        <td class="num" style="width:65px">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false, isPersonal)}</span></td>
         <td class="num" style="width:75px">${fmtYen(disp)}</td>
         <td class="code" style="width:90px">—</td>
       </tr>`;
