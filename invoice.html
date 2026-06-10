@@ -824,8 +824,13 @@
   function toDisplayPrice(unitPrice, _isFood, _isPersonalTrade) {
     return Math.round(unitPrice);
   }
-  // 税率マーク：軽減税率込み='ケコ'、標準税率込み='コ'
-  function taxMarkText(isFood) { return isFood ? 'ケコ' : 'コ'; }
+  // 税率マーク：
+  //   個人取引（税込み単価表示）：軽減='ケコ'（軽減税率込）/ 標準='コ'（税込）
+  //   得意先取引（税抜き単価表示）：軽減='ケ'（軽減税率）/ 標準=''（マーク無し）
+  function taxMarkText(isFood, isPersonal) {
+    if (isPersonal) return isFood ? 'ケコ' : 'コ';
+    return isFood ? 'ケ' : '';
+  }
   // 集計（卸取引：外税方式／個人取引：単価＝税込み金額として単純合計・消費税計算なし）
   function calcInvoiceTotals(items, handlingFee, shippingFee, isPersonalTrade) {
     let sum8 = 0, sum10 = 0;
@@ -871,7 +876,7 @@
       <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
   }
   // 手数料・送料の明細行HTML（あれば返す）
-  function buildFeeRowsInvoice(handlingFee, shippingFee, _isPersonalTrade) {
+  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade) {
     const rows = [];
     const buildOne = (label, fee) => {
       const disp = -Math.abs(Number(fee) || 0);
@@ -879,7 +884,7 @@
         <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
         <td>${label}</td>
         <td style="text-align:right">1</td>
-        <td style="text-align:right">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false)}</span></td>
+        <td style="text-align:right">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
         <td style="text-align:right">${fmt(disp)}</td>
         <td style="text-align:center;font-size:11px;color:var(--text-muted)">10%</td>
         <td class="remarks-cell" style="font-size:11px;color:var(--text-muted)"></td>
@@ -1076,7 +1081,7 @@
             <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
             <td>${esc(it['商品名'] || '-')}</td>
             <td style="text-align:right">${qty.toLocaleString()}</td>
-            <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood)}</span></td>
+            <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
             <td style="text-align:right">${fmt(subDisp)}</td>
             <td style="text-align:center;font-size:11px;color:var(--text-muted)">${taxLabel}</td>
             <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
@@ -1214,7 +1219,7 @@
               <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
               <td>${esc(it['商品名'] || '-')}</td>
               <td style="text-align:right">${qty.toLocaleString()}</td>
-              <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood)}</span></td>
+              <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
               <td style="text-align:right">${fmt(subDisp)}</td>
               <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
               <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>

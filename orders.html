@@ -264,7 +264,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           </div>
           <div id="orderFeesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%・コ）</label>
+              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%）</label>
               <span id="editFeesTaxMode" style="font-size:11px;color:var(--text-muted)"></span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -285,8 +285,6 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           </div>
           <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
             <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-            <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-bottom:10px">
-            <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
             <div class="add-item-row">
               <select class="form-input2" id="editItemProduct">
                 <option value="">商品を選択してください</option>
@@ -294,6 +292,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <input type="number" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" />
               <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
             </div>
+            <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
+            <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
             <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
           </div>
           <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -361,8 +361,6 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           </div>
           <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
             <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-            <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-bottom:10px">
-            <div id="searchResults" class="search-results-wrap" style="display:none"></div>
             <div class="add-item-row">
               <select class="form-input2" id="newItemProduct">
                 <option value="">商品を選択してください</option>
@@ -370,6 +368,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <input type="number" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" />
               <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
             </div>
+            <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
+            <div id="searchResults" class="search-results-wrap" style="display:none"></div>
             <div class="entry-error" id="itemError">商品と数量を選択してください</div>
             <table class="entry-items-table" id="newItemsTable" style="display:none">
               <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
@@ -379,7 +379,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           </div>
           <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%・コ）</label>
+              <label class="form-label2" style="margin:0">手数料・送料（標準税率10%）</label>
               <span id="newFeesTaxMode" style="font-size:11px;color:var(--text-muted)"></span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -468,8 +468,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function toStoredPrice(displayPrice, _isFood, _isPersonalTrade) {
     return Math.round(displayPrice);
   }
-  // 税率マーク：軽減税率込み='ケコ'、標準税率込み='コ'
-  function taxMark(isFood) { return isFood ? 'ケコ' : 'コ'; }
+  // 税率マーク：
+  //   個人取引（税込み単価表示）：軽減='ケコ'（軽減税率込）/ 標準='コ'（税込）
+  //   得意先取引（税抜き単価表示）：軽減='ケ'（軽減税率）/ 標準=''（マーク無し）
+  function taxMark(isFood, isPersonal) {
+    if (isPersonal) return isFood ? 'ケコ' : 'コ';
+    return isFood ? 'ケ' : '';
+  }
 
   // 集計（卸取引：外税方式で消費税計算 / 個人取引：単価＝税込み金額として単純合計）
   function calcOrderTotals(items, handlingFee, shippingFee, isPersonalTrade) {
@@ -766,7 +771,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <td style="font-size:14px;color:var(--text-muted)">${esc(it.products?.product_code || '—')}</td>
           <td style="font-weight:500;white-space:normal">${esc(it.products?.product_name || '—')}</td>
           <td class="num-right">${qty}</td>
-          <td class="num-right">${fmtYen(priceDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(isFood)}</span></td>
+          <td class="num-right">${fmtYen(priceDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(isFood, currentEditIsPersonalTrade)}</span></td>
           <td style="color:var(--text-muted)">${esc(it.remarks || '')}</td>
           <td class="num-right" style="font-weight:600">${fmtYen(subDisp)}</td>
           <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減8%':'標準10%'}</span></td>
@@ -991,8 +996,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 単価は常にインライン編集可能。
       // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = it.unitPrice !== 0
-        ? `<input type="number" value="${priceDisp}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood)}</span>`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood)}</span>`;
+        ? `<input type="number" value="${priceDisp}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`
+        : `<input type="number" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
@@ -1611,8 +1616,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 単価は常にインライン編集可能。
       // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = item.unitPrice !== 0
-        ? `<input type="number" value="${priceDisp}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood)}</span>`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood)}</span>`;
+        ? `<input type="number" value="${priceDisp}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`
+        : `<input type="number" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
