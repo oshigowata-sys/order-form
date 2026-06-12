@@ -1647,7 +1647,8 @@
         const res = await sbFetch(
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
-          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))' +
+          '&order=order_date.asc&order_items.order=display_order.asc'
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
         orders = await res.json();
@@ -1760,7 +1761,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))&order_items.order=display_order.asc';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
