@@ -749,7 +749,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     currentEditIsPersonalTrade = !!o.isPersonalTrade;
     try {
       const res = await sbFetch(
-        `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food)&order_id=eq.${orderId}`
+        `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food)&order_id=eq.${orderId}&order=display_order.asc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const items = await res.json();
@@ -850,7 +850,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
     // 既存 order_items を編集用配列にロード
     try {
-      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,remarks,products(product_code,product_name,is_food,price)`);
+      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,remarks,products(product_code,product_name,is_food,price)&order=display_order.asc`);
       if (!res.ok) throw new Error('order_items取得失敗');
       const items = await res.json();
       editItems = items.map(it => ({
@@ -1154,21 +1154,22 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       });
       if (!delRes.ok) throw new Error('明細削除失敗');
 
-      await Promise.all(editItems.map(item =>
-        sbFetch('/rest/v1/order_items', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=minimal' },
-          body: JSON.stringify({
-            order_id: currentDetailId,
-            product_id: item.productId,
-            quantity: item.qty,
-            unit_price: item.unitPrice,
-            cost_price: item.costPrice,
-            remarks: (item.remarks || '').trim() || null,
-            tenant_id: tenantId
-          })
-        }).then(r => { if (!r.ok) throw new Error('明細追加失敗'); })
-      ));
+      // 1回のリクエストでまとめて登録し、display_order で画面の並び順を保持（並列POSTだと到着順が崩れる）
+      const insRes = await sbFetch('/rest/v1/order_items', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify(editItems.map((item, i) => ({
+          order_id: currentDetailId,
+          product_id: item.productId,
+          quantity: item.qty,
+          unit_price: item.unitPrice,
+          cost_price: item.costPrice,
+          remarks: (item.remarks || '').trim() || null,
+          tenant_id: tenantId,
+          display_order: i
+        })))
+      });
+      if (!insRes.ok) throw new Error('明細追加失敗');
 
       const o = allOrders.find(x => x.id === currentDetailId);
       // 帳票全体の備考欄＋手数料・送料・個人取引フラグを orders に保存
@@ -1668,13 +1669,13 @@ const errEl      = document.getElementById('orderError');
       const orderData = await orderRes.json();
       const orderId = orderData[0]?.id;
 
-      await Promise.all(newOrderItems.map(item =>
-        sbFetch('/rest/v1/order_items', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId })
-        })
-      ));
+      // 1回のリクエストでまとめて登録し、display_order で入力順を保持（並列POSTだと到着順が崩れる）
+      const itemsRes = await sbFetch('/rest/v1/order_items', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify(newOrderItems.map((item, i) => ({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId, display_order: i })))
+      });
+      if (!itemsRes.ok) throw new Error('order_items POST failed');
 
       closeNewOrder();
       await loadOrders();

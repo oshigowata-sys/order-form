@@ -754,7 +754,7 @@ async function confirmIssue() {
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
         + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
-        + '&order=order_date.asc'
+        + '&order=order_date.asc&order_items.order=display_order.asc'
       );
       if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
       const ordersData = await ordersRes.json();
