@@ -289,6 +289,28 @@
   </div>
 </div>
 
+<!-- ログイン発行 Modal -->
+<div class="overlay" id="loginIssueOverlay" onclick="if(event.target===this)closeLoginIssueModal()">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title" id="loginIssueTitle">注文ログインの発行</div>
+      <button class="modal-close" onclick="closeLoginIssueModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.7">この登録リンクを取引先に渡してください。取引先がリンクを開いてご自身でID・パスワードを設定すると、ログインして注文できるようになります。<br><strong>有効期限は14日間</strong>です。</p>
+      <div id="loginIssueLoading" style="text-align:center;padding:20px;color:var(--text-muted)">発行中...</div>
+      <div id="loginIssueResult" style="display:none">
+        <div style="display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">
+          <span id="loginIssueUrl" style="font-size:13px;color:var(--text-muted);flex:1;word-break:break-all;text-align:left"></span>
+          <button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="copyLoginIssueUrl()">コピー</button>
+        </div>
+        <p id="loginIssueCopied" style="font-size:14px;color:var(--green);display:none;text-align:center">✓ コピーしました</p>
+      </div>
+      <div id="loginIssueError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b"></div>
+    </div>
+  </div>
+</div>
+
 <!-- QR Modal -->
 <div class="overlay" id="qrOverlay" onclick="if(event.target===this)closeQrModal()">
   <div class="modal" style="max-width:420px">
@@ -426,6 +448,7 @@
       <td style="font-weight:600;color:var(--orange);font-size:14px">${formatClosingPayment(c.closing, c.paymentOffset, c.payment)}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(c.id)}')">編集</button>
+        <button class="btn btn-outline btn-sm" style="border-color:var(--orange);color:var(--orange)" onclick="openLoginIssueModal('${esc(c.id)}')">ログイン発行</button>
         <button class="btn btn-outline btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openQrModal('${esc(c.id)}')">QR</button>
         <button class="btn-danger-sm" onclick="deleteCustomer('${esc(c.id)}')">削除</button>
       </td>
@@ -660,6 +683,51 @@
   }
 
   const BASE_URL = 'https://oshigowata-sys.github.io/order-form/order_form.html';
+  const RETAIL_INVITE_BASE = 'https://oshigowata-sys.github.io/order-form/invite-retail.html';
+
+  // ── 小売店のログインアカウント発行（招待リンク） ──
+  async function openLoginIssueModal(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('loginIssueTitle').textContent = `${c.company} — 注文ログインの発行`;
+    document.getElementById('loginIssueResult').style.display = 'none';
+    document.getElementById('loginIssueError').style.display = 'none';
+    document.getElementById('loginIssueCopied').style.display = 'none';
+    document.getElementById('loginIssueLoading').style.display = 'block';
+    document.getElementById('loginIssueOverlay').classList.add('open');
+    try {
+      const res = await sbFetch('/rest/v1/rpc/create_retail_invitation', {
+        method: 'POST',
+        body: JSON.stringify({ p_customer_id: id })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const inv = Array.isArray(data) ? data[0] : data;
+      if (!inv || !inv.token) throw new Error('発行に失敗しました');
+      const url = `${RETAIL_INVITE_BASE}?token=${encodeURIComponent(inv.token)}`;
+      document.getElementById('loginIssueUrl').textContent = url;
+      document.getElementById('loginIssueLoading').style.display = 'none';
+      document.getElementById('loginIssueResult').style.display = 'block';
+    } catch(e) {
+      console.error(e);
+      document.getElementById('loginIssueLoading').style.display = 'none';
+      const errEl = document.getElementById('loginIssueError');
+      errEl.textContent = '発行に失敗しました。時間をおいて再度お試しください。';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function closeLoginIssueModal() {
+    document.getElementById('loginIssueOverlay').classList.remove('open');
+  }
+
+  function copyLoginIssueUrl() {
+    const url = document.getElementById('loginIssueUrl').textContent;
+    navigator.clipboard.writeText(url).then(() => {
+      document.getElementById('loginIssueCopied').style.display = 'block';
+      setTimeout(() => { document.getElementById('loginIssueCopied').style.display = 'none'; }, 2000);
+    });
+  }
 
   function openQrModal(id) {
     const c = customers.find(x => x.id === id);

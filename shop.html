@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注文 | MeguRee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #e8630a;
+      --orange-dark: #c4520a;
+      --orange-pale: #fff4ec;
+      --green: #1e6641;
+      --green-pale: #edf7f1;
+      --bg: #f5f0eb;
+      --surface: #ffffff;
+      --border: #e2d9ce;
+      --border-light: #ede7de;
+      --text: #1c1409;
+      --text-muted: #8c7355;
+      --danger: #dc2626;
+      --shadow: 0 2px 16px rgba(0,0,0,0.07);
+      --r: 14px;
+      --r-sm: 10px;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 88px;
+    }
+
+    /* ===== HEADER ===== */
+    .site-header {
+      background: linear-gradient(135deg, #c95407 0%, #e8630a 40%, #f97316 100%);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(201,84,7,0.45);
+      overflow: hidden;
+    }
+
+    .site-header::before {
+      content: '';
+      position: absolute;
+      right: -70px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,
+        transparent 27%,
+        rgba(255,255,255,0.09) 27%, rgba(255,255,255,0.09) 34%,
+        transparent 34%, transparent 43%,
+        rgba(255,255,255,0.06) 43%, rgba(255,255,255,0.06) 50%,
+        transparent 50%, transparent 59%,
+        rgba(255,255,255,0.04) 59%, rgba(255,255,255,0.04) 66%,
+        transparent 66%, transparent 75%,
+        rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02) 82%,
+        transparent 82%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .site-header > * { position: relative; z-index: 1; }
+
+    .site-header .logo {
+      height: 26px;
+      filter: brightness(0) invert(1);
+      flex-shrink: 0;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 22px;
+      background: rgba(255,255,255,0.35);
+      flex-shrink: 0;
+    }
+
+    .header-text { flex: 1; min-width: 0; }
+
+    .header-customer {
+      font-size: 14px;
+      font-weight: 700;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .header-date {
+      font-size: 11px;
+      opacity: 0.75;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .header-logout {
+      font-size: 12px;
+      color: white;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .header-logout:hover { background: rgba(255,255,255,0.3); }
+
+    /* ===== LAYOUT ===== */
+    .page-body { max-width: 1080px; margin: 0 auto; padding: 24px 16px; }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (min-width: 900px) {
+      .page-body { padding: 32px 24px; }
+      .layout-grid { grid-template-columns: 1fr 340px; }
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .card:last-child { margin-bottom: 0; }
+
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #fafaf8;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .card-body { padding: 18px 20px; }
+
+    /* ===== FORM FIELDS ===== */
+    .form-group { margin-bottom: 14px; }
+    .form-group:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafaf8;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    input[type="text"]:focus { border-color: var(--orange); background: #fff; }
+
+    .field-error {
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 4px;
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    /* ===== CATEGORY BLOCK ===== */
+    .category-block { border-bottom: 1px solid var(--border-light); }
+    .category-block:last-child { border-bottom: none; }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 20px;
+      cursor: pointer;
+      user-select: none;
+      background: linear-gradient(135deg, #1e6641 0%, #268a55 100%);
+      transition: background 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .category-header > * { position: relative; z-index: 1; }
+    .category-header:hover { background: linear-gradient(135deg, #1a5c39 0%, #1e6641 100%); }
+
+    .category-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      flex: 1;
+    }
+
+    .cat-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--orange);
+      color: white;
+      border-radius: 20px;
+      padding: 2px 8px;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .cat-badge.show { display: inline-block; }
+
+    .cat-arrow {
+      font-size: 10px;
+      color: rgba(255,255,255,0.65);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .category-block.open .cat-arrow { transform: rotate(180deg); }
+
+    .category-body { display: none; }
+    .category-block.open .category-body { display: block; }
+
+    /* ===== PRODUCT ROW ===== */
+    .product-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      border-top: 1px solid var(--border-light);
+      transition: background 0.15s;
+    }
+
+    .product-row:hover { background: #faf8f5; }
+    .product-row.has-qty { background: var(--orange-pale); }
+
+    .product-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      letter-spacing: 0;
+    }
+
+    .product-info { flex: 1; min-width: 0; }
+
+    .product-name {
+      font-size: 13px;
+      font-weight: 500;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .product-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .tax-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #e8f0f4;
+      color: #4a6a7a;
+    }
+
+    /* ===== STEPPER ===== */
+    .stepper { display: flex; align-items: center; flex-shrink: 0; }
+
+    .stepper-btn {
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      color: var(--text-muted);
+      line-height: 1;
+      user-select: none;
+    }
+
+    .stepper-btn.minus { border-radius: 8px 0 0 8px; }
+    .stepper-btn.minus:hover { background: #f0ece6; }
+
+    .stepper-btn.plus {
+      border-radius: 0 8px 8px 0;
+      background: var(--orange);
+      border-color: var(--orange);
+      color: white;
+    }
+
+    .stepper-btn.plus:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
+
+    .qty-input {
+      width: 46px;
+      height: 34px;
+      border: 1.5px solid var(--border);
+      border-left: none;
+      border-right: none;
+      background: white;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      -moz-appearance: textfield;
+      color: var(--text);
+    }
+
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .qty-input:focus { background: #fff8f4; }
+
+    /* ===== EMPTY / LOADING ===== */
+    .empty-msg {
+      text-align: center;
+      padding: 28px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ===== SUMMARY CARD (sidebar) ===== */
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 82px;
+    }
+
+    .summary-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+
+    .summary-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-count { margin-top: 6px; font-size: 24px; font-weight: 700; color: var(--text); }
+    .summary-count .num { color: var(--orange); }
+    .summary-count-unit { font-size: 14px; font-weight: 400; color: var(--text-muted); margin-left: 2px; }
+
+    .summary-items {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .summary-items-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 6px 0; }
+    .summary-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 6px; }
+    .summary-item:last-child { margin-bottom: 0; }
+    .summary-item-name {
+      flex: 1; min-width: 0; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .summary-item-qty { flex-shrink: 0; color: var(--text-muted); font-size: 11.5px; }
+    .summary-item-amount { flex-shrink: 0; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    .summary-lines { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .summary-line:last-child { margin-bottom: 0; }
+
+    .summary-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .summary-total .price { color: var(--orange); }
+
+    .summary-actions { padding: 14px 20px; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, var(--orange) 0%, #f97316 100%);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(232,99,10,0.3);
+    }
+
+    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .submit-error { font-size: 12px; color: var(--danger); margin-bottom: 10px; display: none; line-height: 1.5; }
+    .submit-error.show { display: block; }
+
+    /* ===== MOBILE STICKY BAR ===== */
+    .mobile-bar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      z-index: 200;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+    }
+
+    @media (max-width: 899px) {
+      .mobile-bar { display: flex; align-items: center; gap: 12px; }
+      .side-col { display: none; }
+    }
+
+    .mobile-bar-info { flex: 1; }
+    .mobile-bar-label { font-size: 11px; color: var(--text-muted); display: block; }
+    .mobile-bar-total { font-size: 18px; font-weight: 700; color: var(--orange); }
+
+    .mobile-submit-btn {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--orange) 0%, #f97316 100%);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .mobile-submit-btn:hover { opacity: 0.9; }
+    .mobile-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== SUCCESS MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(28,20,9,0.55);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.9) translateY(12px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .modal-check {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--green-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 30px;
+      color: var(--green);
+    }
+
+    .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+    .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+    .modal-order-num {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .modal-order-num strong {
+      display: block;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+
+    .modal-note { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+    .modal-actions { margin-top: 20px; }
+    .modal-btn {
+      padding: 12px 28px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .modal-btn:hover { background: var(--orange-dark); }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <img src="https://raw.githubusercontent.com/oshigowata-sys/order-form/main/meguree_final%20(2).svg" alt="MeguRee" class="logo">
+  <div class="header-divider"></div>
+  <div class="header-text">
+    <span class="header-customer" id="headerCustomer">注文</span>
+    <span class="header-date" id="headerDate"></span>
+  </div>
+  <button class="header-logout" onclick="signOut('login.html')">ログアウト</button>
+</header>
+
+<!-- ===== FORM AREA ===== -->
+<div class="page-body" id="formArea">
+  <div class="layout-grid">
+
+    <!-- LEFT COLUMN -->
+    <div class="main-col">
+      <!-- Product list -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">商品を選んでください</span></div>
+        <div id="productList">
+          <div class="empty-msg">読み込み中...</div>
+        </div>
+        <div class="field-error" id="productError" style="padding:0 20px 14px;">1つ以上の商品を選択してください</div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN — desktop summary sidebar -->
+    <div class="side-col">
+      <div class="summary-card">
+        <div class="summary-header">
+          <div class="summary-title">ご注文内容</div>
+          <div class="summary-count">
+            <span class="num" id="summaryCount">0</span><span class="summary-count-unit">点選択中</span>
+          </div>
+        </div>
+        <div class="summary-items" id="summaryItems">
+          <div class="summary-items-empty">商品が選択されていません</div>
+        </div>
+        <div class="summary-lines">
+          <div class="summary-line"><span>小計（税抜）</span><span id="summarySubtotal">¥0</span></div>
+          <div class="summary-line"><span>消費税（8%）</span><span id="summaryTax8">¥0</span></div>
+          <div class="summary-line"><span>消費税（10%）</span><span id="summaryTax10">¥0</span></div>
+          <div class="summary-line summary-total"><span>合計（税込）</span><span class="price" id="summaryTotal">¥0</span></div>
+        </div>
+        <div class="summary-actions">
+          <div class="submit-error" id="submitError"></div>
+          <button class="submit-btn" id="submitBtn" onclick="submitOrder()">注文を確定する →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MOBILE STICKY BAR ===== -->
+<div class="mobile-bar" id="mobileBar">
+  <div class="mobile-bar-info">
+    <span class="mobile-bar-label">合計（税込）</span>
+    <span class="mobile-bar-total" id="mobileTotal">¥0</span>
+  </div>
+  <button class="mobile-submit-btn" id="mobileSubmitBtn" onclick="submitOrder()">注文を確定する</button>
+</div>
+
+<!-- ===== SUCCESS MODAL ===== -->
+<div class="modal-overlay" id="successModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-check">✓</div>
+    <h2 class="modal-title">ご注文ありがとうございます！</h2>
+    <p class="modal-sub">ご注文の内容を受け付けました</p>
+    <div class="modal-order-num">
+      注文番号
+      <strong id="modalOrderNum">—</strong>
+    </div>
+    <p class="modal-note">担当者より確認のご連絡をいたします。</p>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="resetForm()">続けて注文する</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="auth.js?v=20260613-retail"></script>
+<script>
+  // ===== 認証ガード：ログイン必須かつ小売店ロールのみ =====
+  // （checkAuth は retail を shop.html に送り返す挙動のため、ここでは自前でチェックしてループを避ける）
+  (function guardRetail() {
+    const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const jwt = sessionStorage.getItem('_sb_jwt');
+    if (!u.id || !jwt) { location.replace('login.html'); return; }
+    try {
+      const p = getJwtPayload();
+      if (!p || p.exp * 1000 < Date.now()) { signOut('login.html'); return; }
+    } catch {}
+    if (u.role !== 'retail') {
+      location.replace(u.role === 'super_admin' ? 'super-dashboard.html' : 'dashboard.html');
+    }
+  })();
+
+  // ===== Supabase（ログインユーザーのJWTで叩く）=====
+  function sbFetch(path, options = {}) {
+    const token = getAccessToken();
+    return fetch(SB_URL + path, {
+      ...options,
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
+  }
+
+  // ===== Header date =====
+  (() => {
+    const d = new Date();
+    document.getElementById('headerDate').textContent =
+      `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  })();
+
+  const sessionCache = {};
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+  }
+
+  function normalizeImageUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      if (u.hostname.includes('drive.google.com')) {
+        const fileMatch = u.pathname.match(/\/file\/d\/([^/]+)/);
+        const id = fileMatch ? fileMatch[1] : u.searchParams.get('id');
+        if (id) return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w600`;
+      }
+      if (u.hostname.includes('dropbox.com')) {
+        u.searchParams.set('dl', '1');
+        return u.toString();
+      }
+    } catch(e) {
+      return raw;
+    }
+    return raw;
+  }
+
+  // ===== Category color palette =====
+  const CAT_COLORS = ['#e8630a','#1e6641','#d4870c','#2a7d8f','#8b5a2b','#6b4c8c','#c0392b','#2980b9'];
+  const _catColorMap = {};
+  let _catIdx = 0;
+  function catColor(cat) {
+    if (!_catColorMap[cat]) { _catColorMap[cat] = CAT_COLORS[_catIdx++ % CAT_COLORS.length]; }
+    return _catColorMap[cat];
+  }
+
+  let products = [];
+
+  // 取引先別の卸価格マップ（product_id => { wholesale_price, rate }）
+  let _customerRates = {};
+
+  // ログインユーザー（小売店）自身の取引先を表示
+  async function loadMyCustomer() {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_customer', { method: 'POST', body: '{}' });
+      if (res.ok) {
+        const data = await res.json();
+        const c = (data || [])[0];
+        if (c && c.company_name) {
+          document.getElementById('headerCustomer').textContent = c.company_name + ' 様';
+        }
+      }
+    } catch(e) { console.warn('取引先名の取得に失敗:', e); }
+  }
+
+  async function loadMyRates() {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_pricing', { method: 'POST', body: '{}' });
+      if (!res.ok) { _customerRates = {}; return; }
+      const data = await res.json();
+      const map = {};
+      (data || []).forEach(r => {
+        if (r.product_id != null) {
+          map[r.product_id] = {
+            wholesale_price: r.wholesale_price != null ? Number(r.wholesale_price) : null,
+            rate: r.rate != null ? Number(r.rate) : null
+          };
+        }
+      });
+      _customerRates = map;
+    } catch(e) {
+      console.warn('卸価格の取得に失敗しました:', e);
+      _customerRates = {};
+    }
+  }
+
+  function rateOf(productId) {
+    const r = _customerRates[productId];
+    return r && r.rate != null ? r.rate : 1.0;
+  }
+
+  function displayPriceOf(p) {
+    const base = Number(p.list_price || p.price) || 0;
+    const r = _customerRates[p.id];
+    if (r && r.wholesale_price != null && r.wholesale_price > 0) {
+      return r.wholesale_price;
+    }
+    return Math.round(base * rateOf(p.id));
+  }
+
+  async function loadProducts() {
+    const list = document.getElementById('productList');
+    try {
+      // 取引先・卸価格はログインユーザーから導出（自分の分だけ返る）
+      const ratesPromise = loadMyRates();
+
+      if (sessionCache.products) {
+        products = sessionCache.products;
+      } else {
+        const res = await sbFetch('/rest/v1/rpc/get_my_products', { method: 'POST', body: '{}' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        products = data.map(p => ({
+          id: p.id, name: p.product_name || '', price: p.price || 0,
+          list_price: p.list_price || 0,
+          category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
+          imageUrl: normalizeImageUrl(p.image_url),
+        }));
+        sessionCache.products = products;
+      }
+
+      await ratesPromise;
+
+      if (products.length === 0) {
+        list.innerHTML = '<div class="empty-msg">商品が登録されていません</div>';
+        return;
+      }
+
+      const groups = {};
+      const catOrder = [];
+      products.forEach(p => {
+        if (!groups[p.category]) { groups[p.category] = []; catOrder.push(p.category); }
+        groups[p.category].push(p);
+      });
+
+      list.innerHTML = catOrder.map((cat, ci) => {
+        const items = groups[cat];
+        const color = catColor(cat);
+        return `
+          <div class="category-block open">
+            <div class="category-header" onclick="toggleCategory(this.parentElement)">
+              <span class="category-name">${esc(cat)}</span>
+              <span class="cat-badge" data-cat="${esc(cat)}"></span>
+              <span class="cat-arrow">▼</span>
+            </div>
+            <div class="category-body">
+              ${items.map(p => {
+                const dispPrice = displayPriceOf(p);
+                const isAskPrice = dispPrice <= 0;
+                const priceLabel = isAskPrice
+                  ? `<span style="color:#dc2626;font-weight:600">要相談</span>`
+                  : `¥${dispPrice.toLocaleString()}`;
+                return `
+                <div class="product-row" id="prow-${esc(p.id)}">
+                  ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" class="product-icon" style="object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
+                  <div class="product-info">
+                    <span class="product-name">${esc(p.name)}</span>
+                    <div class="product-meta">
+                      <span>${priceLabel}</span>
+                      <span class="tax-badge">税${p.taxRate}%</span>
+                    </div>
+                  </div>
+                  <div class="stepper" onclick="event.stopPropagation()">
+                    <button class="stepper-btn minus" onclick="stepQty('${esc(p.id)}',-1)">−</button>
+                    <input class="qty-input" type="number" min="0" max="999" value="0"
+                      id="qty-${esc(p.id)}"
+                      data-id="${esc(p.id)}" data-price="${Number(p.list_price || p.price)}" data-display-price="${dispPrice}"
+                      data-ask-price="${isAskPrice ? '1' : '0'}"
+                      data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
+                      data-name="${esc(p.name)}"
+                      oninput="syncQty(this)">
+                    <button class="stepper-btn plus" onclick="stepQty('${esc(p.id)}',1)">+</button>
+                  </div>
+                </div>
+              `;}).join('')}
+            </div>
+          </div>`;
+      }).join('');
+
+    } catch(e) {
+      list.innerHTML = '<div class="empty-msg">商品の読み込みに失敗しました</div>';
+      console.error(e);
+    }
+  }
+
+  function toggleCategory(block) { block.classList.toggle('open'); }
+
+  function stepQty(id, delta) {
+    const input = document.getElementById('qty-' + id);
+    if (!input) return;
+    input.value = Math.max(0, Math.min(999, (parseInt(input.value) || 0) + delta));
+    syncQty(input);
+  }
+
+  function syncQty(input) {
+    const val = Math.max(0, Math.min(999, parseInt(input.value) || 0));
+    input.value = val;
+    const row = document.getElementById('prow-' + input.dataset.id);
+    if (row) row.classList.toggle('has-qty', val > 0);
+    updateSummary();
+  }
+
+  function getOrderItems() {
+    return Array.from(document.querySelectorAll('.qty-input'))
+      .map(el => {
+        const basePrice = Number(el.dataset.price);
+        const dispRaw   = Number(el.dataset.displayPrice);
+        const dispPrice = !isNaN(dispRaw) ? dispRaw : basePrice;
+        return {
+          id: el.dataset.id, name: el.dataset.name || '',
+          price: basePrice,
+          displayPrice: dispPrice,
+          isAskPrice: el.dataset.askPrice === '1',
+          taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
+          qty: parseInt(el.value) || 0
+        };
+      })
+      .filter(i => i.qty > 0);
+  }
+
+  function updateSummary() {
+    const items = getOrderItems();
+    let subtotal = 0, tax8 = 0, tax10 = 0, totalQty = 0, askCount = 0;
+    items.forEach(i => {
+      totalQty += i.qty;
+      if (i.isAskPrice) { askCount += 1; return; }
+      const amt = i.displayPrice * i.qty;
+      subtotal += amt;
+      if (i.taxRate === 8) tax8 += Math.round(amt * 0.08);
+      else tax10 += Math.round(amt * 0.10);
+    });
+    const total = subtotal + tax8 + tax10;
+
+    const itemsEl = document.getElementById('summaryItems');
+    if (itemsEl) {
+      if (items.length === 0) {
+        itemsEl.innerHTML = '<div class="summary-items-empty">商品が選択されていません</div>';
+      } else {
+        itemsEl.innerHTML = items.map(i => {
+          const amtLabel = i.isAskPrice
+            ? `<span style="color:#dc2626;font-weight:600">要相談</span>`
+            : `¥${(i.displayPrice * i.qty).toLocaleString()}`;
+          return `<div class="summary-item">
+            <span class="summary-item-name" title="${esc(i.name)}">${esc(i.name)}</span>
+            <span class="summary-item-qty">× ${i.qty}</span>
+            <span class="summary-item-amount">${amtLabel}</span>
+          </div>`;
+        }).join('') + (askCount > 0
+          ? `<div class="summary-item-note" style="margin-top:8px;padding:8px 10px;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;font-size:12px;color:#9a3412;line-height:1.5">※ 要相談商品 ${askCount}件 — 受注確認後に確定金額をご連絡します（合計金額には含まれていません）</div>`
+          : '');
+      }
+    }
+
+    document.getElementById('summaryCount').textContent = totalQty;
+    document.getElementById('summarySubtotal').textContent = '¥' + subtotal.toLocaleString();
+    document.getElementById('summaryTax8').textContent = '¥' + tax8.toLocaleString();
+    document.getElementById('summaryTax10').textContent = '¥' + tax10.toLocaleString();
+    document.getElementById('summaryTotal').textContent = '¥' + total.toLocaleString();
+    document.getElementById('mobileTotal').textContent = '¥' + total.toLocaleString();
+
+    const catCounts = {};
+    items.forEach(i => { catCounts[i.cat] = (catCounts[i.cat] || 0) + i.qty; });
+    document.querySelectorAll('.cat-badge').forEach(badge => {
+      const cat = badge.dataset.cat;
+      const n = catCounts[cat] || 0;
+      badge.textContent = n + '点';
+      badge.classList.toggle('show', n > 0);
+    });
+  }
+
+  async function generateOrderCode() {
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    try {
+      const res = await sbFetch('/rest/v1/rpc/count_today_orders', { method: 'POST', body: '{}' });
+      if (!res.ok) return `ORD-${dateStr}-001`;
+      const count = await res.json();
+      return `ORD-${dateStr}-${String((count||0)+1).padStart(3,'0')}`;
+    } catch(e) { return `ORD-${dateStr}-001`; }
+  }
+
+  async function submitOrder() {
+    const items = getOrderItems();
+    const productErr = document.getElementById('productError');
+    if (items.length === 0) { productErr.classList.add('show'); return; }
+    productErr.classList.remove('show');
+
+    const btn = document.getElementById('submitBtn');
+    const mBtn = document.getElementById('mobileSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '送信中...';
+    if (mBtn) { mBtn.disabled = true; mBtn.textContent = '送信中...'; }
+
+    const errEl = document.getElementById('submitError');
+    errEl.classList.remove('show');
+
+    try {
+      // 取引先別の卸価格（wholesale_price）を優先。未設定なら 上代 × 掛け率 でフォールバック。
+      const orderItemsPayload = items.map(item => {
+        const r = _customerRates[item.id];
+        const unitPrice = (r && r.wholesale_price != null && r.wholesale_price > 0)
+          ? r.wholesale_price
+          : Math.round(item.price * rateOf(item.id));
+        return { product_id: item.id, quantity: item.qty, unit_price: unitPrice };
+      });
+
+      const today = new Date().toISOString().slice(0,10);
+      const orderCode = await generateOrderCode();
+      // 取引先(tenant/customer)はサーバ側でログインユーザーから導出される（なりすまし不可）
+      const rpcRes = await sbFetch('/rest/v1/rpc/create_my_order', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_order_code: orderCode, p_order_date: today,
+          p_status: '新規受注', p_items: orderItemsPayload,
+          p_input_contact_name: null
+        })
+      });
+
+      if (!rpcRes.ok) {
+        const errText = await rpcRes.text();
+        throw new Error('注文の登録に失敗しました: ' + errText);
+      }
+
+      document.getElementById('modalOrderNum').textContent = orderCode;
+      document.getElementById('successModal').style.display = 'flex';
+
+    } catch(e) {
+      console.error(e);
+      btn.disabled = false;
+      btn.innerHTML = '注文を確定する →';
+      if (mBtn) { mBtn.disabled = false; mBtn.textContent = '注文を確定する'; }
+      errEl.textContent = e.message || '送信に失敗しました。もう一度お試しください。';
+      errEl.classList.add('show');
+    }
+  }
+
+  // 注文完了後、続けて注文できるようフォームを初期化
+  function resetForm() {
+    document.getElementById('successModal').style.display = 'none';
+    document.querySelectorAll('.qty-input').forEach(el => { el.value = 0; });
+    document.querySelectorAll('.product-row').forEach(r => r.classList.remove('has-qty'));
+    const btn = document.getElementById('submitBtn');
+    const mBtn = document.getElementById('mobileSubmitBtn');
+    btn.disabled = false; btn.innerHTML = '注文を確定する →';
+    if (mBtn) { mBtn.disabled = false; mBtn.textContent = '注文を確定する'; }
+    updateSummary();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  loadMyCustomer();
+  loadProducts();
+</script>
+</body>
+</html>

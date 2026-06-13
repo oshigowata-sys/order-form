@@ -307,7 +307,8 @@
       const user = { name: account.name, id: account.login_id, role: account.role, customerId: account.customer_id, tenantId: account.tenant_id, tenantPlan };
       sessionStorage.setItem('user', JSON.stringify(user));
       _failCount = 0; _lockUntil = 0;
-      window.location.href = 'dashboard.html';
+      // 小売店（取引先）はログイン式の注文画面へ。卸業者・管理者は管理画面へ。
+      window.location.href = (account.role === 'retail') ? 'shop.html' : 'dashboard.html';
     } catch(e) {
       _failCount++;
       if (_failCount >= _MAX_FAILS) {
