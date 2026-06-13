@@ -589,6 +589,8 @@
     <span class="header-customer" id="headerCustomer">注文</span>
     <span class="header-date" id="headerDate"></span>
   </div>
+  <a class="header-logout" href="my-orders.html" style="text-decoration:none">注文履歴</a>
+  <button class="header-logout" onclick="openPwModal()">パスワード変更</button>
   <button class="header-logout" onclick="signOut('login.html')">ログアウト</button>
 </header>
 
@@ -658,6 +660,32 @@
     <p class="modal-note">担当者より確認のご連絡をいたします。</p>
     <div class="modal-actions">
       <button class="modal-btn" onclick="resetForm()">続けて注文する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASSWORD CHANGE MODAL ===== -->
+<div class="modal-overlay" id="pwModal" style="display:none;" onclick="if(event.target===this)closePwModal()">
+  <div class="modal-box" style="text-align:left;padding:28px 28px;">
+    <h2 class="modal-title" style="margin-bottom:6px;">パスワードの変更</h2>
+    <p class="modal-sub" style="margin-bottom:20px;">現在のパスワードと、新しいパスワードを入力してください。</p>
+    <div class="submit-error" id="pwError" style="margin-bottom:12px;"></div>
+    <div id="pwSuccess" style="display:none;background:var(--green-pale);border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--green);margin-bottom:12px;">✓ パスワードを変更しました</div>
+    <div class="form-group">
+      <label>現在のパスワード</label>
+      <input type="password" id="pwCurrent" autocomplete="current-password" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:inherit;background:#fafaf8;outline:none;">
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>新しいパスワード（6文字以上）</label>
+      <input type="password" id="pwNew" autocomplete="new-password" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:inherit;background:#fafaf8;outline:none;">
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>新しいパスワード（確認）</label>
+      <input type="password" id="pwConfirm" autocomplete="new-password" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:inherit;background:#fafaf8;outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="submit-btn" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border);box-shadow:none;" onclick="closePwModal()">閉じる</button>
+      <button class="submit-btn" id="pwSubmitBtn" onclick="changePassword()">変更する</button>
     </div>
   </div>
 </div>
@@ -1036,8 +1064,76 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // 「もう一度注文」：履歴から渡された注文の明細でカートを再現
+  const _reorderId = new URLSearchParams(location.search).get('reorder');
+  async function prefillFromOrder(orderId) {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_order_detail', { method: 'POST', body: JSON.stringify({ p_order_id: orderId }) });
+      if (!res.ok) return;
+      const items = await res.json();
+      let applied = 0, missing = 0;
+      (items || []).forEach(it => {
+        const input = document.getElementById('qty-' + it.product_id);
+        if (input) { input.value = Math.max(0, Math.min(999, it.quantity)); syncQty(input); applied++; }
+        else { missing++; }
+      });
+      updateSummary();
+      if (applied > 0) {
+        const errEl = document.getElementById('submitError');
+        if (missing > 0) {
+          errEl.textContent = `前回の${applied}品目を反映しました（現在お取り扱いのない${missing}品目は除外）。数量をご確認のうえご注文ください。`;
+          errEl.style.color = 'var(--text-muted)';
+          errEl.classList.add('show');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch(e) { console.warn('再注文の復元に失敗:', e); }
+  }
+
+  // パスワード変更
+  function openPwModal() {
+    document.getElementById('pwError').classList.remove('show');
+    document.getElementById('pwSuccess').style.display = 'none';
+    document.getElementById('pwCurrent').value = '';
+    document.getElementById('pwNew').value = '';
+    document.getElementById('pwConfirm').value = '';
+    const btn = document.getElementById('pwSubmitBtn'); btn.disabled = false; btn.textContent = '変更する';
+    document.getElementById('pwModal').style.display = 'flex';
+  }
+  function closePwModal() { document.getElementById('pwModal').style.display = 'none'; }
+  async function changePassword() {
+    const cur = document.getElementById('pwCurrent').value;
+    const nw  = document.getElementById('pwNew').value;
+    const cf  = document.getElementById('pwConfirm').value;
+    const err = document.getElementById('pwError');
+    err.classList.remove('show');
+    if (!cur || !nw) { err.textContent = 'すべて入力してください'; err.classList.add('show'); return; }
+    if (nw.length < 6) { err.textContent = '新しいパスワードは6文字以上にしてください'; err.classList.add('show'); return; }
+    if (nw !== cf) { err.textContent = '新しいパスワード（確認）が一致しません'; err.classList.add('show'); return; }
+    const btn = document.getElementById('pwSubmitBtn'); btn.disabled = true; btn.textContent = '変更中...';
+    try {
+      const res = await sbFetch('/rest/v1/rpc/change_my_password', { method: 'POST', body: JSON.stringify({ p_current_password: cur, p_new_password: nw }) });
+      const result = await res.json().catch(() => null);
+      if (!res.ok || !result || !result.success) {
+        const e = result && result.error;
+        err.textContent = e === 'wrong_current_password' ? '現在のパスワードが正しくありません'
+          : e === 'password_too_short' ? '新しいパスワードは6文字以上にしてください'
+          : '変更に失敗しました。もう一度お試しください。';
+        err.classList.add('show'); btn.disabled = false; btn.textContent = '変更する'; return;
+      }
+      document.getElementById('pwSuccess').style.display = 'block';
+      btn.textContent = '完了';
+    } catch(e) {
+      console.error(e); err.textContent = '変更に失敗しました。'; err.classList.add('show');
+      btn.disabled = false; btn.textContent = '変更する';
+    }
+  }
+
   loadMyCustomer();
-  loadProducts();
+  (async () => {
+    await loadProducts();
+    if (_reorderId) await prefillFromOrder(_reorderId);
+  })();
 </script>
 </body>
 </html>
