@@ -146,6 +146,11 @@ function checkAuth(redirectUrl) {
       if (!payload || payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
     } catch { /* malformed JWT — ignore, user key still valid */ }
   }
+  // 小売店(retail)は管理画面を使わせない。注文画面へ送り返す（shop.html 自身は checkAuth を呼ばない）
+  try {
+    const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (u.role === 'retail') { location.replace('shop.html'); return false; }
+  } catch {}
   return true;
 }
 
