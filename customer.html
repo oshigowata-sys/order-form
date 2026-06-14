@@ -311,24 +311,6 @@
   </div>
 </div>
 
-<!-- QR Modal -->
-<div class="overlay" id="qrOverlay" onclick="if(event.target===this)closeQrModal()">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <div class="modal-title" id="qrModalTitle">注文フォームURL</div>
-      <button class="modal-close" onclick="closeQrModal()">✕</button>
-    </div>
-    <div class="modal-body" style="text-align:center">
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">このQRコードを取引先に渡してください</p>
-      <img id="qrImage" src="" alt="QRコード" style="width:200px;height:200px;border:1px solid var(--border);border-radius:12px;margin-bottom:20px">
-      <div style="display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px">
-        <span id="qrUrl" style="font-size:14px;color:var(--text-muted);flex:1;word-break:break-all;text-align:left"></span>
-        <button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="copyQrUrl()">コピー</button>
-      </div>
-      <p id="qrCopied" style="font-size:14px;color:var(--green);display:none">✓ コピーしました</p>
-    </div>
-  </div>
-</div>
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
@@ -449,7 +431,6 @@
       <td>
         <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(c.id)}')">編集</button>
         <button class="btn btn-outline btn-sm" style="border-color:var(--orange);color:var(--orange)" onclick="openLoginIssueModal('${esc(c.id)}')">ログイン発行</button>
-        <button class="btn btn-outline btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openQrModal('${esc(c.id)}')">QR</button>
         <button class="btn-danger-sm" onclick="deleteCustomer('${esc(c.id)}')">削除</button>
       </td>
     </tr>`).join('');
@@ -682,7 +663,6 @@
     }
   }
 
-  const BASE_URL = 'https://oshigowata-sys.github.io/order-form/order_form.html';
   const RETAIL_INVITE_BASE = 'https://oshigowata-sys.github.io/order-form/invite-retail.html';
 
   // ── 小売店のログインアカウント発行（招待リンク） ──
@@ -729,28 +709,6 @@
     });
   }
 
-  function openQrModal(id) {
-    const c = customers.find(x => x.id === id);
-    if (!c) return;
-    const url = `${BASE_URL}?tenant=${encodeURIComponent(tenantId)}&customer=${encodeURIComponent(id)}`;
-    document.getElementById('qrModalTitle').textContent = `${c.company} — 注文フォームURL`;
-    document.getElementById('qrUrl').textContent = url;
-    document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-    document.getElementById('qrCopied').style.display = 'none';
-    document.getElementById('qrOverlay').classList.add('open');
-  }
-
-  function closeQrModal() {
-    document.getElementById('qrOverlay').classList.remove('open');
-  }
-
-  function copyQrUrl() {
-    const url = document.getElementById('qrUrl').textContent;
-    navigator.clipboard.writeText(url).then(() => {
-      document.getElementById('qrCopied').style.display = 'block';
-      setTimeout(() => { document.getElementById('qrCopied').style.display = 'none'; }, 2000);
-    });
-  }
 
   loadCustomers();
 </script>
