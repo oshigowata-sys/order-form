@@ -162,10 +162,10 @@ tr.row-expired td{color:var(--text-muted)}
       <div class="table-wrapper">
         <table>
           <thead><tr>
-            <th>見積番号</th>
-            <th>取引先名</th>
-            <th>発行日</th>
-            <th class="num-right">税込合計</th>
+            <th onclick="setSort('quotationNumber')" style="cursor:pointer;user-select:none">見積番号<span class="sarrow" data-k="quotationNumber"></span></th>
+            <th onclick="setSort('customer')" style="cursor:pointer;user-select:none">取引先名<span class="sarrow" data-k="customer"></span></th>
+            <th onclick="setSort('issuedDate')" style="cursor:pointer;user-select:none">発行日<span class="sarrow" data-k="issuedDate"></span></th>
+            <th class="num-right" onclick="setSort('total')" style="cursor:pointer;user-select:none">税込合計<span class="sarrow" data-k="total"></span></th>
             <th></th>
           </tr></thead>
           <tbody id="quotationTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr></tbody>
@@ -231,6 +231,20 @@ function showToast(msg) {
 let _allRows = [];
 let _renderedRows = [];
 let currentSearch = '';
+// 見出しクリックの並び替え。既定は発行日の新しい順。
+let currentSort = { key: 'issuedDate', dir: 'desc' };
+const SORT_TEXT_KEYS = ['quotationNumber', 'customer', 'issuedDate'];
+function sortValue(r, key) { return r[key]; }
+function setSort(key) {
+  if (currentSort.key === key) currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+  else { currentSort.key = key; currentSort.dir = (key === 'customer') ? 'asc' : 'desc'; }
+  renderAll();
+}
+function updateSortIndicators() {
+  document.querySelectorAll('.sarrow').forEach(s => {
+    s.textContent = (s.dataset.k === currentSort.key) ? (currentSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+}
 
 function onSearchInput(val) {
   currentSearch = val.trim();
@@ -282,6 +296,16 @@ function renderAll() {
   let rows = _allRows;
   const q = currentSearch.toLowerCase();
   if (q) rows = rows.filter(r => r.customer.toLowerCase().includes(q) || r.quotationNumber.toLowerCase().includes(q));
+
+  updateSortIndicators();
+  const sk = currentSort.key, sd = currentSort.dir === 'asc' ? 1 : -1;
+  rows = rows.slice().sort((a, b) => {
+    const va = sortValue(a, sk), vb = sortValue(b, sk);
+    const cmp = SORT_TEXT_KEYS.includes(sk)
+      ? String(va || '').localeCompare(String(vb || ''), 'ja')
+      : (Number(va) || 0) - (Number(vb) || 0);
+    return cmp * sd;
+  });
 
   _renderedRows = rows;
 
