@@ -776,7 +776,7 @@
       <input type="text" id="prevAmountInput" inputmode="numeric" placeholder="0" readonly
         style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.7);font-size:14px;font-family:inherit;outline:none;cursor:default">
     </div>
-    <a href="dashboard.html" class="btn btn-ghost">← 戻る</a>
+    <a id="backBtn" href="orders.html" class="btn btn-ghost">← 戻る</a>
     <a href="settings.html" class="btn btn-secondary">⚙ 発行者設定</a>
     <button class="btn btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
   </div>
@@ -916,6 +916,11 @@
   const targetPeriodStart = params.get('period_start');
   const targetPeriodEnd   = params.get('period_end');
   const targetInvoiceNum  = params.get('invoice_num');
+  // 「戻る」の遷移先：単一受注（納品書発行）なら納品書一覧、期間請求書なら請求書管理へ
+  (function setBackLink(){
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) backBtn.href = targetOrderId ? 'orders.html' : 'invoice-list.html';
+  })();
   const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
   const tenantId = currentUser.tenantId;
 
