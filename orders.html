@@ -227,9 +227,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div class="table-wrapper">
         <table>
           <thead><tr>
-            <th>受注ID</th><th>取引先名</th><th>受注日</th><th>ステータス</th>
-            <th class="num-right">税抜金額</th><th class="num-right">消費税額</th>
-            <th class="num-right">税込合計</th><th class="num-right">利益</th><th></th>
+            <th onclick="setSort('code')" style="cursor:pointer;user-select:none">受注ID<span class="sarrow" data-k="code"></span></th>
+            <th onclick="setSort('customer')" style="cursor:pointer;user-select:none">取引先名<span class="sarrow" data-k="customer"></span></th>
+            <th onclick="setSort('date')" style="cursor:pointer;user-select:none">受注日<span class="sarrow" data-k="date"></span></th>
+            <th onclick="setSort('status')" style="cursor:pointer;user-select:none">ステータス<span class="sarrow" data-k="status"></span></th>
+            <th class="num-right" onclick="setSort('excl')" style="cursor:pointer;user-select:none">税抜金額<span class="sarrow" data-k="excl"></span></th>
+            <th class="num-right" onclick="setSort('tax')" style="cursor:pointer;user-select:none">消費税額<span class="sarrow" data-k="tax"></span></th>
+            <th class="num-right" onclick="setSort('incl')" style="cursor:pointer;user-select:none">税込合計<span class="sarrow" data-k="incl"></span></th>
+            <th class="num-right" onclick="setSort('profit')" style="cursor:pointer;user-select:none">利益<span class="sarrow" data-k="profit"></span></th>
+            <th></th>
           </tr></thead>
           <tbody id="ordersTbody"></tbody>
         </table>
@@ -453,6 +459,33 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   let allOrders = [];
   let currentFilter = 'all';
   let currentSearch = '';
+  // 一覧の並び替え（見出しクリック）。既定は受注日の新しい順。
+  let currentSort = { key: 'date', dir: 'desc' };
+  // 文字として比較する列（それ以外は数値比較）
+  const SORT_TEXT_KEYS = ['code', 'customer', 'status', 'date'];
+
+  function sortValue(o, key) {
+    if (key === 'profit') return o.excl - o.cost;
+    return o[key];
+  }
+
+  function setSort(key) {
+    if (currentSort.key === key) {
+      currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort.key = key;
+      // 文字列は昇順、数値・日付は降順から始める（大きい順・新しい順が直感的）
+      currentSort.dir = (key === 'customer' || key === 'status' || key === 'code') ? 'asc' : 'desc';
+    }
+    renderOrders();
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('.sarrow').forEach(s => {
+      s.textContent = (s.dataset.k === currentSort.key)
+        ? (currentSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    });
+  }
 
   // 現在編集中・新規入力中の受注の個人間取引フラグ
   // true  = 取引先が個人間取引（メルカリ等）→ 単価表示は税込み・集計は内税方式
@@ -616,6 +649,20 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const q = currentSearch.toLowerCase();
       list = list.filter(o => (o.customerSearch || o.customer).toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
     }
+    // 見出しクリックでの並び替え
+    updateSortIndicators();
+    const sKey = currentSort.key;
+    const sDir = currentSort.dir === 'asc' ? 1 : -1;
+    list = list.slice().sort((a, b) => {
+      const va = sortValue(a, sKey), vb = sortValue(b, sKey);
+      let cmp;
+      if (SORT_TEXT_KEYS.includes(sKey)) {
+        cmp = String(va || '').localeCompare(String(vb || ''), 'ja');
+      } else {
+        cmp = (Number(va) || 0) - (Number(vb) || 0);
+      }
+      return cmp * sDir;
+    });
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">受注データがありません</td></tr>';
       return;
