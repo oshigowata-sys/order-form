@@ -122,6 +122,22 @@
     }
     .header-logout:hover { background: rgba(255,255,255,0.3); }
 
+    .header-switch {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      max-width: 180px;
+      flex-shrink: 0;
+      outline: none;
+    }
+    .header-switch option { color: var(--text); }
+
     /* ===== LAYOUT ===== */
     .page-body { max-width: 1080px; margin: 0 auto; padding: 24px 16px; }
 
@@ -589,7 +605,8 @@
     <span class="header-customer" id="headerCustomer">注文</span>
     <span class="header-date" id="headerDate"></span>
   </div>
-  <a class="header-logout" href="my-orders.html" style="text-decoration:none">注文履歴</a>
+  <select class="header-switch" id="wholesalerSwitch" style="display:none" onchange="switchWholesaler(this.value)" aria-label="卸業者を切り替え"></select>
+  <a class="header-logout" href="my-orders.html" id="historyLink" style="text-decoration:none">注文履歴</a>
   <button class="header-logout" onclick="openPwModal()">パスワード変更</button>
   <button class="header-logout" onclick="signOut('login.html')">ログアウト</button>
 </header>
@@ -767,10 +784,73 @@
   // 取引先別の卸価格マップ（product_id => { wholesale_price, rate }）
   let _customerRates = {};
 
+  // ===== 複数卸業者対応 =====
+  // 選択中の卸業者(tenant)。null のときは従来どおりサーバ側で単一ひもづけから導出。
+  let _activeTenantId = null;
+  let _memberships = [];
+
+  function _getUser() {
+    try { return JSON.parse(sessionStorage.getItem('user') || '{}'); } catch { return {}; }
+  }
+  function _persistActiveTenant(tid) {
+    const u = _getUser();
+    u.activeTenantId = tid || null;
+    sessionStorage.setItem('user', JSON.stringify(u));
+  }
+  // RPC へ渡す引数（選択中卸業者があれば付与）
+  function _withTenant(extra) {
+    const base = (_activeTenantId ? { p_tenant_id: _activeTenantId } : {});
+    return JSON.stringify({ ...base, ...(extra || {}) });
+  }
+
+  // ひもづいている卸業者を取得。2件以上なら切替セレクトを表示。
+  async function loadMemberships() {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_memberships', { method: 'POST', body: '{}' });
+      if (!res.ok) { _memberships = []; return; }
+      _memberships = (await res.json()) || [];
+    } catch(e) { console.warn('卸業者一覧の取得に失敗:', e); _memberships = []; }
+
+    if (_memberships.length === 0) { _activeTenantId = null; return; }
+
+    // 既定の選択：前回選択（user.activeTenantId）が今もひもづいていればそれ、なければ先頭
+    const saved = _getUser().activeTenantId;
+    const valid = saved && _memberships.some(m => m.tenant_id === saved);
+    _activeTenantId = valid ? saved : _memberships[0].tenant_id;
+    _persistActiveTenant(_activeTenantId);
+
+    const sel = document.getElementById('wholesalerSwitch');
+    if (_memberships.length >= 2 && sel) {
+      sel.innerHTML = _memberships.map(m =>
+        `<option value="${esc(m.tenant_id)}">${esc(m.wholesaler_name || '卸業者')}</option>`
+      ).join('');
+      sel.value = _activeTenantId;
+      sel.style.display = '';
+      // 注文履歴リンクにも選択中卸業者を引き継ぐ
+      const hist = document.getElementById('historyLink');
+      if (hist) hist.href = 'my-orders.html?t=' + encodeURIComponent(_activeTenantId);
+    }
+  }
+
+  // 卸業者を切り替え：商品・価格・取引先名・カートを選択中卸業者で読み直す
+  async function switchWholesaler(tid) {
+    if (!tid || tid === _activeTenantId) return;
+    _activeTenantId = tid;
+    _persistActiveTenant(tid);
+    const hist = document.getElementById('historyLink');
+    if (hist) hist.href = 'my-orders.html?t=' + encodeURIComponent(tid);
+    // カートと表示をリセットして読み直し
+    document.querySelectorAll('.qty-input').forEach(el => { el.value = 0; });
+    await loadMyCustomer();
+    await loadProducts();
+    updateSummary();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // ログインユーザー（小売店）自身の取引先を表示
   async function loadMyCustomer() {
     try {
-      const res = await sbFetch('/rest/v1/rpc/get_my_customer', { method: 'POST', body: '{}' });
+      const res = await sbFetch('/rest/v1/rpc/get_my_customer', { method: 'POST', body: _withTenant() });
       if (res.ok) {
         const data = await res.json();
         const c = (data || [])[0];
@@ -783,7 +863,7 @@
 
   async function loadMyRates() {
     try {
-      const res = await sbFetch('/rest/v1/rpc/get_my_pricing', { method: 'POST', body: '{}' });
+      const res = await sbFetch('/rest/v1/rpc/get_my_pricing', { method: 'POST', body: _withTenant() });
       if (!res.ok) { _customerRates = {}; return; }
       const data = await res.json();
       const map = {};
@@ -819,13 +899,15 @@
   async function loadProducts() {
     const list = document.getElementById('productList');
     try {
-      // 取引先・卸価格はログインユーザーから導出（自分の分だけ返る）
+      // 取引先・卸価格はログインユーザー＋選択中卸業者から導出（自分の分だけ返る）
       const ratesPromise = loadMyRates();
 
-      if (sessionCache.products) {
-        products = sessionCache.products;
+      // 商品キャッシュは卸業者(tenant)ごとに分ける
+      const cacheKey = 'products_' + (_activeTenantId || 'default');
+      if (sessionCache[cacheKey]) {
+        products = sessionCache[cacheKey];
       } else {
-        const res = await sbFetch('/rest/v1/rpc/get_my_products', { method: 'POST', body: '{}' });
+        const res = await sbFetch('/rest/v1/rpc/get_my_products', { method: 'POST', body: _withTenant() });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         products = data.map(p => ({
@@ -834,7 +916,7 @@
           category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
           imageUrl: normalizeImageUrl(p.image_url),
         }));
-        sessionCache.products = products;
+        sessionCache[cacheKey] = products;
       }
 
       await ratesPromise;
@@ -1026,7 +1108,7 @@
       // 取引先(tenant/customer)はサーバ側でログインユーザーから導出される（なりすまし不可）
       const rpcRes = await sbFetch('/rest/v1/rpc/create_my_order', {
         method: 'POST',
-        body: JSON.stringify({
+        body: _withTenant({
           p_order_code: orderCode, p_order_date: today,
           p_status: '新規受注', p_items: orderItemsPayload,
           p_input_contact_name: null
@@ -1129,8 +1211,17 @@
     }
   }
 
-  loadMyCustomer();
   (async () => {
+    await loadMemberships();
+    // 注文履歴からの再注文など、URLで卸業者が指定されていればそれを優先
+    const urlTenant = new URLSearchParams(location.search).get('t');
+    if (urlTenant && _memberships.some(m => m.tenant_id === urlTenant)) {
+      _activeTenantId = urlTenant;
+      _persistActiveTenant(urlTenant);
+      const sel = document.getElementById('wholesalerSwitch');
+      if (sel && _memberships.length >= 2) sel.value = urlTenant;
+    }
+    await loadMyCustomer();
     await loadProducts();
     if (_reorderId) await prefillFromOrder(_reorderId);
   })();

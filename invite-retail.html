@@ -62,6 +62,23 @@
       <div class="expired-sub">URLの有効期限が切れているか、すでに使用済みです。<br>発行元の担当者にお問い合わせください。</div>
     </div>
 
+    <!-- ログイン中の小売店：既存アカウントに追加する導線 -->
+    <div id="linkView" style="display:none">
+      <div class="card-title">この取引先を追加しますか？</div>
+      <div class="card-sub" id="linkSub">いまログイン中のアカウントに追加すると、ログインしたまま卸業者を切り替えて注文できます。</div>
+      <div class="store-badge" id="linkBadge"></div>
+      <div class="error" id="linkError"></div>
+      <button class="btn" id="linkBtn" onclick="linkMembership()">今のアカウントに追加する</button>
+      <button class="btn" style="background:#fff;color:var(--text-muted);border:1.5px solid var(--border)" onclick="useNewAccount()">別のアカウントを新規作成</button>
+    </div>
+
+    <div id="linkSuccessView" class="success" style="display:none">
+      <div class="success-icon">✅</div>
+      <div class="success-title" id="linkSuccessTitle">取引先を追加しました！</div>
+      <div class="success-sub">注文画面のヘッダーから卸業者を切り替えてご注文いただけます。</div>
+      <button class="btn" style="margin-top:20px;width:auto;padding:12px 32px" onclick="location.href='shop.html'">注文画面へ</button>
+    </div>
+
     <div id="formView" style="display:none">
       <div class="card-title">注文アカウントの登録</div>
       <div class="card-sub">ログイン用のIDとパスワードを設定してください</div>
@@ -87,6 +104,10 @@
         </label>
       </div>
       <button class="btn" id="submitBtn" onclick="register()" disabled>アカウントを作成する</button>
+      <div class="hint" style="text-align:center;margin-top:16px">
+        すでに別の卸業者でアカウントをお持ちの方は
+        <a id="loginToLinkLink" href="#" style="color:var(--orange);font-weight:700">ログインして追加 →</a>
+      </div>
     </div>
 
     <div id="successView" class="success" style="display:none">
@@ -99,6 +120,7 @@
 </div>
 
 <script src="config.js"></script>
+<script src="auth.js?v=20260613-retail"></script>
 <script>
 
   const params = new URLSearchParams(location.search);
@@ -111,6 +133,17 @@
     });
   }
 
+  // ログイン中で、かつ小売店ロールでJWTが有効か
+  function isRetailLoggedIn() {
+    try {
+      const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+      const jwt = sessionStorage.getItem('_sb_jwt');
+      if (!u.id || u.role !== 'retail' || !jwt) return false;
+      const p = getJwtPayload();
+      return !!(p && p.exp * 1000 > Date.now());
+    } catch { return false; }
+  }
+
   async function init() {
     if (!token) { showExpired(); return; }
     const res = await sbFetch('/rest/v1/rpc/get_retail_invitation_by_token', {
@@ -121,8 +154,67 @@
     const data = await res.json();
     const inv = (data || [])[0];
     if (!inv || new Date(inv.expires_at) < new Date()) { showExpired(); return; }
-    document.getElementById('storeBadge').textContent = (inv.company_name || '') + ' 様の注文アカウント';
+
     document.getElementById('loadingView').style.display = 'none';
+
+    // ログイン中の小売店 → 既存アカウントに追加する導線
+    if (isRetailLoggedIn()) {
+      document.getElementById('linkBadge').textContent = (inv.company_name || '') + ' 様';
+      document.getElementById('linkView').style.display = 'block';
+      return;
+    }
+
+    // 未ログイン → 新規登録フォーム（＋ログインして追加への導線）
+    document.getElementById('storeBadge').textContent = (inv.company_name || '') + ' 様の注文アカウント';
+    const linkLogin = document.getElementById('loginToLinkLink');
+    if (linkLogin) linkLogin.href = 'login.html?next=' + encodeURIComponent('invite-retail.html?token=' + token);
+    document.getElementById('formView').style.display = 'block';
+  }
+
+  // ログイン中アカウントにこの取引先を追加
+  async function linkMembership() {
+    const btn = document.getElementById('linkBtn');
+    const errEl = document.getElementById('linkError');
+    errEl.classList.remove('show');
+    btn.disabled = true; btn.textContent = '追加中...';
+    try {
+      const jwt = sessionStorage.getItem('_sb_jwt');
+      const res = await fetch(SB_URL + '/rest/v1/rpc/link_retail_membership', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_token: token })
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok || !result?.success) {
+        const e = result?.error;
+        errEl.textContent = e === 'invalid_or_expired' ? '登録URLが無効、または有効期限切れです'
+          : e === 'not_retail' ? 'このアカウントでは追加できません'
+          : e === 'not_authenticated' ? 'ログインの有効期限が切れました。ログインし直してください。'
+          : '追加に失敗しました。もう一度お試しください。';
+        errEl.classList.add('show');
+        btn.disabled = false; btn.textContent = '今のアカウントに追加する';
+        return;
+      }
+      if (result.wholesaler_name) {
+        document.getElementById('linkSuccessTitle').textContent = '『' + result.wholesaler_name + '』を追加しました！';
+      }
+      document.getElementById('linkView').style.display = 'none';
+      document.getElementById('linkSuccessView').style.display = 'block';
+    } catch(e) {
+      console.error(e);
+      errEl.textContent = '追加に失敗しました。もう一度お試しください。';
+      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = '今のアカウントに追加する';
+    }
+  }
+
+  // ログイン中でも「別アカウントを新規作成」を選んだ場合
+  function useNewAccount() {
+    document.getElementById('linkView').style.display = 'none';
+    document.getElementById('storeBadge').textContent =
+      (document.getElementById('linkBadge').textContent || '').replace(/ 様$/, '') + ' 様の注文アカウント';
+    const linkLogin = document.getElementById('loginToLinkLink');
+    if (linkLogin) linkLogin.href = 'login.html?next=' + encodeURIComponent('invite-retail.html?token=' + token);
     document.getElementById('formView').style.display = 'block';
   }
 
