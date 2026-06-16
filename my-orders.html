@@ -33,6 +33,12 @@
       transition: background 0.15s;
     }
     .header-btn:hover { background: rgba(255,255,255,0.3); }
+    .header-switch {
+      font-size: 13px; font-weight: 700; color: white; background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.45); border-radius: 8px; padding: 6px 10px;
+      cursor: pointer; font-family: inherit; max-width: 180px; flex-shrink: 0; outline: none;
+    }
+    .header-switch option { color: var(--text); }
 
     .page-body { max-width: 880px; margin: 0 auto; padding: 24px 16px; }
 
@@ -90,7 +96,8 @@
     <span class="header-customer" id="headerCustomer">注文履歴</span>
     <span class="header-title">これまでのご注文</span>
   </div>
-  <a class="header-btn" href="shop.html">注文する</a>
+  <select class="header-switch" id="wholesalerSwitch" style="display:none" onchange="switchWholesaler(this.value)" aria-label="卸業者を切り替え"></select>
+  <a class="header-btn" id="orderLink" href="shop.html">注文する</a>
   <button class="header-btn" onclick="signOut('login.html')">ログアウト</button>
 </header>
 
@@ -145,9 +152,62 @@
     return `${x.getFullYear()}年${x.getMonth()+1}月${x.getDate()}日`;
   }
 
+  // ===== 複数卸業者対応 =====
+  let _activeTenantId = null;
+  let _memberships = [];
+
+  function _getUser() {
+    try { return JSON.parse(sessionStorage.getItem('user') || '{}'); } catch { return {}; }
+  }
+  function _persistActiveTenant(tid) {
+    const u = _getUser(); u.activeTenantId = tid || null;
+    sessionStorage.setItem('user', JSON.stringify(u));
+  }
+  function _withTenant(extra) {
+    const base = (_activeTenantId ? { p_tenant_id: _activeTenantId } : {});
+    return JSON.stringify({ ...base, ...(extra || {}) });
+  }
+
+  async function loadMemberships() {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_memberships', { method: 'POST', body: '{}' });
+      _memberships = res.ok ? ((await res.json()) || []) : [];
+    } catch(e) { console.warn('卸業者一覧の取得に失敗:', e); _memberships = []; }
+
+    if (_memberships.length === 0) { _activeTenantId = null; return; }
+
+    // URLの t= 指定（注文画面から引き継ぎ）> 前回選択 > 先頭
+    const urlTenant = new URLSearchParams(location.search).get('t');
+    const saved = _getUser().activeTenantId;
+    const pick = [urlTenant, saved].find(t => t && _memberships.some(m => m.tenant_id === t));
+    _activeTenantId = pick || _memberships[0].tenant_id;
+    _persistActiveTenant(_activeTenantId);
+
+    const sel = document.getElementById('wholesalerSwitch');
+    if (_memberships.length >= 2 && sel) {
+      sel.innerHTML = _memberships.map(m =>
+        `<option value="${esc(m.tenant_id)}">${esc(m.wholesaler_name || '卸業者')}</option>`
+      ).join('');
+      sel.value = _activeTenantId;
+      sel.style.display = '';
+      const ol = document.getElementById('orderLink');
+      if (ol) ol.href = 'shop.html?t=' + encodeURIComponent(_activeTenantId);
+    }
+  }
+
+  async function switchWholesaler(tid) {
+    if (!tid || tid === _activeTenantId) return;
+    _activeTenantId = tid;
+    _persistActiveTenant(tid);
+    const ol = document.getElementById('orderLink');
+    if (ol) ol.href = 'shop.html?t=' + encodeURIComponent(tid);
+    await loadCustomer();
+    await loadOrders();
+  }
+
   async function loadCustomer() {
     try {
-      const res = await sbFetch('/rest/v1/rpc/get_my_customer', { method: 'POST', body: '{}' });
+      const res = await sbFetch('/rest/v1/rpc/get_my_customer', { method: 'POST', body: _withTenant() });
       if (res.ok) {
         const c = (await res.json() || [])[0];
         if (c && c.company_name) document.getElementById('headerCustomer').textContent = c.company_name + ' 様';
@@ -158,7 +218,7 @@
   async function loadOrders() {
     const list = document.getElementById('orderList');
     try {
-      const res = await sbFetch('/rest/v1/rpc/get_my_orders', { method: 'POST', body: '{}' });
+      const res = await sbFetch('/rest/v1/rpc/get_my_orders', { method: 'POST', body: _withTenant() });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const orders = await res.json();
       if (!orders || orders.length === 0) {
@@ -216,13 +276,17 @@
 
   function closeDetail() { document.getElementById('detailModal').classList.remove('open'); }
 
-  // 「もう一度注文」: 注文画面に order_id を渡してカートを再現
+  // 「もう一度注文」: 注文画面に order_id（と選択中卸業者）を渡してカートを再現
   function reorder(orderId) {
-    location.href = 'shop.html?reorder=' + encodeURIComponent(orderId);
+    const t = _activeTenantId ? '&t=' + encodeURIComponent(_activeTenantId) : '';
+    location.href = 'shop.html?reorder=' + encodeURIComponent(orderId) + t;
   }
 
-  loadCustomer();
-  loadOrders();
+  (async () => {
+    await loadMemberships();
+    await loadCustomer();
+    await loadOrders();
+  })();
 </script>
 </body>
 </html>

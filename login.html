@@ -308,7 +308,14 @@
       sessionStorage.setItem('user', JSON.stringify(user));
       _failCount = 0; _lockUntil = 0;
       // 小売店（取引先）はログイン式の注文画面へ。卸業者・管理者は管理画面へ。
-      window.location.href = (account.role === 'retail') ? 'shop.html' : 'dashboard.html';
+      if (account.role === 'retail') {
+        // 招待リンク経由（next）で来た場合は、追加画面へ安全に戻す（相対の*.htmlのみ許可）
+        const next = new URLSearchParams(location.search).get('next');
+        const safe = next && /^[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(next) && !next.includes('//');
+        window.location.href = safe ? next : 'shop.html';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
     } catch(e) {
       _failCount++;
       if (_failCount >= _MAX_FAILS) {
