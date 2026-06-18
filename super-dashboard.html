@@ -267,6 +267,11 @@
           <option value="monitor">モニター</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>月額（円・実額）</label>
+        <input type="number" id="inviteMonthlyAmount" min="0" step="100" placeholder="交渉価格があれば入力（例：24800）" />
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">空欄ならプラン金額で集計します</div>
+      </div>
       <div class="form-group full">
         <label>住所</label>
         <input type="text" id="inviteAddress" placeholder="例：北海道札幌市中央区..." />
@@ -316,6 +321,11 @@
           <option value="premium">プレミアム</option>
           <option value="monitor">モニター</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>月額（円・実額）</label>
+        <input type="number" id="editMonthlyAmount" min="0" step="100" placeholder="交渉価格があれば入力（例：24800）" />
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">空欄ならプラン金額で集計します</div>
       </div>
       <div class="form-group">
         <label>ステータス</label>
@@ -376,6 +386,24 @@
   let todayInquiryCount = 0;
   let todayLeadCount = 0;
   const PLAN_PRICES = { starter: 9800, standard: 19800, premium: 29800, monitor: 9800, enterprise: 29800 };
+
+  // 入力欄の月額実額を読み取る。空欄は null（＝プラン金額で集計）。数値以外も null。
+  function parseMonthlyAmount(elId) {
+    const raw = (document.getElementById(elId)?.value || '').trim();
+    if (raw === '') return null;
+    const n = Math.round(Number(raw));
+    if (Number.isNaN(n) || n < 0) return null;
+    return n;
+  }
+
+  // 集計に使う月額：実額(monthly_amount)が入っていればそれを優先。無ければプラン固定価格。
+  function effectiveMonthly(t) {
+    if (t.monthly_amount != null && t.monthly_amount !== '') {
+      const n = Number(t.monthly_amount);
+      if (!Number.isNaN(n)) return n;
+    }
+    return PLAN_PRICES[t.plan || 'standard'] || 0;
+  }
 
   function todayDateKey() {
     return new Date().toISOString().slice(0, 10);
@@ -478,7 +506,7 @@
     document.getElementById('summaryTenants').textContent = TENANTS.filter(t => t.status === 'active').length;
     const mrr = TENANTS
       .filter(t => t.status === 'active')
-      .reduce((sum, t) => sum + (PLAN_PRICES[t.plan || 'standard'] || 0), 0);
+      .reduce((sum, t) => sum + effectiveMonthly(t), 0);
     document.getElementById('summaryMrr').textContent = yen(mrr);
     const tbody = document.getElementById('tenantTbody');
     if (!TENANTS.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">契約者が登録されていません</td></tr>'; return; }
@@ -502,6 +530,7 @@
           <option value="premium" ${(t.plan === 'premium' || t.plan === 'enterprise') ? 'selected' : ''}>premium</option>
           <option value="monitor" ${t.plan === 'monitor' ? 'selected' : ''}>monitor</option>
         </select>
+        <div class="tenant-sub" style="margin-top:4px">月額 ${yen(effectiveMonthly(t))}${t.monthly_amount != null && t.monthly_amount !== '' ? '（実額）' : ''}</div>
       </td>
       <td>${statusLabel(t.status)}</td>
       <td style="color:var(--text-muted);font-size:14px">${(t.created_at||'').slice(0,10)}</td>
@@ -528,6 +557,7 @@
     document.getElementById('invitePostalCode').value = '';
     document.getElementById('inviteAddress').value = '';
     document.getElementById('invitePlan').value = 'standard';
+    document.getElementById('inviteMonthlyAmount').value = '';
     document.getElementById('inviteNotes').value = '';
     document.getElementById('inviteModal').classList.add('open');
     document.getElementById('inviteResult').style.display = 'none';
@@ -551,6 +581,7 @@
     document.getElementById('editPhone').value = t.phone || '';
     document.getElementById('editPostalCode').value = t.postal_code || '';
     document.getElementById('editPlan').value = t.plan || 'standard';
+    document.getElementById('editMonthlyAmount').value = (t.monthly_amount != null ? t.monthly_amount : '');
     document.getElementById('editStatus').value = t.status || 'active';
     document.getElementById('editAddress').value = t.address || '';
     document.getElementById('editNotes').value = t.notes || '';
@@ -569,6 +600,7 @@
       postal_code: document.getElementById('editPostalCode').value.trim() || null,
       address: document.getElementById('editAddress').value.trim() || null,
       plan: document.getElementById('editPlan').value,
+      monthly_amount: parseMonthlyAmount('editMonthlyAmount'),
       status: document.getElementById('editStatus').value,
       notes: document.getElementById('editNotes').value.trim() || null
     };
@@ -611,6 +643,7 @@
           postal_code: document.getElementById('invitePostalCode').value.trim() || null,
           address: document.getElementById('inviteAddress').value.trim() || null,
           plan: document.getElementById('invitePlan').value,
+          monthly_amount: parseMonthlyAmount('inviteMonthlyAmount'),
           notes: document.getElementById('inviteNotes').value.trim() || null,
           status: 'active'
         };
