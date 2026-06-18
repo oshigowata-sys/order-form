@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>御請求書 | MeguRee</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+  color: #1c1917;
+  background: #f5f5f4;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.toolbar {
+  max-width: 210mm; margin: 10mm auto 0; display: flex; gap: 10px; justify-content: flex-end;
+}
+.toolbar button {
+  background: #1e6641; color: #fff; border: none; padding: 9px 18px; border-radius: 8px;
+  font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.toolbar button.secondary { background: #fff; color: #1c1917; border: 1px solid #a8a29e; }
+.sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10mm auto;
+  background: #fff;
+  padding: 16mm 18mm;
+}
+h1 {
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 12px;
+  border-bottom: 3px double #1c1917;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+}
+.meta { text-align: right; font-size: 12px; margin-bottom: 12px; }
+.to {
+  font-size: 16px;
+  font-weight: 700;
+  border-bottom: 1px solid #1c1917;
+  display: inline-block;
+  min-width: 90mm;
+  padding: 0 4px 2px;
+  margin-bottom: 4px;
+}
+.row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
+.from { font-size: 11.5px; text-align: right; color: #44403c; }
+.from strong { font-size: 13px; color: #1c1917; }
+.total-box {
+  border: 2px solid #1e6641;
+  display: flex;
+  margin-bottom: 18px;
+}
+.total-box .label {
+  background: #1e6641; color: #fff;
+  padding: 8px 18px; font-weight: 700; font-size: 14px;
+  display: flex; align-items: center;
+}
+.total-box .amount {
+  flex: 1; padding: 8px 18px;
+  font-size: 22px; font-weight: 700; text-align: right;
+}
+table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+th, td { border: 1px solid #a8a29e; padding: 7px 10px; font-size: 12.5px; }
+th { background: #f5f0e8; font-weight: 700; }
+td.num, th.num { text-align: right; width: 40mm; }
+.sums td { border: 1px solid #a8a29e; }
+.sums .label { background: #f5f0e8; font-weight: 700; width: 40mm; }
+.bank {
+  border: 1px solid #a8a29e;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+}
+.bank .title { font-weight: 700; margin-bottom: 4px; }
+.notes { font-size: 11.5px; color: #57534e; }
+.notes li { margin-bottom: 2px; margin-left: 18px; }
+.loading { max-width: 210mm; margin: 40px auto; text-align: center; color: #78716c; }
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none; }
+  .sheet { margin: 0; width: auto; min-height: auto; padding: 8mm 10mm; }
+  .total-box .label, th, .sums .label { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar" id="toolbar" style="display:none">
+  <button class="secondary" onclick="window.close()">閉じる</button>
+  <button onclick="window.print()">印刷 / PDF保存</button>
+</div>
+
+<div class="loading" id="loading">読み込み中...</div>
+<div class="sheet" id="sheet" style="display:none">
+
+  <h1>御請求書</h1>
+
+  <p class="meta">
+    請求書番号：<span id="invNumber"></span><br>
+    発行日：<span id="invIssued"></span>
+  </p>
+
+  <div class="row">
+    <div>
+      <span class="to" id="invTo"></span>
+      <p style="font-size:12px;">下記のとおりご請求申し上げます。</p>
+    </div>
+    <div class="from" id="invFrom"></div>
+  </div>
+
+  <div class="total-box">
+    <div class="label">ご請求金額（税込）</div>
+    <div class="amount" id="invTotalBox">¥0</div>
+  </div>
+
+  <table>
+    <thead><tr><th>内容</th><th class="num">金額（税別）</th></tr></thead>
+    <tbody id="invLines"></tbody>
+  </table>
+
+  <table class="sums" style="width: 80mm; margin-left: auto;">
+    <tr><td class="label">小計（税別）</td><td class="num" id="invSub">¥0</td></tr>
+    <tr><td class="label">消費税（10%）</td><td class="num" id="invTax">¥0</td></tr>
+    <tr><td class="label"><strong>合計（税込）</strong></td><td class="num"><strong id="invTot">¥0</strong></td></tr>
+  </table>
+
+  <div class="bank" id="invBank"></div>
+
+  <ul class="notes">
+    <li>お支払期日：<span id="invDue"></span>までにお振込みをお願いいたします。</li>
+    <li>誠に恐れ入りますが、振込手数料はお客様にてご負担をお願いいたします。</li>
+    <li id="invNotesLine" style="display:none"></li>
+    <li>本請求書に関するお問い合わせは上記メールアドレスまでお願いいたします。</li>
+  </ul>
+
+</div>
+
+<script src="config.js"></script>
+<script src="auth.js?v=20260510-idletimer"></script>
+<script>
+  const superAdmin = JSON.parse(sessionStorage.getItem('superAdmin') || 'null');
+  const superPayload = getJwtPayload();
+  if (!superAdmin || !superPayload || superPayload.user_metadata?.role !== 'super_admin') {
+    signOut('super-login.html');
+    throw new Error('super_admin_auth_required');
+  }
+
+  function sbFetch(path, opts = {}) {
+    const token = getStrictAccessToken('super-login.html');
+    return fetch(SB_URL + path, {
+      ...opts,
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+    });
+  }
+
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function yen(n) { return '¥' + Number(n || 0).toLocaleString('ja-JP'); }
+
+  async function load() {
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { document.getElementById('loading').textContent = '請求書が指定されていません。'; return; }
+    try {
+      const res = await sbFetch(`/rest/v1/meguree_invoices?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
+      const inv = (await res.json())[0];
+      if (!inv) { document.getElementById('loading').textContent = '請求書が見つかりませんでした。'; return; }
+
+      const iss = inv.issuer_snapshot || {};
+      document.getElementById('invNumber').textContent = inv.invoice_number || '';
+      document.getElementById('invIssued').textContent = (inv.issued_date || '').slice(0,10);
+      document.getElementById('invTo').textContent = (inv.bill_to_name || '') + '　御中';
+
+      const fromLines = [];
+      fromLines.push(`<strong>${esc(iss.issuer_name) || 'MeguRee（めぐリー）'}</strong>`);
+      if (iss.issuer_rep)   fromLines.push(`代表：${esc(iss.issuer_rep)}`);
+      if (iss.issuer_email) fromLines.push(`Mail：${esc(iss.issuer_email)}`);
+      document.getElementById('invFrom').innerHTML = fromLines.join('<br>');
+
+      const items = Array.isArray(inv.items) ? inv.items : [];
+      document.getElementById('invLines').innerHTML = items.map(it =>
+        `<tr><td>${esc(it.label)}</td><td class="num">${yen(it.amount)}</td></tr>`
+      ).join('') || '<tr><td>&nbsp;</td><td class="num"></td></tr>';
+
+      document.getElementById('invSub').textContent = yen(inv.subtotal);
+      document.getElementById('invTax').textContent = yen(inv.tax_amount);
+      document.getElementById('invTot').textContent = yen(inv.total);
+      document.getElementById('invTotalBox').textContent = yen(inv.total);
+      document.getElementById('invDue').textContent = (inv.due_date || '').slice(0,10);
+
+      const bankRows = [];
+      bankRows.push('<div class="title">お振込先</div>');
+      bankRows.push(`銀行名：${esc(iss.bank_name)}<br>`);
+      bankRows.push(`支店名：${esc(iss.bank_branch)}<br>`);
+      bankRows.push(`口座種別・番号：${esc(iss.bank_type)} ${esc(iss.bank_number)}<br>`);
+      bankRows.push(`口座名義：${esc(iss.bank_holder)}`);
+      document.getElementById('invBank').innerHTML = bankRows.join('');
+
+      if (inv.notes) {
+        const nl = document.getElementById('invNotesLine');
+        nl.textContent = inv.notes;
+        nl.style.display = 'list-item';
+      }
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('sheet').style.display = 'block';
+      document.getElementById('toolbar').style.display = 'flex';
+    } catch(e) {
+      console.error(e);
+      document.getElementById('loading').textContent = '読み込みに失敗しました。';
+    }
+  }
+  load();
+</script>
+</body>
+</html>
