@@ -381,6 +381,20 @@
       </div>
 
       <div class="form-section-title">価格情報</div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">入力する金額は</label>
+        <div style="display:flex;gap:18px;align-items:center;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+            <input type="radio" name="priceTaxMode" value="excl" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer" />
+            <span class="form-label" style="margin:0;cursor:pointer">税別（税抜）</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+            <input type="radio" name="priceTaxMode" value="incl" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer" />
+            <span class="form-label" style="margin:0;cursor:pointer">税込</span>
+          </label>
+        </div>
+        <div class="form-hint">「税込」を選ぶと、入力した上代・仕入価格を税率（食品フラグ＝8%／それ以外＝10%）で税別に自動換算して保存します。保存後は税別の金額で表示されます。</div>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">上代（円）</label>
@@ -627,6 +641,7 @@
     document.getElementById('formJanCode').value = '';
     document.getElementById('formListPrice').value = '';
     document.getElementById('formCostPrice').value = '';
+    document.querySelector('input[name="priceTaxMode"][value="excl"]').checked = true;
     document.getElementById('formCaseQuantity').value = '1';
     document.getElementById('formIsFood').checked = false;
     document.getElementById('formImageUrl').value = '';
@@ -647,6 +662,8 @@
     document.getElementById('formJanCode').value = formatJan(p.janCode || '');
     document.getElementById('formListPrice').value = p.listPrice == null ? '' : formatYen(p.listPrice);
     document.getElementById('formCostPrice').value = p.costPrice == null ? '' : formatYen(p.costPrice);
+    // 保存済みの値は常に税別。編集時は必ず「税別」既定にして二重換算を防ぐ（退行防止の要）。
+    document.querySelector('input[name="priceTaxMode"][value="excl"]').checked = true;
     document.getElementById('formCaseQuantity').value = p.caseQuantity ?? 1;
     document.getElementById('formIsFood').checked = p.isFood;
     const _imgUrl = p.imageUrl || '';
@@ -678,14 +695,32 @@
     } catch(e) { console.warn('監査ログ書き込み失敗:', e); }
   }
 
+  // 税込で入力された金額を税別（税抜）に換算する。税率は食品フラグ＝軽減8%／それ以外＝標準10%。
+  // 端数は税抜＝round(税込 ÷ (1+税率)) の四捨五入（円未満）。保存値は従来どおり税別のまま。
+  function toExclTax(yenDigitStr, isFood) {
+    if (yenDigitStr === '') return '';
+    const incl = Number(yenDigitStr);
+    const rate = isFood ? 0.08 : 0.10;
+    return String(Math.round(incl / (1 + rate)));
+  }
+
   async function saveProduct() {
     const name      = document.getElementById('formProductName').value.trim();
-    const listPrice = yenDigits(document.getElementById('formListPrice').value);
-    const costPrice = yenDigits(document.getElementById('formCostPrice').value);
+    const isFood    = document.getElementById('formIsFood').checked;
+    const taxIncl   = document.querySelector('input[name="priceTaxMode"]:checked')?.value === 'incl';
+    let   listPrice = yenDigits(document.getElementById('formListPrice').value);
+    let   costPrice = yenDigits(document.getElementById('formCostPrice').value);
     const caseQty   = document.getElementById('formCaseQuantity').value;
     const janRaw    = janDigits(document.getElementById('formJanCode').value);
 
     if (!name)            { alert('商品名は必須です'); document.getElementById('formProductName').focus(); return; }
+
+    // 税込入力なら税別に換算してから保存（入力補助のみ・保存値は常に税別）。
+    if (taxIncl) {
+      listPrice = toExclTax(listPrice, isFood);
+      costPrice = toExclTax(costPrice, isFood);
+    }
+
     // 上代は任意（オープンプライス商品対応）。未入力時は null 保存・下流画面で「要相談」表示。
     // price（基本単価）は画面から廃止。互換性維持のため listPrice と同じ値を保存する（空なら 0）。
     const price = listPrice === '' ? '0' : listPrice;
