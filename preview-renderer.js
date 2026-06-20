@@ -218,7 +218,7 @@
     return isFood ? 'ケ' : '';
   }
 
-  function calcTotals(items, handlingFee, shippingFee, isPersonal) {
+  function calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge) {
     let sum8 = 0, sum10 = 0;
     for (const it of items) {
       const qty = Number(it.quantity || 0);
@@ -228,7 +228,10 @@
       if (it.is_food) sum8 += sub;
       else sum10 += sub;
     }
-    sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+    // 向き：charge=true は加算（＋）、false/未指定は差し引き（−・従来）。手数料・送料は標準10%枠。
+    const hSign = handlingCharge ? 1 : -1;
+    const sSign = shippingCharge ? 1 : -1;
+    sum10 += hSign * (Number(handlingFee) || 0) + sSign * (Number(shippingFee) || 0);
     if (isPersonal) {
       return {
         excl8: sum8, excl10: sum10, subtotal: sum8 + sum10,
@@ -263,10 +266,10 @@
       <tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`;
   }
 
-  function buildFeeRows(handlingFee, shippingFee, isPersonal) {
+  function buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge) {
     const rows = [];
-    const fmtFee = (label, fee) => {
-      const disp = -Math.abs(Number(fee) || 0);
+    const fmtFee = (label, fee, charge) => {
+      const disp = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
       return `<tr>
         <td class="code">—</td>
         <td>${label}</td>
@@ -277,8 +280,8 @@
         <td class="muted"></td>
       </tr>`;
     };
-    if ((Number(handlingFee) || 0) > 0) rows.push(fmtFee('手数料', handlingFee));
-    if ((Number(shippingFee) || 0) > 0) rows.push(fmtFee('送料', shippingFee));
+    if ((Number(handlingFee) || 0) > 0) rows.push(fmtFee('手数料', handlingFee, handlingCharge));
+    if ((Number(shippingFee) || 0) > 0) rows.push(fmtFee('送料', shippingFee, shippingCharge));
     return rows.join('');
   }
 
@@ -307,13 +310,15 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
+    const handlingCharge = !!data.handlingCharge;
+    const shippingCharge = !!data.shippingCharge;
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge);
 
     const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date().toISOString().slice(0,10));
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
 
     const itemRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal)
+      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
     const dataRows = itemRows;
 
@@ -373,14 +378,16 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
+    const handlingCharge = !!data.handlingCharge;
+    const shippingCharge = !!data.shippingCharge;
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge);
 
     const invoiceNumLabel = data.invoiceNumber || '<span class="mini-preview-undecided">（未確定）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
     const dueLabel = data.dueDate ? fmtJa(data.dueDate) : '<span class="mini-preview-undecided">（未確定）</span>';
 
     const dataRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal)
+      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
 
     const bankBlock = banks.length > 0
@@ -455,7 +462,9 @@
     const isPersonal = !!data.isPersonalTrade;
     const handlingFee = Number(data.handlingFee) || 0;
     const shippingFee = Number(data.shippingFee) || 0;
-    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal);
+    const handlingCharge = !!data.handlingCharge;
+    const shippingCharge = !!data.shippingCharge;
+    const totals = calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge);
 
     const numberLabel = data.quotationNumber || '<span class="mini-preview-undecided">（保存時に自動採番）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
@@ -479,8 +488,8 @@
         <td class="code" style="width:90px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
       </tr>`;
     };
-    const buildQFeeRow = (label, fee) => {
-      const stored = -Math.abs(Number(fee) || 0);
+    const buildQFeeRow = (label, fee, charge) => {
+      const stored = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
       const disp = toDispPrice(stored, false, isPersonal);
       return `<tr>
         <td class="num" style="width:60px">—</td>
@@ -493,8 +502,8 @@
       </tr>`;
     };
     let feeRowsQ = '';
-    if (handlingFee > 0) feeRowsQ += buildQFeeRow('手数料', handlingFee);
-    if (shippingFee > 0) feeRowsQ += buildQFeeRow('送料', shippingFee);
+    if (handlingFee > 0) feeRowsQ += buildQFeeRow('手数料', handlingFee, handlingCharge);
+    if (shippingFee > 0) feeRowsQ += buildQFeeRow('送料', shippingFee, shippingCharge);
 
     const dataRows = items.length > 0
       ? items.map(buildQItem).join('') + feeRowsQ

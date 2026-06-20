@@ -222,13 +222,21 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
             <input type="number" id="qHandlingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <select id="qHandlingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
+              <option value="deduct" selected>差し引く（−）</option>
+              <option value="charge">請求に加える（＋）</option>
+            </select>
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
             <input type="number" id="qShippingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <select id="qShippingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
+              <option value="deduct" selected>差し引く（−）</option>
+              <option value="charge">請求に加える（＋）</option>
+            </select>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">控除（マイナス計上）として合計から差し引きます。</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
       </div>
     </div>
 
@@ -308,14 +316,17 @@ function taxMarkText(isFood, isPersonal) {
   if (isPersonal) return isFood ? 'ケコ' : 'コ';
   return isFood ? 'ケ' : '';
 }
-function calcQuotationTotals(items, handlingFee, shippingFee, isPersonalTrade) {
+function calcQuotationTotals(items, handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge) {
   let sum8 = 0, sum10 = 0;
   items.forEach(it => {
     const sub = Number(it.quantity || 0) * Number(it.unit_price || 0);
     if (it.is_food) sum8 += sub;
     else            sum10 += sub;
   });
-  sum10 -= (Number(handlingFee) || 0) + (Number(shippingFee) || 0);
+  // 向き：charge=true は加算（＋）、false/未指定は差し引き（−・従来）。手数料・送料は標準10%枠。
+  const hSign = handlingCharge ? 1 : -1;
+  const sSign = shippingCharge ? 1 : -1;
+  sum10 += hSign * (Number(handlingFee) || 0) + sSign * (Number(shippingFee) || 0);
   if (isPersonalTrade) {
     return {
       excl8: sum8, excl10: sum10,
@@ -421,6 +432,8 @@ let _selectedCustomer = null;
 let _existingNumber = null;
 let _handlingFee = 0;
 let _shippingFee = 0;
+let _handlingCharge = false;
+let _shippingCharge = false;
 let _isPersonalTrade = false;
 
 // ===== 初期ロード =====
@@ -505,8 +518,12 @@ async function loadExistingQuotation() {
     : !!(_selectedCustomer && _selectedCustomer.is_personal_trade);
   _handlingFee = Number(q.handling_fee) || 0;
   _shippingFee = Number(q.shipping_fee) || 0;
+  _handlingCharge = !!q.handling_fee_charge;
+  _shippingCharge = !!q.shipping_fee_charge;
   document.getElementById('qHandlingFee').value = _handlingFee;
   document.getElementById('qShippingFee').value = _shippingFee;
+  document.getElementById('qHandlingFeeDir').value = _handlingCharge ? 'charge' : 'deduct';
+  document.getElementById('qShippingFeeDir').value = _shippingCharge ? 'charge' : 'deduct';
   const modeEl = document.getElementById('qFeesTaxMode');
   if (modeEl) modeEl.textContent = _isPersonalTrade ? '個人取引（税込み表示）' : '卸取引（税抜き表示）';
   _items = (q.quotation_items || [])
@@ -548,6 +565,8 @@ function onCustomerChange() {
 function updateQuotationFees() {
   _handlingFee = Math.max(0, Number(document.getElementById('qHandlingFee')?.value) || 0);
   _shippingFee = Math.max(0, Number(document.getElementById('qShippingFee')?.value) || 0);
+  _handlingCharge = document.getElementById('qHandlingFeeDir')?.value === 'charge';
+  _shippingCharge = document.getElementById('qShippingFeeDir')?.value === 'charge';
   renderPreview();
 }
 
@@ -776,7 +795,7 @@ function renderPreview() {
   const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
   const notes = document.getElementById('notes').value || '';
 
-  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade);
+  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade, _handlingCharge, _shippingCharge);
   const subtotal = totals.subtotal;
   const tax = totals.tax;
   const total = totals.total;
@@ -820,8 +839,8 @@ function renderPreview() {
     ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}
   ` : '<div style="color:#aaa;font-size:13px">⚙ 発行者情報を設定してください</div>';
 
-  const buildFeeRow = (label, fee) => {
-    const stored = -Math.abs(Number(fee) || 0);
+  const buildFeeRow = (label, fee, charge) => {
+    const stored = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
     const disp = toDisplayPrice(stored, false, _isPersonalTrade);
     return `
       <tr>
@@ -836,8 +855,8 @@ function renderPreview() {
       </tr>`;
   };
   let feeRows = '';
-  if (_handlingFee > 0) feeRows += buildFeeRow('手数料', _handlingFee);
-  if (_shippingFee > 0) feeRows += buildFeeRow('送料',   _shippingFee);
+  if (_handlingFee > 0) feeRows += buildFeeRow('手数料', _handlingFee, _handlingCharge);
+  if (_shippingFee > 0) feeRows += buildFeeRow('送料',   _shippingFee, _shippingCharge);
 
   const dataRows = _items.length > 0
     ? _items.map(it => {
@@ -987,7 +1006,7 @@ async function saveQuotation() {
   btn.textContent = '保存中...';
 
   try {
-    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade);
+    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade, _handlingCharge, _shippingCharge);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
@@ -1030,6 +1049,8 @@ async function saveQuotation() {
         is_personal_trade: !!_isPersonalTrade,
         handling_fee: _handlingFee,
         shipping_fee: _shippingFee,
+        handling_fee_charge: !!_handlingCharge,
+        shipping_fee_charge: !!_shippingCharge,
       });
       const inserted = await insRes.json();
       qid = inserted[0]?.id;
@@ -1048,6 +1069,8 @@ async function saveQuotation() {
         is_personal_trade: !!_isPersonalTrade,
         handling_fee: _handlingFee,
         shipping_fee: _shippingFee,
+        handling_fee_charge: !!_handlingCharge,
+        shipping_fee_charge: !!_shippingCharge,
       });
       // 既存明細を削除
       const delRes = await sbFetch(`/rest/v1/quotation_items?quotation_id=eq.${qid}`, { method: 'DELETE' });
