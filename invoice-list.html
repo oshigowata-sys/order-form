@@ -786,7 +786,7 @@ async function confirmIssue() {
         + '&customer_id=eq.' + encodeURIComponent(r.customerId)
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
-        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
         + '&order=order_date.asc&order_items.order=display_order.asc'
       );
       if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
@@ -794,12 +794,13 @@ async function confirmIssue() {
 
       const itemsPayload = [];
       let dispOrder = 0;
-      let periodHandlingFee = 0;
-      let periodShippingFee = 0;
+      // 符号付きの正味（charge=true は加算＋／false は差し引き−）。受注ごとに向きが混在しても集計できる。
+      let netHandling = 0;
+      let netShipping = 0;
       let periodIsPersonal = false;
       for (const ord of (ordersData || [])) {
-        periodHandlingFee += Number(ord.handling_fee) || 0;
-        periodShippingFee += Number(ord.shipping_fee) || 0;
+        netHandling += (ord.handling_fee_charge ? 1 : -1) * (Number(ord.handling_fee) || 0);
+        netShipping += (ord.shipping_fee_charge ? 1 : -1) * (Number(ord.shipping_fee) || 0);
         if (ord.is_personal_trade) periodIsPersonal = true;
         for (const it of (ord.order_items || [])) {
           const unitPrice = Number(it.unit_price) || 0;
@@ -828,23 +829,26 @@ async function confirmIssue() {
       }
 
       // 期間集計後、個人取引フラグ・手数料・送料を invoices にスナップショット保存。
-      // 個人取引：単価＝税込みなので消費税計算なし／卸取引：手数料・送料の控除分で補正。
-      if (periodIsPersonal || periodHandlingFee > 0 || periodShippingFee > 0) {
+      // 金額は正味の絶対値、向きは正味の符号（>0で加算）で記録。表示・再計算と整合させる。
+      // feeSigned が正なら合計に加算、負なら控除。個人取引は消費税なし／卸取引は標準10%。
+      const feeSigned = netHandling + netShipping;
+      if (periodIsPersonal || netHandling !== 0 || netShipping !== 0) {
         const patch = {
           is_personal_trade: periodIsPersonal,
-          handling_fee:      periodHandlingFee,
-          shipping_fee:      periodShippingFee,
+          handling_fee:        Math.abs(netHandling),
+          shipping_fee:        Math.abs(netShipping),
+          handling_fee_charge: netHandling > 0,
+          shipping_fee_charge: netShipping > 0,
         };
-        const feeSum = periodHandlingFee + periodShippingFee;
         if (periodIsPersonal) {
-          // 個人取引：単価＝税込み合計。手数料・送料を控除して合計。消費税なし。
-          const newExcl = r.excl - feeSum;
+          // 個人取引：単価＝税込み合計。手数料・送料を符号どおり加減算。消費税なし。
+          const newExcl = r.excl + feeSigned;
           patch.total_excl_tax = newExcl;
           patch.tax_amount     = 0;
           patch.total_incl_tax = newExcl;
-        } else if (feeSum > 0) {
-          const newExcl = r.excl - feeSum;
-          const newTax  = r.tax  - Math.round(feeSum * 0.10);
+        } else if (feeSigned !== 0) {
+          const newExcl = r.excl + feeSigned;
+          const newTax  = r.tax  + Math.round(feeSigned * 0.10);
           patch.total_excl_tax = newExcl;
           patch.tax_amount     = newTax;
           patch.total_incl_tax = newExcl + newTax;
