@@ -228,31 +228,28 @@
       if (it.is_food) sum8 += sub;
       else sum10 += sub;
     }
-    // 手数料・送料は「税込」金額として扱う。向き：charge=true 加算／false 差し引き（既定）。
+    // 手数料・送料は税込で入力された最終金額。消費税は計算せず、合計（税込）にそのまま加減算する。
     const hSign = handlingCharge ? 1 : -1;
     const sSign = shippingCharge ? 1 : -1;
     const feeIncl = hSign * (Number(handlingFee) || 0) + sSign * (Number(shippingFee) || 0);
     if (isPersonal) {
-      // 個人取引：内税・消費税計算なし。送料も税込のまま加算。
-      const ex10 = sum10 + feeIncl;
+      // 個人取引：消費税計算なし。送料も税込のまま合計に加算。
       return {
-        excl8: sum8, excl10: ex10, subtotal: sum8 + ex10,
+        excl8: sum8, excl10: sum10, subtotal: sum8 + sum10,
         tax8: 0, tax10: 0, tax: 0,
-        total: sum8 + ex10,
-        incl8: sum8, incl10: ex10,
+        total: sum8 + sum10 + feeIncl,
+        incl8: sum8, incl10: sum10,
       };
     }
-    // 卸取引（外税）：商品に課税。送料・手数料は税込なので内税を割り戻し、二重課税しない。
-    const feeTax = Math.round(feeIncl * 10 / 110);
-    const feeExcl = feeIncl - feeTax;
+    // 卸取引（外税）：商品にのみ課税。送料・手数料は税込なので税計算せず合計に加減算（消費税の行に出さない）。
     const tax8 = Math.round(sum8 * 0.08);
-    const tax10 = Math.round(sum10 * 0.10) + feeTax;
-    const subtotal = sum8 + sum10 + feeExcl;
+    const tax10 = Math.round(sum10 * 0.10);
+    const subtotal = sum8 + sum10;
     return {
-      excl8: sum8, excl10: sum10 + feeExcl, subtotal,
+      excl8: sum8, excl10: sum10, subtotal,
       tax8, tax10, tax: tax8 + tax10,
-      total: subtotal + tax8 + tax10,
-      incl8: sum8 + tax8, incl10: sum10 + feeExcl + tax10,
+      total: subtotal + tax8 + tax10 + feeIncl,
+      incl8: sum8 + tax8, incl10: sum10 + tax10,
     };
   }
 
@@ -282,7 +279,7 @@
         <td class="num">1</td>
         <td class="num">${fmtYen(disp)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false, isPersonal)}</span></td>
         <td class="num">${fmtYen(disp)}</td>
-        <td class="muted" style="text-align:center">10%</td>
+        <td class="muted" style="text-align:center">税込</td>
         <td class="muted"></td>
       </tr>`;
     };
