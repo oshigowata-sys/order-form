@@ -786,7 +786,7 @@ async function confirmIssue() {
         + '&customer_id=eq.' + encodeURIComponent(r.customerId)
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
-        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
         + '&order=order_date.asc&order_items.order=display_order.asc'
       );
       if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
@@ -799,8 +799,8 @@ async function confirmIssue() {
       let netShipping = 0;
       let periodIsPersonal = false;
       for (const ord of (ordersData || [])) {
-        netHandling += (ord.handling_fee_charge ? 1 : -1) * (Number(ord.handling_fee) || 0);
-        netShipping += (ord.shipping_fee_charge ? 1 : -1) * (Number(ord.shipping_fee) || 0);
+        netHandling += (ord.handling_fee_charge ? 1 : -1) * (Number(ord.handling_fee) || 0) * (Number(ord.handling_fee_qty) || 1);
+        netShipping += (ord.shipping_fee_charge ? 1 : -1) * (Number(ord.shipping_fee) || 0) * (Number(ord.shipping_fee_qty) || 1);
         if (ord.is_personal_trade) periodIsPersonal = true;
         for (const it of (ord.order_items || [])) {
           const unitPrice = Number(it.unit_price) || 0;

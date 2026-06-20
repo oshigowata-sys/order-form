@@ -882,22 +882,24 @@
       <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
   }
   // 手数料・送料の明細行HTML（あれば返す）
-  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge) {
+  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, handlingQty, shippingQty) {
     const rows = [];
-    const buildOne = (label, fee, charge) => {
-      const disp = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
+    const buildOne = (label, fee, charge, qty) => {
+      const q = Number(qty) || 1;
+      const unit = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
+      const line = unit * q;
       return `<tr>
         <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
         <td>${label}</td>
-        <td style="text-align:right">1</td>
-        <td style="text-align:right">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
-        <td style="text-align:right">${fmt(disp)}</td>
+        <td style="text-align:right">${q}</td>
+        <td style="text-align:right">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
+        <td style="text-align:right">${fmt(line)}</td>
         <td style="text-align:center;font-size:11px;color:var(--text-muted)">税込</td>
         <td class="remarks-cell" style="font-size:11px;color:var(--text-muted)"></td>
       </tr>`;
     };
-    if ((Number(handlingFee) || 0) > 0) rows.push(buildOne('手数料', handlingFee, handlingCharge));
-    if ((Number(shippingFee) || 0) > 0) rows.push(buildOne('送料',   shippingFee, shippingCharge));
+    if ((Number(handlingFee) || 0) > 0) rows.push(buildOne('手数料', handlingFee, handlingCharge, handlingQty));
+    if ((Number(shippingFee) || 0) > 0) rows.push(buildOne('送料',   shippingFee, shippingCharge, shippingQty));
     return rows.join('');
   }
 
@@ -1080,7 +1082,9 @@
     const shippingFee = Number(f.shippingFee) || 0;
     const handlingCharge = !!f.handlingCharge;
     const shippingCharge = !!f.shippingCharge;
-    const totals = calcInvoiceTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge);
+    const handlingQty = Number(f.handlingQty) || 1;
+    const shippingQty = Number(f.shippingQty) || 1;
+    const totals = calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
 
     const dataRows = items.length > 0
       ? items.map(it => {
@@ -1099,7 +1103,7 @@
             <td style="text-align:center;font-size:11px;color:var(--text-muted)">${taxLabel}</td>
             <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
           </tr>`;
-        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge)
+        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
     const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
     const emptyCount = Math.max(0, 10 - Math.max(items.length + feeRowCount, 1));
@@ -1205,6 +1209,8 @@
     const shippingFee = Number(f.shippingFee) || 0;
     const handlingCharge = !!f.handlingCharge;
     const shippingCharge = !!f.shippingCharge;
+    const handlingQty = Number(f.handlingQty) || 1;
+    const shippingQty = Number(f.shippingQty) || 1;
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
     const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -1214,8 +1220,8 @@
       payment_day:          f['支払日']
     }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // 明細から合計を再計算（8%/10% 自動判定・手数料/送料の加算/控除込み）
-    const totals = calcInvoiceTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge);
+    // 明細から合計を再計算（8%/10% 自動判定・手数料/送料の加算/控除込み・数量込み）
+    const totals = calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
@@ -1239,7 +1245,7 @@
               <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
               <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
             </tr>`;
-        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge)
+        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
     const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
     const emptyCount = Math.max(0, 10 - Math.max(items.length + feeRowCount, 1));
@@ -1662,7 +1668,7 @@
         const res = await sbFetch(
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
-          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))' +
+          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))' +
           '&order=order_date.asc&order_items.order=display_order.asc'
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1726,8 +1732,8 @@
         // 個人取引フラグ・手数料・送料：発行済 invoices のスナップショットを優先、
         // 無ければ期間内 orders を集計。向き（＋/−）が受注ごとに混在しうるため、
         // 各受注の符号付き合計（正味）を取り、金額は絶対値・向きは正味の符号で表す（表示は1行の正味）。
-        const netHandling = (orders || []).reduce((s, o) => s + ((o.handling_fee_charge ? 1 : -1) * (Number(o.handling_fee) || 0)), 0);
-        const netShipping = (orders || []).reduce((s, o) => s + ((o.shipping_fee_charge ? 1 : -1) * (Number(o.shipping_fee) || 0)), 0);
+        const netHandling = (orders || []).reduce((s, o) => s + ((o.handling_fee_charge ? 1 : -1) * (Number(o.handling_fee) || 0) * (Number(o.handling_fee_qty) || 1)), 0);
+        const netShipping = (orders || []).reduce((s, o) => s + ((o.shipping_fee_charge ? 1 : -1) * (Number(o.shipping_fee) || 0) * (Number(o.shipping_fee_qty) || 1)), 0);
         const periodHandlingFee   = currentHandlingFee != null ? currentHandlingFee : Math.abs(netHandling);
         const periodShippingFee   = currentShippingFee != null ? currentShippingFee : Math.abs(netShipping);
         const periodHandlingCharge = currentHandlingFee != null ? currentHandlingCharge : (netHandling > 0);
@@ -1750,6 +1756,8 @@
           shippingFee:    periodShippingFee,
           handlingCharge: periodHandlingCharge,
           shippingCharge: periodShippingCharge,
+          handlingQty:    1,
+          shippingQty:    1,
         };
         // 明細スナップショットがあればそれを優先（発行時点の商品名・単価・税率を保持）
         // スナップショットが無い既発行分は orders を再集計（フォールバック）
@@ -1785,7 +1793,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))&order_items.order=display_order.asc';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))&order_items.order=display_order.asc';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1816,6 +1824,8 @@
           shippingFee:    Number(order.shipping_fee) || 0,
           handlingCharge: !!order.handling_fee_charge,
           shippingCharge: !!order.shipping_fee_charge,
+          handlingQty:    Number(order.handling_fee_qty) || 1,
+          shippingQty:    Number(order.shipping_fee_qty) || 1,
         };
         const items = (order.order_items || []).map(it => ({
           '商品コード': it.products?.product_code || '',
