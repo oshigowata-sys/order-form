@@ -868,6 +868,39 @@
       incl8: sum8 + tax8, incl10: sum10 + tax10,
     };
   }
+  // 期間請求書（請求明細書）用の集計：受注ごとのグループから合算。
+  // 各受注の送料・手数料は符号（charge）×数量（qty）込みで合算する。
+  // 数学的には calcInvoiceTotals に「全受注の符号付き正味（netHandling+netShipping）」を渡したものと一致する。
+  function calcPeriodTotals(groups, isPersonalTrade) {
+    let sum8 = 0, sum10 = 0, feeIncl = 0;
+    (groups || []).forEach(g => {
+      (g.items || []).forEach(it => {
+        const sub = Number(it['小計'] || it['subtotal'] || (Number(it['数量']||0) * Number(it['単価']||0)) || 0);
+        if (it.isFood) sum8 += sub; else sum10 += sub;
+      });
+      feeIncl += (g.handlingCharge ? 1 : -1) * (Number(g.handlingFee) || 0) * (Number(g.handlingQty) || 1);
+      feeIncl += (g.shippingCharge ? 1 : -1) * (Number(g.shippingFee) || 0) * (Number(g.shippingQty) || 1);
+    });
+    if (isPersonalTrade) {
+      return {
+        excl8: sum8, excl10: sum10,
+        subtotal: sum8 + sum10,
+        tax8: 0, tax10: 0, tax: 0,
+        total: sum8 + sum10 + feeIncl,
+        incl8: sum8, incl10: sum10,
+      };
+    }
+    const tax8  = Math.round(sum8 * 0.08);
+    const tax10 = Math.round(sum10 * 0.10);
+    const subtotal = sum8 + sum10;
+    return {
+      excl8: sum8, excl10: sum10,
+      subtotal,
+      tax8, tax10, tax: tax8 + tax10,
+      total: subtotal + tax8 + tax10 + feeIncl,
+      incl8: sum8 + tax8, incl10: sum10 + tax10,
+    };
+  }
   // 集計表の中身（個人取引：税率別小計＋合計のみ／卸取引：外税方式）
   function buildInvoiceTotalsRows(t, isPersonalTrade, grandLabel) {
     const label = grandLabel || '合計（税込）';
@@ -1203,8 +1236,12 @@
   }
 
   // ===== 請求書HTML生成 =====
-  function renderInvoice(order, items, showDelivery = true, prevInvoice = null, currentInvoice = null) {
+  // periodGroups: 期間請求書（請求明細書）モードのみ指定。受注（日付）ごとの
+  //   { date, items[], handlingFee, shippingFee, handlingCharge, shippingCharge, handlingQty, shippingQty }
+  //   の配列。指定時は先頭列を「日付」にし、各受注の商品行の直後にその受注の送料・手数料行を出す。
+  function renderInvoice(order, items, showDelivery = true, prevInvoice = null, currentInvoice = null, periodGroups = null) {
     window._orderData = { order, items };
+    const isPeriod = Array.isArray(periodGroups) && periodGroups.length > 0;
     const s = _settings;
     const f = order.fields || order;
     const isPersonal = !!f.isPersonalTrade;
@@ -1224,23 +1261,31 @@
     }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // 明細から合計を再計算（8%/10% 自動判定・手数料/送料の加算/控除込み・数量込み）
-    const totals = calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+    // 期間請求書（請求明細書）は受注ごとのグループから合算。それ以外は従来どおり items から。
+    const totals = isPeriod
+      ? calcPeriodTotals(periodGroups, isPersonal)
+      : calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
 
-    // 明細行
-    const dataRows = items.length > 0
-      ? items.map(it => {
-          const qty = Number(it['数量'] || 0);
-          const priceStored = Number(it['単価'] || 0);
-          const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
-          const subDisp = qty * priceDisp;
-          const rate = it.isFood ? '8%' : '10%';
-          const remarks = it['備考'] || '';
-          return `
+    // 受注日（YYYY-MM-DD）を明細の先頭列向けに M/D へ整形
+    const fmtItemDate = (d) => {
+      if (!d) return '—';
+      const p = String(d).split('-');
+      return p.length >= 3 ? `${Number(p[1])}/${Number(p[2])}` : esc(String(d));
+    };
+    // 1商品行のHTML（先頭列に first を表示：通常=商品コード／請求明細書=日付）
+    const buildItemRow = (it, first) => {
+      const qty = Number(it['数量'] || 0);
+      const priceStored = Number(it['単価'] || 0);
+      const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
+      const subDisp = qty * priceDisp;
+      const rate = it.isFood ? '8%' : '10%';
+      const remarks = it['備考'] || '';
+      return `
             <tr>
-              <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${first}</td>
               <td>${esc(it['商品名'] || '-')}</td>
               <td style="text-align:right">${qty.toLocaleString()}</td>
               <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
@@ -1248,10 +1293,32 @@
               <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
               <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
             </tr>`;
-        }).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
-      : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
-    const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
-    const emptyCount = Math.max(0, 10 - Math.max(items.length + feeRowCount, 1));
+    };
+
+    // 明細行
+    let dataRows, renderedRowCount;
+    if (isPeriod) {
+      // 請求明細書：受注（日付）ごとに［その日の商品行 → その受注の送料・手数料行］を繰り返す
+      renderedRowCount = 0;
+      const blocks = periodGroups.map(g => {
+        const ds = fmtItemDate(g.date);
+        const itemHtml = (g.items || []).map(it => buildItemRow(it, ds)).join('');
+        const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty);
+        const feeCount = ((Number(g.handlingFee)||0) > 0 ? 1 : 0) + ((Number(g.shippingFee)||0) > 0 ? 1 : 0);
+        renderedRowCount += (g.items || []).length + feeCount;
+        return itemHtml + feeHtml;
+      }).join('');
+      dataRows = renderedRowCount > 0
+        ? blocks
+        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+    } else {
+      dataRows = items.length > 0
+        ? items.map(it => buildItemRow(it, esc(it['商品コード'] || '—'))).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+      const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
+      renderedRowCount = items.length + feeRowCount;
+    }
+    const emptyCount = Math.max(0, 10 - Math.max(renderedRowCount, 1));
     const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
@@ -1363,7 +1430,7 @@
         <table class="invoice-table">
           <thead>
             <tr>
-              <th style="width:74px">商品コード</th>
+              <th style="width:74px">${isPeriod ? '日付' : '商品コード'}</th>
               <th>商品名</th>
               <th style="text-align:right;width:48px">数量</th>
               <th style="text-align:right;width:80px">単価</th>
@@ -1762,31 +1829,57 @@
           handlingQty:    1,
           shippingQty:    1,
         };
-        // 明細スナップショットがあればそれを優先（発行時点の商品名・単価・税率を保持）
-        // スナップショットが無い既発行分は orders を再集計（フォールバック）
-        const allItems = snapshotItems.length > 0
-          ? snapshotItems.map(it => ({
-              '商品コード': it.product_code || '',
-              '商品名':     it.product_name || '',
-              '数量':       it.quantity || 0,
-              '単価':       it.unit_price || 0,
-              '小計':       it.subtotal != null ? it.subtotal : (it.quantity || 0) * (it.unit_price || 0),
-              isFood:       !!it.is_food,
-              '備考':       it.remarks || '',
-            }))
-          : orders.flatMap(o =>
-              (o.order_items || []).map(it => ({
-                '商品コード': it.products?.product_code || '',
-                '商品名': it.products?.product_name || '',
-                '数量':   it.quantity || 0,
-                '単価':   it.unit_price || 0,
-                '小計':   (it.quantity || 0) * (it.unit_price || 0),
-                isFood:   it.products?.is_food || false,
-                '備考':   it.remarks || '',
-              }))
-            );
+        // 請求明細書：受注（日付）ごとのグループに組み替える。
+        // 各グループ＝その受注日の商品行＋その受注の送料・手数料（符号・数量込み）。
+        // orders は order_date.asc で取得済みなので、グループ自体が受注順（日付昇順）に並ぶ。
+        const groups = orders.map(o => ({
+          date: o.order_date || '',
+          items: (o.order_items || []).map(it => ({
+            '商品コード': it.products?.product_code || '',
+            '商品名': it.products?.product_name || '',
+            '数量':   it.quantity || 0,
+            '単価':   it.unit_price || 0,
+            '小計':   (it.quantity || 0) * (it.unit_price || 0),
+            isFood:   it.products?.is_food || false,
+            '備考':   it.remarks || '',
+          })),
+          handlingFee:    Number(o.handling_fee) || 0,
+          shippingFee:    Number(o.shipping_fee) || 0,
+          handlingCharge: !!o.handling_fee_charge,
+          shippingCharge: !!o.shipping_fee_charge,
+          handlingQty:    Number(o.handling_fee_qty) || 1,
+          shippingQty:    Number(o.shipping_fee_qty) || 1,
+        }));
 
-        renderInvoice({ fields: f }, allItems, false, prevInvoice, currentInvoice);
+        // 既発行（スナップショットあり）は発行時点の凍結値を優先。スナップショットは
+        // 発行時に orders を order_date.asc → display_order.asc でフラット化して採番しているため、
+        // ここで再構築したグループの商品行と同順。件数一致時のみ位置対応で上書きする
+        // （件数が違う＝発行後に受注を編集した等の場合は、ズレ防止のため上書きしない）。
+        let flatCount = 0;
+        groups.forEach(g => { flatCount += g.items.length; });
+        if (snapshotItems.length > 0 && snapshotItems.length === flatCount) {
+          let idx = 0;
+          groups.forEach(g => {
+            g.items = g.items.map(it => {
+              const snap = snapshotItems[idx++];
+              return {
+                '商品コード': snap.product_code || it['商品コード'] || '',
+                '商品名':     snap.product_name || '',
+                '数量':       snap.quantity || 0,
+                '単価':       snap.unit_price || 0,
+                '小計':       snap.subtotal != null ? snap.subtotal : (snap.quantity || 0) * (snap.unit_price || 0),
+                isFood:       !!snap.is_food,
+                '備考':       snap.remarks || '',
+              };
+            });
+          });
+        } else if (snapshotItems.length > 0) {
+          console.warn('請求明細書: スナップショット件数(' + snapshotItems.length + ')と受注明細件数(' + flatCount + ')が不一致のため凍結値の上書きをスキップしました');
+        }
+
+        const allItems = groups.flatMap(g => g.items);
+
+        renderInvoice({ fields: f }, allItems, false, prevInvoice, currentInvoice, groups);
 
       } else {
         // ── 単一受注モード ──
