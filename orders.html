@@ -275,23 +275,27 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
                 <input type="number" id="editHandlingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+                <input type="number" id="editHandlingFeeQty" value="1" min="1" step="1" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="editHandlingFeeDir" onchange="updateEditFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
                 </select>
               </div>
               <div>
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
                 <input type="number" id="editShippingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+                <input type="number" id="editShippingFeeQty" value="1" min="1" step="1" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="editShippingFeeDir" onchange="updateEditFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
                 </select>
               </div>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">1単位あたりの金額×数量で計算します（例：送料¥1,000×10箱）。各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
           </div>
           <div id="orderNotesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
             <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
@@ -398,23 +402,27 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
                 <input type="number" id="newHandlingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+                <input type="number" id="newHandlingFeeQty" value="1" min="1" step="1" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newHandlingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
                 </select>
               </div>
               <div>
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
                 <input type="number" id="newShippingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+                <input type="number" id="newShippingFeeQty" value="1" min="1" step="1" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newShippingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
                 </select>
               </div>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">1単位あたりの金額×数量で計算します（例：送料¥1,000×10箱）。各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
           </div>
           <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
             <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
@@ -589,7 +597,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
     try {
       const res = await sbFetch(
-        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
+        `/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_code,order_date,status,customer_id,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,cost_price,products(is_food))&order=order_date.desc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
@@ -597,10 +605,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         const items = r.order_items || [];
         const handlingFee = Number(r.handling_fee) || 0;
         const shippingFee = Number(r.shipping_fee) || 0;
+        const handlingQty = Number(r.handling_fee_qty) || 1;
+        const shippingQty = Number(r.shipping_fee_qty) || 1;
         const handlingCharge = !!r.handling_fee_charge;
         const shippingCharge = !!r.shipping_fee_charge;
-        // 向き：charge=true は加算（＋）、false は差し引き（−）。手数料・送料は標準10%枠。
-        const feeSigned = (handlingCharge ? 1 : -1) * handlingFee + (shippingCharge ? 1 : -1) * shippingFee;
+        // 向き：charge=true は加算（＋）、false は差し引き（−）。実効額＝1単位額×数量。
+        const feeSigned = (handlingCharge ? 1 : -1) * handlingFee * handlingQty + (shippingCharge ? 1 : -1) * shippingFee * shippingQty;
         // 受注時点のフラグを優先（スナップショット）。null/未設定なら取引先マスタへフォールバック。
         const isPersonalTrade = r.is_personal_trade ?? r.customers?.is_personal_trade ?? false;
         // 手数料・送料は税込・税計算しない。税抜と消費税は商品のみ、合計（税込）に送料を加減算。
@@ -636,6 +646,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           isPersonalTrade,
           handlingFee,
           shippingFee,
+          handlingQty,
+          shippingQty,
           handlingCharge,
           shippingCharge,
           excl,
@@ -835,7 +847,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         unitPrice: it.unit_price || 0,
         isFood: it.products?.is_food || false,
       }));
-      const totals = calcOrderTotals(calcItems, o.handlingFee || 0, o.shippingFee || 0, currentEditIsPersonalTrade, o.handlingCharge, o.shippingCharge);
+      const totals = calcOrderTotals(calcItems, (o.handlingFee || 0) * (o.handlingQty || 1), (o.shippingFee || 0) * (o.shippingQty || 1), currentEditIsPersonalTrade, o.handlingCharge, o.shippingCharge);
       const rows = items.map(it => {
         const qty     = it.quantity || 0;
         const priceStored = it.unit_price || 0;
@@ -855,14 +867,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 手数料・送料を明細末尾に表示（あれば）
       const feeRows = [];
       if ((o.handlingFee || 0) > 0) {
-        const fee = (o.handlingCharge ? 1 : -1) * o.handlingFee;
-        const feeDisp = toDisplayPrice(fee, false, currentEditIsPersonalTrade);
-        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>手数料</td><td class="num-right">1</td><td class="num-right">${fmtYen(feeDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(feeDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
+        const qtyH = o.handlingQty || 1;
+        const unitDisp = toDisplayPrice((o.handlingCharge ? 1 : -1) * o.handlingFee, false, currentEditIsPersonalTrade);
+        const lineDisp = unitDisp * qtyH;
+        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>手数料</td><td class="num-right">${qtyH}</td><td class="num-right">${fmtYen(unitDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(lineDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
       }
       if ((o.shippingFee || 0) > 0) {
-        const fee = (o.shippingCharge ? 1 : -1) * o.shippingFee;
-        const feeDisp = toDisplayPrice(fee, false, currentEditIsPersonalTrade);
-        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>送料</td><td class="num-right">1</td><td class="num-right">${fmtYen(feeDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(feeDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
+        const qtyS = o.shippingQty || 1;
+        const unitDisp = toDisplayPrice((o.shippingCharge ? 1 : -1) * o.shippingFee, false, currentEditIsPersonalTrade);
+        const lineDisp = unitDisp * qtyS;
+        feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>送料</td><td class="num-right">${qtyS}</td><td class="num-right">${fmtYen(unitDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(lineDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
       }
 
       document.getElementById('modalItems').innerHTML =
@@ -967,6 +981,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     currentEditIsPersonalTrade = !!o.isPersonalTrade;
     document.getElementById('editHandlingFee').value = Number(o.handlingFee) || 0;
     document.getElementById('editShippingFee').value = Number(o.shippingFee) || 0;
+    document.getElementById('editHandlingFeeQty').value = Number(o.handlingQty) || 1;
+    document.getElementById('editShippingFeeQty').value = Number(o.shippingQty) || 1;
     document.getElementById('editHandlingFeeDir').value = o.handlingCharge ? 'charge' : 'deduct';
     document.getElementById('editShippingFeeDir').value = o.shippingCharge ? 'charge' : 'deduct';
     document.getElementById('orderFeesSection').style.display = 'block';
@@ -1098,14 +1114,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function getEditFees() {
     const h = Number(document.getElementById('editHandlingFee')?.value) || 0;
     const s = Number(document.getElementById('editShippingFee')?.value) || 0;
+    const hq = Number(document.getElementById('editHandlingFeeQty')?.value) || 1;
+    const sq = Number(document.getElementById('editShippingFeeQty')?.value) || 1;
     const handlingCharge = document.getElementById('editHandlingFeeDir')?.value === 'charge';
     const shippingCharge = document.getElementById('editShippingFeeDir')?.value === 'charge';
-    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingCharge, shippingCharge };
+    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingQty: Math.max(1, hq), shippingQty: Math.max(1, sq), handlingCharge, shippingCharge };
   }
 
   function renderEditTotals() {
-    const { handlingFee, shippingFee, handlingCharge, shippingCharge } = getEditFees();
-    const totals = calcOrderTotals(editItems, handlingFee, shippingFee, currentEditIsPersonalTrade, handlingCharge, shippingCharge);
+    const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getEditFees();
+    const totals = calcOrderTotals(editItems, handlingFee * handlingQty, shippingFee * shippingQty, currentEditIsPersonalTrade, handlingCharge, shippingCharge);
     document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
   }
 
@@ -1254,7 +1272,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 帳票全体の備考欄＋手数料・送料・個人取引フラグを orders に保存
       const notesEl = document.getElementById('orderNotes');
       const notesValue = notesEl ? (notesEl.value || '').trim() : '';
-      const { handlingFee, shippingFee, handlingCharge, shippingCharge } = getEditFees();
+      const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getEditFees();
       const notesPatchRes = await sbFetch(`/rest/v1/orders?id=eq.${currentDetailId}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
@@ -1263,6 +1281,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           is_personal_trade: !!currentEditIsPersonalTrade,
           handling_fee: handlingFee,
           shipping_fee: shippingFee,
+          handling_fee_qty: handlingQty,
+          shipping_fee_qty: shippingQty,
           handling_fee_charge: !!handlingCharge,
           shipping_fee_charge: !!shippingCharge,
         })
@@ -1274,6 +1294,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         o.isPersonalTrade = !!currentEditIsPersonalTrade;
         o.handlingFee = handlingFee;
         o.shippingFee = shippingFee;
+        o.handlingQty = handlingQty;
+        o.shippingQty = shippingQty;
         o.handlingCharge = !!handlingCharge;
         o.shippingCharge = !!shippingCharge;
       }
@@ -1386,7 +1408,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (!wrap) return;
     const orderDate = document.getElementById('newOrderDate')?.value || '';
     const notes = document.getElementById('newOrderNotes')?.value || '';
-    const { handlingFee, shippingFee, handlingCharge, shippingCharge } = getNewFees();
+    const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getNewFees();
     MeguReePreview.renderOrder(wrap, {
       customer: _currentNewOrderCustomer || {},
       settings: _previewSettings || {},
@@ -1401,6 +1423,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       isPersonalTrade: !!currentNewIsPersonalTrade,
       handlingFee,
       shippingFee,
+      handlingQty,
+      shippingQty,
       handlingCharge,
       shippingCharge,
     });
@@ -1416,7 +1440,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       : (window._viewModeItems || []);
     const notes = document.getElementById('orderNotes')?.value || '';
     // 編集モードなら入力中の手数料・送料・フラグを使用、ビューモードなら保存済みの値を使用
-    const fees = editMode ? getEditFees() : { handlingFee: Number(o.handlingFee) || 0, shippingFee: Number(o.shippingFee) || 0, handlingCharge: !!o.handlingCharge, shippingCharge: !!o.shippingCharge };
+    const fees = editMode ? getEditFees() : { handlingFee: Number(o.handlingFee) || 0, shippingFee: Number(o.shippingFee) || 0, handlingQty: Number(o.handlingQty) || 1, shippingQty: Number(o.shippingQty) || 1, handlingCharge: !!o.handlingCharge, shippingCharge: !!o.shippingCharge };
     const isPersonal = editMode ? currentEditIsPersonalTrade : !!o.isPersonalTrade;
     MeguReePreview.renderOrder(wrap, {
       customer: _currentEditOrderCustomer || {},
@@ -1432,6 +1456,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       isPersonalTrade: isPersonal,
       handlingFee: fees.handlingFee,
       shippingFee: fees.shippingFee,
+      handlingQty: fees.handlingQty,
+      shippingQty: fees.shippingQty,
       handlingCharge: fees.handlingCharge,
       shippingCharge: fees.shippingCharge,
     });
@@ -1465,6 +1491,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('orderError').classList.remove('show');
     document.getElementById('newHandlingFee').value = 0;
     document.getElementById('newShippingFee').value = 0;
+    document.getElementById('newHandlingFeeQty').value = 1;
+    document.getElementById('newShippingFeeQty').value = 1;
     document.getElementById('newHandlingFeeDir').value = 'deduct';
     document.getElementById('newShippingFeeDir').value = 'deduct';
     currentNewIsPersonalTrade = false;
@@ -1629,9 +1657,11 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function getNewFees() {
     const h = Number(document.getElementById('newHandlingFee')?.value) || 0;
     const s = Number(document.getElementById('newShippingFee')?.value) || 0;
+    const hq = Number(document.getElementById('newHandlingFeeQty')?.value) || 1;
+    const sq = Number(document.getElementById('newShippingFeeQty')?.value) || 1;
     const handlingCharge = document.getElementById('newHandlingFeeDir')?.value === 'charge';
     const shippingCharge = document.getElementById('newShippingFeeDir')?.value === 'charge';
-    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingCharge, shippingCharge };
+    return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingQty: Math.max(1, hq), shippingQty: Math.max(1, sq), handlingCharge, shippingCharge };
   }
 
   function updateNewFees() {
@@ -1642,8 +1672,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function renderNewTotals() {
     const totalEl = document.getElementById('newOrderTotal');
     if (!totalEl) return;
-    const { handlingFee, shippingFee, handlingCharge, shippingCharge } = getNewFees();
-    const totals = calcOrderTotals(newOrderItems, handlingFee, shippingFee, currentNewIsPersonalTrade, handlingCharge, shippingCharge);
+    const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getNewFees();
+    const totals = calcOrderTotals(newOrderItems, handlingFee * handlingQty, shippingFee * shippingQty, currentNewIsPersonalTrade, handlingCharge, shippingCharge);
     totalEl.innerHTML = renderTotalsHtml(totals, currentNewIsPersonalTrade);
   }
 
@@ -1740,7 +1770,7 @@ const errEl      = document.getElementById('orderError');
     try {
       const code = 'M-' + orderDate.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
       const notesValue = (document.getElementById('newOrderNotes')?.value || '').trim();
-      const { handlingFee, shippingFee, handlingCharge, shippingCharge } = getNewFees();
+      const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getNewFees();
       const orderRes = await sbFetch('/rest/v1/orders', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
@@ -1754,6 +1784,8 @@ const errEl      = document.getElementById('orderError');
           is_personal_trade: !!currentNewIsPersonalTrade,
           handling_fee: handlingFee,
           shipping_fee: shippingFee,
+          handling_fee_qty: handlingQty,
+          shipping_fee_qty: shippingQty,
           handling_fee_charge: !!handlingCharge,
           shipping_fee_charge: !!shippingCharge,
         })

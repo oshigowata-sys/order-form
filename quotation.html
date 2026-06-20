@@ -220,23 +220,27 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料</label>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
             <input type="number" id="qHandlingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+            <input type="number" id="qHandlingFeeQty" class="form-input" value="1" min="1" step="1" oninput="updateQuotationFees()">
             <select id="qHandlingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
             </select>
           </div>
           <div>
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料</label>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
             <input type="number" id="qShippingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+            <input type="number" id="qShippingFeeQty" class="form-input" value="1" min="1" step="1" oninput="updateQuotationFees()">
             <select id="qShippingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
             </select>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">1単位あたりの金額×数量で計算します。各項目ごとに「差し引く（−）」「請求に加える（＋）」を選べます。</div>
       </div>
     </div>
 
@@ -435,6 +439,8 @@ let _selectedCustomer = null;
 let _existingNumber = null;
 let _handlingFee = 0;
 let _shippingFee = 0;
+let _handlingQty = 1;
+let _shippingQty = 1;
 let _handlingCharge = false;
 let _shippingCharge = false;
 let _isPersonalTrade = false;
@@ -521,10 +527,14 @@ async function loadExistingQuotation() {
     : !!(_selectedCustomer && _selectedCustomer.is_personal_trade);
   _handlingFee = Number(q.handling_fee) || 0;
   _shippingFee = Number(q.shipping_fee) || 0;
+  _handlingQty = Number(q.handling_fee_qty) || 1;
+  _shippingQty = Number(q.shipping_fee_qty) || 1;
   _handlingCharge = !!q.handling_fee_charge;
   _shippingCharge = !!q.shipping_fee_charge;
   document.getElementById('qHandlingFee').value = _handlingFee;
   document.getElementById('qShippingFee').value = _shippingFee;
+  document.getElementById('qHandlingFeeQty').value = _handlingQty;
+  document.getElementById('qShippingFeeQty').value = _shippingQty;
   document.getElementById('qHandlingFeeDir').value = _handlingCharge ? 'charge' : 'deduct';
   document.getElementById('qShippingFeeDir').value = _shippingCharge ? 'charge' : 'deduct';
   const modeEl = document.getElementById('qFeesTaxMode');
@@ -568,6 +578,8 @@ function onCustomerChange() {
 function updateQuotationFees() {
   _handlingFee = Math.max(0, Number(document.getElementById('qHandlingFee')?.value) || 0);
   _shippingFee = Math.max(0, Number(document.getElementById('qShippingFee')?.value) || 0);
+  _handlingQty = Math.max(1, Number(document.getElementById('qHandlingFeeQty')?.value) || 1);
+  _shippingQty = Math.max(1, Number(document.getElementById('qShippingFeeQty')?.value) || 1);
   _handlingCharge = document.getElementById('qHandlingFeeDir')?.value === 'charge';
   _shippingCharge = document.getElementById('qShippingFeeDir')?.value === 'charge';
   renderPreview();
@@ -798,7 +810,7 @@ function renderPreview() {
   const number = document.getElementById('quotationNumber').value || '（保存時に自動採番）';
   const notes = document.getElementById('notes').value || '';
 
-  const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade, _handlingCharge, _shippingCharge);
+  const totals = calcQuotationTotals(_items, _handlingFee * _handlingQty, _shippingFee * _shippingQty, _isPersonalTrade, _handlingCharge, _shippingCharge);
   const subtotal = totals.subtotal;
   const tax = totals.tax;
   const total = totals.total;
@@ -842,24 +854,25 @@ function renderPreview() {
     ${s.invoice_num ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">適格請求書番号: ${esc(s.invoice_num)}</div>` : ''}
   ` : '<div style="color:#aaa;font-size:13px">⚙ 発行者情報を設定してください</div>';
 
-  const buildFeeRow = (label, fee, charge) => {
-    const stored = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
-    const disp = toDisplayPrice(stored, false, _isPersonalTrade);
+  const buildFeeRow = (label, fee, charge, qty) => {
+    const q = Number(qty) || 1;
+    const unit = toDisplayPrice((charge ? 1 : -1) * Math.abs(Number(fee) || 0), false, _isPersonalTrade);
+    const line = unit * q;
     return `
       <tr>
         <td style="text-align:right;width:80px">—</td>
         <td>${label}</td>
         <td style="text-align:right;width:55px">—</td>
-        <td style="text-align:right;width:50px">1</td>
-        <td style="text-align:right;width:85px">${fmt(disp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, _isPersonalTrade)}</span></td>
-        <td style="text-align:right;width:100px">${fmt(disp)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">税込</span></td>
+        <td style="text-align:right;width:50px">${q}</td>
+        <td style="text-align:right;width:85px">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, _isPersonalTrade)}</span></td>
+        <td style="text-align:right;width:100px">${fmt(line)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">税込</span></td>
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px"></td>
         <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">—</td>
       </tr>`;
   };
   let feeRows = '';
-  if (_handlingFee > 0) feeRows += buildFeeRow('手数料', _handlingFee, _handlingCharge);
-  if (_shippingFee > 0) feeRows += buildFeeRow('送料',   _shippingFee, _shippingCharge);
+  if (_handlingFee > 0) feeRows += buildFeeRow('手数料', _handlingFee, _handlingCharge, _handlingQty);
+  if (_shippingFee > 0) feeRows += buildFeeRow('送料',   _shippingFee, _shippingCharge, _shippingQty);
 
   const dataRows = _items.length > 0
     ? _items.map(it => {
@@ -1009,7 +1022,7 @@ async function saveQuotation() {
   btn.textContent = '保存中...';
 
   try {
-    const totals = calcQuotationTotals(_items, _handlingFee, _shippingFee, _isPersonalTrade, _handlingCharge, _shippingCharge);
+    const totals = calcQuotationTotals(_items, _handlingFee * _handlingQty, _shippingFee * _shippingQty, _isPersonalTrade, _handlingCharge, _shippingCharge);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
@@ -1052,6 +1065,8 @@ async function saveQuotation() {
         is_personal_trade: !!_isPersonalTrade,
         handling_fee: _handlingFee,
         shipping_fee: _shippingFee,
+        handling_fee_qty: _handlingQty,
+        shipping_fee_qty: _shippingQty,
         handling_fee_charge: !!_handlingCharge,
         shipping_fee_charge: !!_shippingCharge,
       });
@@ -1072,6 +1087,8 @@ async function saveQuotation() {
         is_personal_trade: !!_isPersonalTrade,
         handling_fee: _handlingFee,
         shipping_fee: _shippingFee,
+        handling_fee_qty: _handlingQty,
+        shipping_fee_qty: _shippingQty,
         handling_fee_charge: !!_handlingCharge,
         shipping_fee_charge: !!_shippingCharge,
       });
