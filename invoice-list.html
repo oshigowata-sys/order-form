@@ -830,7 +830,8 @@ async function confirmIssue() {
 
       // 期間集計後、個人取引フラグ・手数料・送料を invoices にスナップショット保存。
       // 金額は正味の絶対値、向きは正味の符号（>0で加算）で記録。表示・再計算と整合させる。
-      // feeSigned が正なら合計に加算、負なら控除。個人取引は消費税なし／卸取引は標準10%。
+      // 手数料・送料は「税込」金額。個人取引は消費税なしでそのまま加減算／卸取引は税込から内税を
+      // 割り戻して計上し、送料に消費税を二重に乗せない。
       const feeSigned = netHandling + netShipping;
       if (periodIsPersonal || netHandling !== 0 || netShipping !== 0) {
         const patch = {
@@ -847,8 +848,11 @@ async function confirmIssue() {
           patch.tax_amount     = 0;
           patch.total_incl_tax = newExcl;
         } else if (feeSigned !== 0) {
-          const newExcl = r.excl + feeSigned;
-          const newTax  = r.tax  + Math.round(feeSigned * 0.10);
+          // 卸取引：送料・手数料は税込なので内税を割り戻して税抜・消費税に振り分ける（二重課税しない）。
+          const feeTax  = Math.round(feeSigned * 10 / 110);
+          const feeExcl = feeSigned - feeTax;
+          const newExcl = r.excl + feeExcl;
+          const newTax  = r.tax  + feeTax;
           patch.total_excl_tax = newExcl;
           patch.tax_amount     = newTax;
           patch.total_incl_tax = newExcl + newTax;

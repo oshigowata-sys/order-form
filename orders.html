@@ -533,29 +533,35 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       if (it.isFood) sum8 += sub;
       else           sum10 += sub;
     });
-    // 向き：charge=true なら請求に加算（＋）、false/未指定なら差し引き（−・従来）。
+    // 手数料・送料は「税込」金額として扱う。向き：charge=true 加算／false 差し引き（既定）。
     const hSign = handlingCharge ? 1 : -1;
     const sSign = shippingCharge ? 1 : -1;
-    sum10 += hSign * (Number(handlingFee) || 0) + sSign * (Number(shippingFee) || 0);
+    const feeIncl = hSign * (Number(handlingFee) || 0) + sSign * (Number(shippingFee) || 0);
     if (isPersonalTrade) {
-      // 単価は税込み・消費税計算なし（メルカリ等の販売価格そのまま）
+      // 個人取引：内税・消費税計算なし。送料も税込のまま加算。
+      const ex10 = sum10 + feeIncl;
       return {
-        excl8: sum8, excl10: sum10,
-        exclTotal: sum8 + sum10,
+        excl8: sum8, excl10: ex10,
+        exclTotal: sum8 + ex10,
         tax8: 0, tax10: 0, taxTotal: 0,
-        inclTotal: sum8 + sum10,
-        incl8: sum8, incl10: sum10,
+        inclTotal: sum8 + ex10,
+        incl8: sum8, incl10: ex10,
       };
     }
+    // 卸取引（外税）：商品に課税。送料・手数料は税込なので内税を割り戻し、二重課税しない。
+    const feeTax  = Math.round(feeIncl * 10 / 110);
+    const feeExcl = feeIncl - feeTax;
     const tax8  = Math.round(sum8  * 0.08);
-    const tax10 = Math.round(sum10 * 0.10);
+    const tax10 = Math.round(sum10 * 0.10) + feeTax;
+    const exclTotal = sum8 + sum10 + feeExcl;
+    const taxTotal  = tax8 + tax10;
     return {
-      excl8: sum8, excl10: sum10,
-      exclTotal: sum8 + sum10,
+      excl8: sum8, excl10: sum10 + feeExcl,
+      exclTotal,
       tax8, tax10,
-      taxTotal: tax8 + tax10,
-      inclTotal: sum8 + sum10 + tax8 + tax10,
-      incl8: sum8 + tax8, incl10: sum10 + tax10,
+      taxTotal,
+      inclTotal: exclTotal + taxTotal,
+      incl8: sum8 + tax8, incl10: sum10 + feeExcl + tax10,
     };
   }
 
@@ -600,16 +606,20 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         const feeSigned = (handlingCharge ? 1 : -1) * handlingFee + (shippingCharge ? 1 : -1) * shippingFee;
         // 受注時点のフラグを優先（スナップショット）。null/未設定なら取引先マスタへフォールバック。
         const isPersonalTrade = r.is_personal_trade ?? r.customers?.is_personal_trade ?? false;
-        const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0) + feeSigned;
+        // 手数料・送料は税込。卸取引では内税を割り戻し二重課税しない／個人取引は税計算なしでそのまま加算。
+        const feeTax  = isPersonalTrade ? 0 : Math.round(feeSigned * 10 / 110);
+        const feeExcl = feeSigned - feeTax;
+        const itemsExcl = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+        const excl  = itemsExcl + (isPersonalTrade ? feeSigned : feeExcl);
         const tax8  = isPersonalTrade ? 0 : items.reduce((s, i) => {
           if (!i.products?.is_food) return s;
           return s + Math.round(i.quantity * i.unit_price * 0.08);
         }, 0);
-        const tax10raw = items.reduce((s, i) => {
+        const tax10items = isPersonalTrade ? 0 : Math.round(items.reduce((s, i) => {
           if (i.products?.is_food) return s;
           return s + (i.quantity * i.unit_price);
-        }, 0) + feeSigned;
-        const tax10 = isPersonalTrade ? 0 : Math.round(tax10raw * 0.10);
+        }, 0) * 0.10);
+        const tax10 = isPersonalTrade ? 0 : (tax10items + feeTax);
         const tax  = tax8 + tax10;
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
