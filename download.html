@@ -191,6 +191,11 @@
 
       document.getElementById('formArea').style.display = 'none';
       document.getElementById('successScreen').classList.add('show');
+
+      // GA4: 資料ダウンロード完了（リード獲得）
+      if (typeof gtag === 'function') {
+        gtag('event', 'download_click', { file_name: 'meguree-service-guide.pdf', page: 'download.html' });
+      }
     } catch(e) {
       console.error(e);
       errEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
@@ -203,5 +208,6 @@
 <style>
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
+<script src="analytics-events.js"></script>
 </body>
 </html>
