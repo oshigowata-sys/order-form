@@ -273,6 +273,11 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       document.getElementById('formArea').style.display = 'none';
       document.getElementById('successScreen').classList.add('show');
+
+      // GA4: お問い合わせ送信完了（キーイベント候補）。個人情報は送らず、業務区分のみ。
+      if (typeof gtag === 'function') {
+        gtag('event', 'contact_submit', { industry: industry, order_method: orderMethod, company_size: companySize, page: 'contact.html' });
+      }
     } catch(e) {
       console.error(e);
       errEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
@@ -281,5 +286,6 @@
     }
   }
 </script>
+<script src="analytics-events.js"></script>
 </body>
 </html>
