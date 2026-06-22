@@ -256,6 +256,33 @@
         </label>
         <div style="font-size:13px;color:var(--text-muted);margin-top:6px;margin-left:28px;line-height:1.5">チェックすると、納品書・請求書・見積書で単価を税込み表示（内税方式）に切替えます。卸取引先はオフのままで税抜き表示（外税方式）を維持します。</div>
       </div>
+      <div class="form-group" style="margin-bottom:0;margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
+        <label class="form-label" style="margin-bottom:4px">いつもの手数料・送料（税込・消費税は計算しません）</label>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.5">ここで設定すると、この取引先がログイン注文フォームから注文したとき、自動で手数料・送料が乗ります。注文ごとに変えたいときは、受注の編集画面で上書きできます。未設定（0）なら何も乗りません。</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
+            <input type="number" id="fDefHandlingFee" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+            <input type="number" id="fDefHandlingFeeQty" value="1" min="1" step="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <select id="fDefHandlingFeeDir" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
+              <option value="deduct" selected>差し引く（−）</option>
+              <option value="charge">請求に加える（＋）</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
+            <input type="number" id="fDefShippingFee" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
+            <input type="number" id="fDefShippingFeeQty" value="1" min="1" step="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <select id="fDefShippingFeeDir" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
+              <option value="deduct" selected>差し引く（−）</option>
+              <option value="charge">請求に加える（＋）</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">1単位あたりの金額×数量で計算します（例：送料¥1,000×1）。「差し引く（−）」「請求に加える（＋）」を選べます。</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
@@ -391,6 +418,12 @@
         paymentOffset:  r.payment_month_offset != null ? r.payment_month_offset : '',
         payment:        r.payment_day        != null ? r.payment_day        : '',
         isPersonalTrade: !!r.is_personal_trade,
+        defHandlingFee:    Number(r.default_handling_fee) || 0,
+        defShippingFee:    Number(r.default_shipping_fee) || 0,
+        defHandlingCharge: !!r.default_handling_fee_charge,
+        defShippingCharge: !!r.default_shipping_fee_charge,
+        defHandlingQty:    r.default_handling_fee_qty != null ? Number(r.default_handling_fee_qty) : 1,
+        defShippingQty:    r.default_shipping_fee_qty != null ? Number(r.default_shipping_fee_qty) : 1,
       }));
       customers.sort((a, b) => a.company.localeCompare(b.company, 'ja'));
       render();
@@ -469,6 +502,12 @@
     document.getElementById('fZip').value = '';
     document.getElementById('zipStatus').textContent = '';
     document.getElementById('fIsPersonalTrade').checked = false;
+    document.getElementById('fDefHandlingFee').value = '0';
+    document.getElementById('fDefHandlingFeeQty').value = '1';
+    document.getElementById('fDefHandlingFeeDir').value = 'deduct';
+    document.getElementById('fDefShippingFee').value = '0';
+    document.getElementById('fDefShippingFeeQty').value = '1';
+    document.getElementById('fDefShippingFeeDir').value = 'deduct';
     _phones = [];
     _faxes  = [];
     renderContactRows();
@@ -491,6 +530,12 @@
     document.getElementById('fPaymentOffset').value  = c.paymentOffset;
     document.getElementById('fPayment').value        = c.payment;
     document.getElementById('fIsPersonalTrade').checked = !!c.isPersonalTrade;
+    document.getElementById('fDefHandlingFee').value = c.defHandlingFee != null ? c.defHandlingFee : 0;
+    document.getElementById('fDefHandlingFeeQty').value = c.defHandlingQty != null ? c.defHandlingQty : 1;
+    document.getElementById('fDefHandlingFeeDir').value = c.defHandlingCharge ? 'charge' : 'deduct';
+    document.getElementById('fDefShippingFee').value = c.defShippingFee != null ? c.defShippingFee : 0;
+    document.getElementById('fDefShippingFeeQty').value = c.defShippingQty != null ? c.defShippingQty : 1;
+    document.getElementById('fDefShippingFeeDir').value = c.defShippingCharge ? 'charge' : 'deduct';
     _phones = [];
     _faxes  = [];
     renderContactRows();
@@ -615,6 +660,12 @@
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
       payment_day:           Number(document.getElementById('fPayment').value)        || null,
       is_personal_trade:     document.getElementById('fIsPersonalTrade').checked,
+      default_handling_fee:        Number(document.getElementById('fDefHandlingFee').value) || 0,
+      default_shipping_fee:        Number(document.getElementById('fDefShippingFee').value) || 0,
+      default_handling_fee_charge: document.getElementById('fDefHandlingFeeDir').value === 'charge',
+      default_shipping_fee_charge: document.getElementById('fDefShippingFeeDir').value === 'charge',
+      default_handling_fee_qty:    Number(document.getElementById('fDefHandlingFeeQty').value) || 1,
+      default_shipping_fee_qty:    Number(document.getElementById('fDefShippingFeeQty').value) || 1,
       tenant_id:    tenantId,
     };
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');
