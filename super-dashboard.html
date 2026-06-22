@@ -522,13 +522,16 @@
     return n;
   }
 
-  // 集計に使う月額：実額(monthly_amount)が入っていればそれを優先。無ければプラン固定価格。
+  // 集計に使う月額：実額(monthly_amount)が入っていればそれを優先。
+  // 実額が無ければ「明示的に選ばれたプラン」の固定価格。プラン未選択（null/不明）なら
+  // 勝手にスタンダード扱いにせず ¥0 とする（金額未確定の契約者を売上に水増ししない）。
   function effectiveMonthly(t) {
     if (t.monthly_amount != null && t.monthly_amount !== '') {
       const n = Number(t.monthly_amount);
       if (!Number.isNaN(n)) return n;
     }
-    return PLAN_PRICES[t.plan || 'standard'] || 0;
+    if (t.plan && PLAN_PRICES[t.plan] != null) return PLAN_PRICES[t.plan];
+    return 0;
   }
 
   function todayDateKey() {
@@ -901,7 +904,7 @@
       </td>
       <td style="font-size:14px;color:var(--text-muted)">${esc(r.monthly_orders) || '—'}</td>
       <td>
-        <div style="font-size:14px">${esc(r.email)}</div>
+        <div style="font-size:14px">${r.email ? '<a href="mailto:' + esc(r.email) + '?subject=' + encodeURIComponent('MeguRee お問い合わせの件') + '" style="color:inherit;text-decoration:underline">' + esc(r.email) + '</a>' : '—'}</div>
         <div class="inq-detail">${esc(r.phone) || '—'}</div>
       </td>
       <td style="color:var(--text-muted);font-size:14px">${(r.created_at||'').slice(0,10)}</td>
@@ -995,7 +998,7 @@
     tbody.innerHTML = rows.map(r => `<tr>
       <td style="font-weight:600">${esc(r.company_name)}</td>
       <td>${esc(r.name)}</td>
-      <td style="color:var(--text-muted);font-size:14px">${esc(r.email)}</td>
+      <td style="color:var(--text-muted);font-size:14px">${r.email ? '<a href="mailto:' + esc(r.email) + '?subject=' + encodeURIComponent('MeguRee 資料ご請求の件') + '" style="color:inherit;text-decoration:underline">' + esc(r.email) + '</a>' : '—'}</td>
       <td style="font-size:14px;color:var(--text-muted)">${esc(r.source) || '—'}</td>
       <td style="color:var(--text-muted);font-size:14px">${(r.created_at||'').slice(0,10)}</td>
       <td>
