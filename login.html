@@ -25,23 +25,41 @@
 
   body {
     font-family: 'Noto Sans JP', sans-serif;
-    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    position: relative;
+    background:
+      radial-gradient(circle at 15% 12%, rgba(232,99,10,0.10) 0%, transparent 38%),
+      radial-gradient(circle at 85% 88%, rgba(30,102,65,0.10) 0%, transparent 38%),
+      var(--bg);
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(232,99,10,0.05) 1px, transparent 1px);
+    background-size: 30px 30px; pointer-events: none;
   }
 
-  .login-shell { display: flex; min-height: 100vh; }
+  .login-shell {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px; position: relative; z-index: 1;
+  }
+  .login-card {
+    display: flex; width: 100%; max-width: 940px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 24px; overflow: hidden;
+    box-shadow: 0 24px 64px rgba(232,99,10,0.07), 0 6px 18px rgba(0,0,0,0.05);
+  }
 
   /* ===== 左：ブランドパネル ===== */
   .brand-panel {
-    flex: 1;
+    flex: 1 1 auto;
     position: relative;
     overflow: hidden;
     background:
       radial-gradient(circle at 18% 20%, rgba(232,99,10,0.12) 0%, transparent 45%),
       radial-gradient(circle at 85% 85%, rgba(30,102,65,0.12) 0%, transparent 45%),
       linear-gradient(135deg, #fff7f0 0%, #f3efe6 55%, #eef5ef 100%);
-    padding: 56px 60px;
+    padding: 48px 46px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -75,13 +93,13 @@
 
   /* ===== 右：フォームパネル ===== */
   .form-panel {
-    width: 488px; flex-shrink: 0;
+    flex: 0 0 420px;
     background: var(--surface);
     border-left: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
-    padding: 40px;
+    padding: 44px 40px;
   }
-  .form-inner { width: 100%; max-width: 360px; animation: fadeUp 0.55s ease 0.05s both; }
+  .form-inner { width: 100%; max-width: 332px; animation: fadeUp 0.55s ease 0.05s both; }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -160,9 +178,10 @@
 
   /* ===== レスポンシブ ===== */
   @media (max-width: 880px) {
-    .login-shell { flex-direction: column; }
+    .login-shell { padding: 20px; }
+    .login-card { flex-direction: column; max-width: 440px; }
     .brand-panel { display: none; }
-    .form-panel { width: 100%; border-left: none; min-height: 100vh; }
+    .form-panel { flex: 1 1 auto; width: 100%; border-left: none; }
     .form-logo-sp { display: block; }
   }
 </style>
@@ -170,6 +189,7 @@
 <body>
 
 <div class="login-shell">
+ <div class="login-card">
   <!-- 左：ブランド -->
   <section class="brand-panel">
     <div class="brand-inner">
@@ -247,6 +267,7 @@
       <div class="form-foot">© 2026 MeguRee</div>
     </div>
   </section>
+ </div>
 </div>
 
 <script src="config.js"></script>
