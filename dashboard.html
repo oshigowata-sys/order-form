@@ -102,8 +102,33 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
 .topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
 .topbar-user-role{font-size:14px;color:var(--text-muted)}
 .topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+/* ===== 今日やること ===== */
+.todo-bar{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;margin-bottom:24px}
+.todo-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+.todo-card.accent{background:linear-gradient(135deg,#fff4ec,#ffffff);border-color:rgba(232,99,10,0.3)}
+.todo-ic{width:46px;height:46px;border-radius:13px;background:var(--orange-pale);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.todo-card.accent .todo-ic{background:var(--orange)}
+.todo-main{flex:1;min-width:0}
+.todo-num{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;line-height:1.1}
+.todo-num.warn{color:var(--orange)}
+.todo-lbl{font-size:13px;color:var(--text-muted);margin-top:3px}
+.todo-act{font-size:13px;font-weight:700;color:var(--orange);text-decoration:none;white-space:nowrap;flex-shrink:0}
+.todo-act:hover{text-decoration:underline}
+/* ===== 受注カレンダー ===== */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:18px 20px}
+.cal-wd{text-align:center;font-size:12px;font-weight:700;color:var(--text-muted);padding-bottom:2px}
+.cal-cell{min-height:52px;border:1px solid var(--border);border-radius:10px;padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between;background:var(--surface)}
+.cal-cell.empty{border:none;background:transparent;min-height:0}
+.cal-cell.has{background:var(--orange-pale);border-color:rgba(232,99,10,0.25)}
+.cal-cell.today{border-color:var(--orange);box-shadow:0 0 0 2px rgba(232,99,10,0.18)}
+.cal-d{font-size:13px;font-weight:600;color:var(--text)}
+.cal-cell.sun .cal-d{color:#dc2626}.cal-cell.sat .cal-d{color:#2563eb}
+.cal-badge{align-self:flex-end;background:var(--orange);color:#fff;font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px;font-family:'Space Grotesk',sans-serif}
+.cal-legend{display:flex;gap:14px;font-size:12px;color:var(--text-muted);align-items:center}
+.cal-legend .dot{display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--orange-pale);border:1px solid rgba(232,99,10,0.3);margin-right:5px;vertical-align:middle}
+@media(max-width:880px){.todo-bar{grid-template-columns:1fr}}
 </style>
-<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="mobile.css?v=20260622">
 </head>
 <body>
 <aside class="sidebar">
@@ -153,6 +178,30 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
     <div id="errorBanner" style="display:none;margin-bottom:16px;padding:14px 16px;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:8px;color:#991b1b;font-weight:600;align-items:center;justify-content:space-between;gap:12px">
       <span id="errorBannerMsg">データ取得に失敗しました</span>
       <button onclick="loadDashboard()" style="padding:6px 14px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">再読み込み</button>
+    </div>
+    <div class="todo-bar">
+      <div class="todo-card accent">
+        <div class="todo-ic">📥</div>
+        <div class="todo-main">
+          <div class="todo-num warn" id="todoPending">—</div>
+          <div class="todo-lbl">未処理の受注（要対応）</div>
+        </div>
+        <a href="orders.html" class="todo-act">対応する →</a>
+      </div>
+      <div class="todo-card">
+        <div class="todo-ic">📅</div>
+        <div class="todo-main">
+          <div class="todo-num" id="todoToday">—</div>
+          <div class="todo-lbl">今日の受注</div>
+        </div>
+      </div>
+      <div class="todo-card">
+        <div class="todo-ic">🗓️</div>
+        <div class="todo-main">
+          <div class="todo-num" id="todoMonth">—</div>
+          <div class="todo-lbl">今月の受注（累計）</div>
+        </div>
+      </div>
     </div>
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-label">月次売上（税抜）</div><div class="kpi-value" id="kpiSales">—</div><div class="kpi-sub" id="kpiSalesSub">—</div></div>
@@ -357,6 +406,51 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
     renderChart(key);
     renderPieChart(key);
     renderRecentOrders(cur);
+    renderTodo();
+  }
+
+  function todayStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+
+  // 「今日やること」: 選択月に関係なく“今”を見せる（未処理は全期間・件数は今日/今月）
+  function renderTodo() {
+    const pending = allOrders.filter(o => o.status === '新規受注').length;
+    const ts = todayStr();
+    const todayCount = allOrders.filter(o => o.date === ts).length;
+    const nowKey = ts.slice(0, 7);
+    const monthCount = allOrders.filter(o => o.date && o.date.startsWith(nowKey)).length;
+    document.getElementById('todoPending').textContent = pending + '件';
+    document.getElementById('todoToday').textContent  = todayCount + '件';
+    document.getElementById('todoMonth').textContent  = monthCount + '件';
+  }
+
+  // 受注カレンダー: 選択月の各日に受注件数を表示（今日を強調）
+  function renderCalendar(key) {
+    const [y, m] = key.split('-').map(Number);
+    document.getElementById('calTitle').textContent = `受注カレンダー（${y}年${m}月）`;
+    const startWd = new Date(y, m - 1, 1).getDay();
+    const days = new Date(y, m, 0).getDate();
+    const byDay = {};
+    ordersForMonth(key).forEach(o => {
+      const d = parseInt((o.date || '').slice(8, 10), 10);
+      if (d) byDay[d] = (byDay[d] || 0) + 1;
+    });
+    const ts = todayStr(), isTM = ts.slice(0, 7) === key, td = parseInt(ts.slice(8, 10), 10);
+    const wd = ['日','月','火','水','木','金','土'];
+    let html = wd.map((w,i) => `<div class="cal-wd"${i===0?' style="color:#dc2626"':i===6?' style="color:#2563eb"':''}>${w}</div>`).join('');
+    for (let i = 0; i < startWd; i++) html += '<div class="cal-cell empty"></div>';
+    for (let d = 1; d <= days; d++) {
+      const wdi = (startWd + d - 1) % 7;
+      const cls = ['cal-cell'];
+      if (byDay[d]) cls.push('has');
+      if (isTM && d === td) cls.push('today');
+      if (wdi === 0) cls.push('sun'); else if (wdi === 6) cls.push('sat');
+      const badge = byDay[d] ? `<span class="cal-badge">${byDay[d]}</span>` : '<span></span>';
+      html += `<div class="${cls.join(' ')}"><span class="cal-d">${d}</span>${badge}</div>`;
+    }
+    document.getElementById('calendar').innerHTML = html;
   }
 
   function renderChart(key) {

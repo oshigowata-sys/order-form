@@ -175,8 +175,8 @@
   /* 左div（ページタイトル+サブ）に最小幅を確保してテキストが縦書きになるのを防ぐ */
   .topbar > div:first-of-type,
   .topbar-left {
-    flex: 1 1 auto;
-    min-width: 100px;
+    flex: 1 1 100%;
+    min-width: 100%;
     overflow: hidden;
   }
   .topbar .page-sub {
@@ -206,6 +206,31 @@
   .filter-tabs { flex-wrap: wrap; }
   .filter-tabs > div { width: 100%; padding-bottom: 10px !important; }
   .filter-tabs .search-input { width: 100% !important; }
+
+  /* =============================================
+     モバイル 読みやすさ強化（2026-06-22）
+     ① 密度・文字を大きく ② 上バーの詰まり緩和 ③ 迷子防止
+     ============================================= */
+  /* ① 余白・文字サイズ */
+  .content { padding: 18px 14px !important; }
+  .kpi-grid { gap: 12px !important; margin-bottom: 18px !important; }
+  .kpi-card { padding: 16px !important; }
+  .kpi-value { font-size: 24px !important; }
+  .kpi-label { font-size: 13px !important; }
+  .kpi-sub { font-size: 12px !important; }
+  .section-col { gap: 14px !important; }
+  .chart-container { height: 168px !important; }
+  .todo-num { font-size: 26px !important; }
+  .todo-lbl { font-size: 13px !important; }
+  table tbody td { font-size: 14px !important; }
+  table tbody td::before { font-size: 12px !important; }
+
+  /* ② 上バー：詰まったら2段に折り返す＋タイトルを大きく */
+  .topbar { flex-wrap: wrap !important; row-gap: 10px !important; }
+  .page-title { font-size: 18px !important; }
+  .page-sub { font-size: 12px !important; }
+  .period-select { flex: 1 1 100%; }
+  .period-select select { flex: 1 1 auto; }
 }
 
 /* =============================================
