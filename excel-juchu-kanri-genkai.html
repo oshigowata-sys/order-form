@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-26ZR6LCJY2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-26ZR6LCJY2');
+</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Excelでの受注管理、そろそろ限界かも。卸の現場でよく起きる「サイン」と乗り換え方 | MeguRee</title>
+<meta name="description" content="エクセルでの受注管理は、最初はちょうど良くても、取引先や注文が増えるほど地味にしんどくなります。ファイルが分裂して最新が分からない、自分しか触れない、転記ミスが出る——そんな「限界のサイン」と、Excelを無理にやめずにラクにする乗り換え方を、卸の現場目線でやさしく解説します。">
+<link rel="canonical" href="https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Excelでの受注管理、そろそろ限界かも。卸の現場でよく起きる「サイン」と乗り換え方 | MeguRee">
+<meta property="og:description" content="エクセル受注管理の「限界のサイン」と、Excelを無理にやめずに受注をラクにする乗り換え方を、卸の現場目線でやさしく解説します。">
+<meta property="og:url" content="https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html">
+<meta property="og:image" content="https://oshigowata-sys.github.io/order-form/assets/lp/17.png">
+<meta property="og:site_name" content="MeguRee">
+<meta property="og:locale" content="ja_JP">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Excelでの受注管理、そろそろ限界かも。卸の現場でよく起きる「サイン」と乗り換え方",
+  "description": "エクセル受注管理の限界のサインと、Excelを無理にやめずに受注をラクにする乗り換え方を、卸の現場目線で解説します。",
+  "datePublished": "2026-06-22",
+  "dateModified": "2026-06-22",
+  "author": {
+    "@type": "Organization",
+    "name": "MeguRee"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "MeguRee",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://oshigowata-sys.github.io/order-form/meguree_final%20(2).svg"
+    }
+  },
+  "mainEntityOfPage": "https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html"
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #e8630a;
+  --green: #1e6641;
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --text: #1c1917;
+  --muted: #6b6258;
+  --border: #e7e0d8;
+}
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.8;
+}
+a { color: inherit; }
+.header {
+  background: rgba(255,255,255,0.96);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.logo img { height: 42px; display: block; }
+.header-links { display: flex; align-items: center; gap: 18px; font-size: 13px; font-weight: 700; }
+.header-links a { text-decoration: none; color: var(--muted); }
+.header-links .cta {
+  background: var(--orange);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+.hero {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.hero-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 24px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+.eyebrow {
+  display: inline-flex;
+  background: #fff4ec;
+  color: var(--orange);
+  border: 1px solid rgba(232,99,10,0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+h1 {
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.3;
+  letter-spacing: 0;
+  margin-bottom: 16px;
+}
+.lead { color: var(--muted); font-size: 16px; }
+.hero-image {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+}
+.hero-image img { width: 100%; display: block; }
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+.article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px;
+}
+.article h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 34px 0 14px;
+}
+.article h2:first-child { margin-top: 0; }
+.article h3 {
+  font-size: 18px;
+  margin: 24px 0 8px;
+}
+.article p { color: var(--muted); margin-bottom: 14px; }
+.article ul, .article ol { padding-left: 1.4em; color: var(--muted); margin-bottom: 18px; }
+.article li { margin-bottom: 8px; }
+.article a { color: var(--orange); }
+.note {
+  background: #f0f7f3;
+  border-left: 4px solid var(--green);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 24px 0;
+  color: var(--text);
+}
+.disclaimer { font-size: 13px; color: var(--muted); margin: 8px 0 14px; }
+.cta-box {
+  margin-top: 36px;
+  background: #1c1917;
+  color: #fff;
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.cta-box h2 { color: #fff; margin: 0 0 8px; font-size: 22px; }
+.cta-box p { color: rgba(255,255,255,0.72); margin: 0; }
+.cta-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--orange); color: #fff; }
+.btn-secondary { border: 1px solid rgba(255,255,255,0.32); color: #fff; }
+.footer {
+  background: #1c1917;
+  color: rgba(255,255,255,0.45);
+  padding: 24px;
+  font-size: 12px;
+}
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer a { color: rgba(255,255,255,0.65); text-decoration: none; margin-right: 16px; }
+@media (max-width: 760px) {
+  .header-inner { align-items: flex-start; flex-direction: column; }
+  .header-links { flex-wrap: wrap; gap: 12px; }
+  .hero-inner { grid-template-columns: 1fr; padding: 40px 20px; }
+  .main { padding: 32px 16px 48px; }
+  .article { padding: 24px; }
+  .cta-box { grid-template-columns: 1fr; }
+  .cta-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <a href="lp.html" class="logo">
+      <span style="font-family:'Palatino Linotype',Palatino,Georgia,serif;font-weight:700;font-size:30px;background:linear-gradient(90deg,#ff5500,#ff9900 55%,#00b850);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;line-height:1;white-space:nowrap;">MeguRee</span>
+    </a>
+    <nav class="header-links" aria-label="主要ページ">
+      <a href="lp.html">トップ</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html" class="cta">お問い合わせ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">卸の受注管理ガイド</div>
+      <h1>Excelでの受注管理、そろそろ限界かも。現場でよく起きる「サイン」と乗り換え方</h1>
+      <p class="lead">
+        卸の受注管理を、まずはExcel（エクセル）で始めた——という方はとても多いです。最初はちょうど良かったはずなのに、取引先や注文が増えるほど、ファイルが分裂したり、自分しか触れなくなったり。この記事は「Excelをやめましょう」ではなく、限界のサインに気づいて、無理なくラクにする方法を現場目線で整理します。
+      </p>
+    </div>
+    <div class="hero-image">
+      <img src="meguree_final%20(2).svg" alt="MeguRee 卸の受注管理 Excelからの乗り換え" style="background:#fff;padding:36px;">
+    </div>
+  </div>
+</section>
+
+<main class="main">
+  <article class="article">
+    <p>「受注の管理は、ずっとExcelでやってきた」。卸売をされている方から、本当によく聞く言葉です。表計算は身近で、お金もかからず、自分の使いやすいように作れる。受注管理の第一歩として、Excelはとても良い選択だったと思います。</p>
+    <p>この記事は「Excelはダメだから今すぐやめましょう」という話ではありません。長く回してきたファイルには、その人なりの工夫が詰まっています。それを否定する必要はない、というのがむしろ前提です。そのうえで、<strong>「そろそろ限界かも」というサイン</strong>と、出てきたときにどうラクにするかを、卸の現場目線で書いてみます。</p>
+
+    <h2>Excelの受注管理は、なぜ最初はちょうど良くて、だんだんしんどくなるのか</h2>
+    <p>Excelでの受注管理は、取引先が数社で、注文の数も落ち着いているうちは、むしろ最適に近いです。問題が出てくるのは、商売がうまくいって「増えてきたとき」です。</p>
+    <ul>
+      <li>取引先が増えて、掛け率（卸値）が相手ごとにバラバラになってくる</li>
+      <li>注文が増えて、入力と転記の回数そのものが増える</li>
+      <li>納品書・請求書を、別のファイルで作り直している</li>
+      <li>担当が自分ひとりで、休むとファイルが止まる</li>
+    </ul>
+    <p>つまりExcelが悪いのではなく、<strong>商売が育ったぶん、表計算ひとつでは支えきれなくなってくる</strong>、という自然な話です。これはむしろ前に進んでいる証拠でもあります。</p>
+
+    <h2>「Excel受注管理の限界」によくある5つのサイン</h2>
+    <p>次のうち、いくつ当てはまるか見てみてください。3つ以上なら、道具を見直すタイミングに来ているかもしれません。</p>
+
+    <h3>1. 自分（か、特定の一人）しか触れない</h3>
+    <p>関数やシートが少しずつ増えて、いつのまにか「この列は壊さないで」「このシートは触らないで」が増えていく。結果、本人以外が怖くて触れなくなる。これがいちばん多いサインです。代わりがきかない状態は、休めないという別のしんどさになります。</p>
+
+    <h3>2. ファイルが分裂して「最新がどれか」分からない</h3>
+    <p>「受注管理_最新.xlsx」「受注管理_最新2.xlsx」「受注管理_コピー.xlsx」。メールで送り合ったり、USBで持ち運んだりしているうちに、どれが本物か分からなくなる。上書きし合って、入れたはずの注文が消えることもあります。</p>
+
+    <h3>3. 転記とコピペのミスが、たまに出る</h3>
+    <p>注文を別のシートに写すとき、数量や宛先のコピペがひとつズレる。「10ケース」が「10個」に、Aさんの注文がBさんの行に。出荷してから気づくと、いちばん忙しい時期に謝罪と再手配が重なります。</p>
+
+    <h3>4. 納品書・請求書を、別ファイルで作り直している</h3>
+    <p>受注はExcel、納品書は別のテンプレ、請求書はまた別、と分かれていて、同じ数字を何回も打ち直している。月末にまとめて作ろうとすると、半日仕事になる。</p>
+
+    <h3>5. 繁忙期に、開くのが遅い・固まる</h3>
+    <p>行が増え、関数が増え、いちばん注文が多い時期にかぎってファイルが重くなる。保存に時間がかかり、たまに固まってヒヤッとする。</p>
+
+    <h2>でも、いきなり「Excelを全部やめる」必要はない</h2>
+    <p>受注の道具を変えるというと、「また一から覚え直しか」「取引先にも新しいやり方を頼まないといけないのでは」と身構える方が多いです。実際は、そうとは限りません。</p>
+    <p>大事なのは、<strong>取引先のやり方（FAX・電話・メール）はそのままで、受けたあとの自分の作業だけを移す</strong>こと。お得意様にとっては何も変わりません。変わるのは、受けた注文をどこにためて、どう帳票にするか、という裏側だけです。</p>
+
+    <h2>受注管理の道具に移すと、何が変わるか</h2>
+    <p>たとえばMeguRee（めぐリー）という受注管理の仕組みでは、Excelでやっていた「受注の一覧」を、そのまま画面の中に持てます。そして、Excelだと別作業になっていたところが、ひとつながりになります。</p>
+    <ul>
+      <li>誰の注文がどれだけ来ているか、一覧でひと目で分かる</li>
+      <li>取引先ごとの卸値（掛け率）を、自動で計算してくれる</li>
+      <li>その一覧から、納品書・請求書まで一つながりで作れる</li>
+      <li>データは一か所にまとまるので「最新がどれか問題」が起きない</li>
+    </ul>
+    <p>同じ数字を何度も打ち直す作業が消え、転記のズレも起きにくくなります。FAX・電話中心の受注をラクにする話は<a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>でも、観光・土産物の卸向けの整理は<a href="kanko-oroshi-juchu-kanri.html">観光卸の受注管理について</a>でも、もう少しくわしく書いています。</p>
+
+    <h3>あるExcel運用の卸の、ひと月の風景（※一般化した例）</h3>
+    <p>取引先が30社ほどに増えて、受注Excelが少しずつ重くなっていた、ある食品の卸を例にしてみます。月末は、受注シートを見ながら納品書テンプレに打ち直し、さらに請求書に打ち直し、というのが定番でした。</p>
+    <p>受注を一覧で持てる仕組みに移してから、同じ数字を打ち直す往復がなくなり、月末にまとめてやっていた帳票づくりが日々の中でほぼ片付くようになったといいます。「ファイルがどれか分からない」も「自分しか触れない」も、なくなった——そんな変化です。</p>
+    <p class="disclaimer">※ これは一般化した例で、効果の感じ方には個人差があります。</p>
+
+    <h2>費用は「売上から取らない月額固定」</h2>
+    <p>注文が増えるほど料金が上がる仕組みだと、いちばん稼ぐ時期にいちばん費用がかかります。MeguReeは月額固定（月9,800円〜・税別）です。取引先や注文が増えても費用は変わりません。Excelで困りはじめるのは「増えてきたとき」なので、その時期にこそ効いてほしくて、この料金の形にしています。</p>
+    <div class="note">
+      いま使っているExcelの商品リストや取引先・卸値は、導入支援としてこちらで一緒に移し替えます。「パソコンは得意じゃない」「今のファイルを手放すのが不安」という方でも、丸投げで始められるようにしています。
+    </div>
+
+    <h2>浮いた時間は、自分で選べる</h2>
+    <p>受注の入力や帳票づくりをしている時間は、意外と孤独です。誰かと話すわけでもなく、黙々と数字を合わせている時間。</p>
+    <p>その時間が少し減ったら、何に使ってもいい。少し早く帰ってもいいし、お得意様ともう一本電話して関係を深めてもいい。もっと売りたいなら、その分を仕入れや新商品に回してもいい。MeguReeの役割は「選べる状態を渡すこと」だと思っています。</p>
+
+    <section class="cta-box" aria-label="資料ダウンロードと問い合わせ">
+      <div>
+        <h2>まずは中身を見てから決めてください</h2>
+        <p>機能・料金・導入の流れをまとめた資料をご覧いただけます。こちらから一方的に売り込みのお電話をすることはありません。気になったときに、のぞいてみてください。</p>
+      </div>
+      <div class="cta-actions">
+        <a href="download.html" class="btn btn-primary">資料ダウンロード</a>
+        <a href="contact.html" class="btn btn-secondary">相談・質問する</a>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <a href="lp.html">MeguRee</a>
+      <a href="kanko-oroshi-juchu-kanri.html">観光卸の受注管理</a>
+      <a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>
+      <a href="miyagemono-oroshi-fax-dakkyaku.html">土産物卸のFAX脱却</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html">お問い合わせ</a>
+    </div>
+    <div>© 2026 MeguRee. All rights reserved.</div>
+  </div>
+</footer>
+<script src="analytics-events.js"></script>
+</body>
+</html>

@@ -20,19 +20,25 @@
   </url>
   <url>
     <loc>https://oshigowata-sys.github.io/order-form/fax-order-management.html</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://oshigowata-sys.github.io/order-form/kanko-oroshi-juchu-kanri.html</loc>
-    <lastmod>2026-06-14</lastmod>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://oshigowata-sys.github.io/order-form/miyagemono-oroshi-fax-dakkyaku.html</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-06-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html</loc>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

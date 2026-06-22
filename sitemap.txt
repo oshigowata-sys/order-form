@@ -4,3 +4,4 @@ https://oshigowata-sys.github.io/order-form/contact.html
 https://oshigowata-sys.github.io/order-form/fax-order-management.html
 https://oshigowata-sys.github.io/order-form/kanko-oroshi-juchu-kanri.html
 https://oshigowata-sys.github.io/order-form/miyagemono-oroshi-fax-dakkyaku.html
+https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html
