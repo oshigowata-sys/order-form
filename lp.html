@@ -68,6 +68,62 @@
   }
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "導入までどのくらいの期間がかかりますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ご契約・お支払い確認後、最短即日〜3営業日でご利用開始いただけます。取引先・商品マスタの設定サポートを含めた本格運用までは、通常1週間程度が目安です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "サポート体制について教えてください。",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "導入時のオンボーディングから運用後のフォローまで、担当者が対応いたします。お問い合わせフォーム・メールにて承ります（電話サポートは事前予約制）。月内のサポート時間は各プランの上限内（スターター月15分／スタンダード月30分／プレミアム月60分）でご利用いただけます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "データの移行はサポートしてもらえますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい、Excelなどの既存データからの移行サポートを行っています。お気軽にご相談ください。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "最低利用期間はありますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "最低利用期間はございません。解約のお申し込みはお問い合わせフォームからいつでも承ります（解約希望月の末日までのお申し込みで、当月末をもって契約終了となります）。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "パソコンが苦手でも使えますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい、よく使う操作を中心に、できるだけ迷わない画面にしています。導入時には操作説明を行い、取扱説明書も用意しています。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "セキュリティは大丈夫ですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supabase（PostgreSQL）を採用し、テナントごとに完全にデータを分離しています。安全にご利用いただけます。"
+      }
+    }
+  ]
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -379,6 +435,26 @@ h2 {
   font-size: 12px; color: var(--text-3); line-height: 1.8;
 }
 .faq-item.open .faq-a { max-height: 200px; padding: 0 20px 16px; }
+
+/* ===== GUIDES ===== */
+.guides { background: var(--cream-2); padding: 80px 40px; }
+.guides-inner { max-width: 1000px; margin: 0 auto; }
+.guides-lead { text-align: center; font-size: 13px; color: var(--text-3); line-height: 1.9; margin-top: 12px; }
+.guides-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 36px; }
+.guide-card {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--white); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 24px; text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.guide-card:hover { box-shadow: 0 12px 30px rgba(0,0,0,0.08); transform: translateY(-2px); border-color: var(--orange); }
+.guide-card h3 { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.55; }
+.guide-card p { font-size: 12.5px; color: var(--text-3); line-height: 1.8; flex: 1; }
+.guide-more { font-size: 12px; font-weight: 700; color: var(--orange); }
+@media (max-width: 760px) {
+  .guides { padding: 56px 20px; }
+  .guides-grid { grid-template-columns: 1fr; }
+}
 
 /* ===== FOOTER CTA ===== */
 .footer-cta {
@@ -898,6 +974,37 @@ footer {
         </button>
         <div class="faq-a">Supabase（PostgreSQL）を採用し、テナントごとに完全にデータを分離しています。安全にご利用いただけます。</div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- GUIDES -->
+<section class="guides" id="guides">
+  <div class="guides-inner">
+    <div class="section-eyebrow" style="display:flex;justify-content:center"><span></span>お役立ちガイド<span></span></div>
+    <h2 style="text-align:center">受注管理のヒント</h2>
+    <p class="guides-lead">FAX・電話・Excelでの受注を、今のやり方を変えずにラクにする考え方を、現場目線でまとめています。</p>
+    <div class="guides-grid fade-up">
+      <a class="guide-card" href="excel-juchu-kanri-genkai.html">
+        <h3>Excelでの受注管理、そろそろ限界かも</h3>
+        <p>「自分しか触れない」「最新がどれか分からない」——限界のサインと、無理なく乗り換える方法を整理します。</p>
+        <span class="guide-more">読む →</span>
+      </a>
+      <a class="guide-card" href="fax-order-management.html">
+        <h3>FAX注文の管理を効率化する方法</h3>
+        <p>FAXはやめずに、受けたあとの転記・確認・帳票づくりだけをラクにする考え方をまとめています。</p>
+        <span class="guide-more">読む →</span>
+      </a>
+      <a class="guide-card" href="kanko-oroshi-juchu-kanri.html">
+        <h3>観光卸の受注管理について</h3>
+        <p>注文が一斉に来る観光・土産物の卸で、受注をPCの一覧にまとめていく進め方を解説します。</p>
+        <span class="guide-more">読む →</span>
+      </a>
+      <a class="guide-card" href="miyagemono-oroshi-fax-dakkyaku.html">
+        <h3>土産物卸がFAX受注をやめずに繁忙期をラクにした話</h3>
+        <p>繁忙期の聞き間違いや数量の取り違えを、現場目線で減らしていく方法を紹介します。</p>
+        <span class="guide-more">読む →</span>
+      </a>
     </div>
   </div>
 </section>
