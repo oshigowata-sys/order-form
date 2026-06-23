@@ -120,30 +120,6 @@
         ご入力いただいた情報は<a href="privacy.html">プライバシーポリシー</a>に基づき適切に管理します。
       </p>
     </div>
-
-    <div class="success-screen" id="successScreen">
-      <div class="pdf-preview">
-        <div class="pdf-icon">📄</div>
-        <div class="pdf-info">
-          <div class="pdf-name">MeguRee サービス紹介資料</div>
-          <div class="pdf-size">観光卸売業向け 受注管理システム・12ページ</div>
-        </div>
-      </div>
-      <div class="success-icon">✅</div>
-      <div class="success-title">ダウンロードを開始しました</div>
-      <div class="success-sub">
-        自動的にダウンロードが始まります。<br>
-        始まらない場合は下のボタンからダウンロードしてください。
-      </div>
-      <div class="success-actions">
-        <a href="assets/meguree-service-guide.pdf" download class="btn-green">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          もう一度ダウンロードする
-        </a>
-        <a href="contact.html" class="btn-outline-sm">導入のご相談・お問い合わせはこちら</a>
-        <a href="lp.html" class="btn-outline-sm">トップページに戻る</a>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -181,20 +157,19 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
 
-      // PDFを自動ダウンロード開始
-      const a = document.createElement('a');
-      a.href = 'assets/meguree-service-guide.pdf';
-      a.download = 'MeguRee_サービス紹介資料.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      document.getElementById('formArea').style.display = 'none';
-      document.getElementById('successScreen').classList.add('show');
-
-      // GA4: 資料ダウンロード完了（リード獲得）
+      // 送信完了 → サンキューページ（別URL）へ遷移。PDFの自動ダウンロードは遷移先で実行する。
+      // GA4: 資料ダウンロード完了（リード獲得）。送信が終わってから遷移する（event_callback）。
+      // 届かない場合もフォールバックで必ず遷移。
+      var redirected = false;
+      function goThanks() { if (!redirected) { redirected = true; location.href = 'thanks-download.html'; } }
       if (typeof gtag === 'function') {
-        gtag('event', 'download_click', { file_name: 'meguree-service-guide.pdf', page: 'download.html' });
+        gtag('event', 'download_click', {
+          file_name: 'meguree-service-guide.pdf', page: 'download.html',
+          event_callback: goThanks
+        });
+        setTimeout(goThanks, 1200);
+      } else {
+        goThanks();
       }
     } catch(e) {
       console.error(e);
