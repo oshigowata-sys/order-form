@@ -196,12 +196,6 @@
 
       <button class="btn" id="submitBtn" onclick="submit()" disabled>送信する</button>
     </div>
-
-    <div class="success-screen" id="successScreen">
-      <div class="success-icon">✅</div>
-      <div class="success-title">お問い合わせを受け付けました</div>
-      <div class="success-sub">ご入力いただいたメールアドレス宛に確認メールをお送りします。<br>担当者より2営業日以内にご連絡いたします。<br><br>引き続きMeguReeをよろしくお願いいたします。</div>
-    </div>
   </div>
 </div>
 
@@ -271,12 +265,20 @@
         body: JSON.stringify({ company_type: companyType, company_name: companyName, company_size: companySize, contact_name: contactName, email, phone, industry, order_method: orderMethod, monthly_orders: monthlyOrders, desired_start: desiredStart, message, consented_at: new Date().toISOString(), consented_terms_version: TERMS_VERSION, consented_privacy_version: PRIVACY_VERSION })
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      document.getElementById('formArea').style.display = 'none';
-      document.getElementById('successScreen').classList.add('show');
 
+      // 送信完了 → サンキューページ（別URL）へ遷移。
       // GA4: お問い合わせ送信完了（キーイベント候補）。個人情報は送らず、業務区分のみ。
+      // イベントの送信が終わってから遷移する（event_callback）。届かない場合もフォールバックで必ず遷移。
+      var redirected = false;
+      function goThanks() { if (!redirected) { redirected = true; location.href = 'thanks-contact.html'; } }
       if (typeof gtag === 'function') {
-        gtag('event', 'contact_submit', { industry: industry, order_method: orderMethod, company_size: companySize, page: 'contact.html' });
+        gtag('event', 'contact_submit', {
+          industry: industry, order_method: orderMethod, company_size: companySize, page: 'contact.html',
+          event_callback: goThanks
+        });
+        setTimeout(goThanks, 1200);
+      } else {
+        goThanks();
       }
     } catch(e) {
       console.error(e);
