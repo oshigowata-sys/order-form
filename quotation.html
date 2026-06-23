@@ -683,6 +683,7 @@ function renderItems() {
         <tbody>
           ${_items.map((it, i) => {
             const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
+            const priceMark = taxMarkText(!!it.is_food, _isPersonalTrade);
             return `
             <tr>
               <td class="snapshot num">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
@@ -691,7 +692,7 @@ function renderItems() {
                 ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
               </td>
               <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-              <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.is_food, _isPersonalTrade)}</span></td>
+              <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)" style="flex:1;min-width:0${Number(it.unit_price || 0) === 0 ? ';border-color:#fca5a5;background:#fff7ed;color:#dc2626' : ''}">${priceMark ? `<span style="flex-shrink:0;font-size:11px;color:var(--text-muted);font-weight:600">${priceMark}</span>` : ''}</div></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
