@@ -672,8 +672,7 @@ function renderItems() {
           <tr>
             <th class="num" style="width:80px">上代</th>
             <th>商品名</th>
-            <th class="num" style="width:70px">入数</th>
-            <th class="num" style="width:80px">数量</th>
+            <th class="num" style="width:90px">入数</th>
             <th class="num" style="width:100px">卸価格</th>
             <th class="num" style="width:110px">金額</th>
             <th style="width:130px">備考</th>
@@ -691,7 +690,6 @@ function renderItems() {
                 <div style="font-weight:600">${esc(it.product_name)}</div>
                 ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
               </td>
-              <td class="snapshot num">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
               <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
               <td class="num"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)"${Number(it.unit_price || 0) === 0 ? ' style="border-color:#fca5a5;background:#fff7ed;color:#dc2626"' : ''}><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.is_food, _isPersonalTrade)}</span></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade)) : '<span style="color:#dc2626">要相談</span>'}</td>
@@ -788,7 +786,7 @@ function addProductFromPicker(productId) {
     product_id: p.id,
     product_code: p.product_code || '',
     product_name: p.product_name || '',
-    quantity: 1,
+    quantity: (p.case_quantity != null && p.case_quantity !== '' ? Number(p.case_quantity) : 1),
     unit_price: price,
     is_food: !!p.is_food,
     // 商品マスタからのスナップショット（発行後に商品マスタが変わっても見積書の値は固定）
@@ -862,8 +860,7 @@ function renderPreview() {
       <tr>
         <td style="text-align:right;width:80px">—</td>
         <td>${label}</td>
-        <td style="text-align:right;width:55px">—</td>
-        <td style="text-align:right;width:50px">${q}</td>
+        <td style="text-align:right;width:60px">${q}</td>
         <td style="text-align:right;width:85px">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, _isPersonalTrade)}</span></td>
         <td style="text-align:right;width:100px">${fmt(line)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">税込</span></td>
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px"></td>
@@ -889,18 +886,17 @@ function renderPreview() {
           <tr>
             <td style="text-align:right;width:80px">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
             <td>${esc(it.product_name || '-')}</td>
-            <td style="text-align:right;width:55px">${it.case_quantity != null ? Number(it.case_quantity).toLocaleString() : '—'}</td>
-            <td style="text-align:right;width:50px">${qty.toLocaleString()}</td>
+            <td style="text-align:right;width:60px">${qty.toLocaleString()}</td>
             <td style="text-align:right;width:85px">${priceCell}</td>
             <td style="text-align:right;width:100px">${subCell}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">${rate}</span></td>
             <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px">${esc(remarks)}</td>
             <td style="font-size:10px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;width:110px">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
           </tr>`;
       }).join('') + feeRows
-    : '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
+    : '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">明細データがありません</td></tr>';
   const feeRowCount = (_handlingFee > 0 ? 1 : 0) + (_shippingFee > 0 ? 1 : 0);
   const emptyCount = Math.max(0, 10 - Math.max(_items.length + feeRowCount, 1));
-  const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
   document.getElementById('quotationBody').innerHTML = `
@@ -944,8 +940,7 @@ function renderPreview() {
           <tr>
             <th style="text-align:right;width:80px">上代</th>
             <th>商品名</th>
-            <th style="text-align:right;width:55px">入数</th>
-            <th style="text-align:right;width:50px">数量</th>
+            <th style="text-align:right;width:60px">入数</th>
             <th style="text-align:right;width:85px">卸価格</th>
             <th style="text-align:right;width:100px">金額</th>
             <th style="width:90px">備考</th>
