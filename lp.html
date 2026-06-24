@@ -339,6 +339,7 @@ body {
 
 /* ===== ABOUT ===== */
 .about { background: var(--white); padding: 80px 40px; }
+#about { background: linear-gradient(180deg, #ffffff 0%, #eef7f1 100%); }
 .about-inner { max-width: 1120px; margin: 0 auto; text-align: center; }
 .section-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
@@ -356,27 +357,42 @@ h2 {
   flex: 1; min-width: 140px; padding: 0 8px;
 }
 .flow-icon-wrap {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--orange-pale) 0%, #ffe4cc 100%);
+  width: 74px; height: 74px; border-radius: 20px;
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
   display: flex; align-items: center; justify-content: center;
-  border: 2px solid rgba(232,99,10,0.2);
+  border: none; box-shadow: 0 12px 26px rgba(232,99,10,0.28);
+  transition: transform 0.2s;
 }
-.flow-icon-wrap svg { color: var(--orange); }
-.flow-step-title { font-size: 12px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.4; }
-.flow-step-sub { font-size: 10px; color: var(--text-3); text-align: center; line-height: 1.5; }
-.flow-arrow { color: var(--orange); font-size: 20px; margin: 0 4px; margin-bottom: 32px; flex-shrink: 0; }
+.flow-step:hover .flow-icon-wrap { transform: translateY(-4px); }
+.flow-icon-wrap.green { background: linear-gradient(135deg, var(--green-cta) 0%, var(--green-dark) 100%); box-shadow: 0 12px 26px rgba(22,163,74,0.26); }
+.flow-icon-wrap svg { color: #fff; }
+.flow-step-title { font-size: 13px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.4; }
+.flow-step-sub { font-size: 10.5px; color: var(--text-3); text-align: center; line-height: 1.5; }
+.flow-arrow { color: rgba(232,99,10,0.55); font-size: 18px; margin: 0 2px; margin-bottom: 36px; flex-shrink: 0; }
 
 /* ===== PAIN ===== */
-.pain { background: var(--cream); padding: 80px 40px; }
-.pain-inner { max-width: 1120px; margin: 0 auto; }
-.pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; align-items: start; }
+.pain {
+  position: relative; overflow: hidden;
+  background: linear-gradient(170deg, #fdf1e9 0%, #faf7f2 45%, #f1f7f3 100%);
+  padding: 88px 40px;
+}
+.pain::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at 6% 0%, rgba(239,68,68,0.08) 0%, transparent 36%),
+    radial-gradient(circle at 96% 100%, rgba(30,102,65,0.10) 0%, transparent 40%);
+}
+.pain-inner { position: relative; max-width: 1120px; margin: 0 auto; }
+.pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 48px; align-items: stretch; }
 .pain-box {
-  background: var(--white); border-radius: 16px; padding: 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  height: 100%;
+  background: var(--white); border-radius: 18px; padding: 36px 34px;
+  box-shadow: 0 14px 38px rgba(28,25,23,0.09);
+  border-top: 4px solid #ef4444;
 }
 .pain-box-title {
-  font-size: 16px; font-weight: 800; color: var(--orange);
-  margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  font-size: 17px; font-weight: 800; color: #dc2626;
+  margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
 }
 .pain-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .pain-list li {
@@ -387,28 +403,26 @@ h2 {
   content: '✕'; color: #ef4444; font-weight: 800; flex-shrink: 0; margin-top: 1px; font-size: 12px;
 }
 .target-box {
-  background: var(--white); border-radius: 16px; padding: 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  height: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #f3faf6 100%);
+  border-radius: 18px; padding: 36px 34px;
+  box-shadow: 0 14px 38px rgba(28,25,23,0.09);
   border-top: 4px solid var(--green);
 }
-.target-box-title { font-size: 16px; font-weight: 800; color: var(--green); margin-bottom: 20px; }
-.target-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
-.target-item { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
-.target-icon-clip {
-  width: 52px; height: 52px; flex-shrink: 0;
-  overflow: hidden; border-radius: 50%; position: relative;
+.target-box-title { font-size: 17px; font-weight: 800; color: var(--green); margin-bottom: 22px; display: flex; align-items: center; gap: 8px; }
+.target-list { list-style: none; display: flex; flex-direction: column; gap: 18px; }
+.target-item { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--text-2); line-height: 1.65; font-weight: 500; }
+.target-ico {
+  width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--green-cta) 0%, var(--green-dark) 100%);
+  box-shadow: 0 8px 18px rgba(22,163,74,0.26);
 }
-.target-icon-clip img {
-  position: absolute;
-  width: 135%; height: 135%;
-  left: -17%; top: -14%;
-  object-fit: cover;
+.target-item:nth-child(even) .target-ico {
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+  box-shadow: 0 8px 18px rgba(232,99,10,0.26);
 }
-.pain-photo { margin-top: 24px; border-radius: 12px; overflow: hidden; }
-.pain-photo img {
-  width: auto; max-width: 100%; height: auto; max-height: 280px;
-  display: block; margin: 0 auto;
-}
+.target-ico svg { width: 22px; height: 22px; color: #fff; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ===== STRENGTHS ===== */
 .strengths { background: linear-gradient(160deg, #ecf6f0 0%, #faf7f2 52%, #fff4ec 100%); padding: 88px 40px; }
@@ -570,22 +584,26 @@ h2 {
 /* ===== FOOTER CTA ===== */
 .footer-cta {
   position: relative; overflow: hidden;
-  background: var(--cream-2); padding: 72px 40px;
+  background: linear-gradient(135deg, #1f6e46 0%, #15402b 58%, #1c1917 100%);
+  padding: 84px 40px;
 }
 .footer-cta::before {
   content: '';
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse at 10% 50%, rgba(232,99,10,0.1) 0%, transparent 45%),
-    radial-gradient(ellipse at 90% 50%, rgba(30,102,65,0.07) 0%, transparent 40%);
+    radial-gradient(ellipse at 8% 40%, rgba(232,99,10,0.28) 0%, transparent 42%),
+    radial-gradient(ellipse at 92% 80%, rgba(34,197,94,0.22) 0%, transparent 44%);
   pointer-events: none;
 }
 .footer-cta-inner {
   position: relative; max-width: 1120px; margin: 0 auto;
   display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
 }
-.footer-cta h2 { font-size: clamp(22px, 2.5vw, 30px); margin-bottom: 12px; }
-.footer-cta p { font-size: 14px; color: var(--text-3); line-height: 1.8; margin-bottom: 28px; }
+.footer-cta h2 { font-size: clamp(22px, 2.5vw, 30px); margin-bottom: 12px; color: #fff; }
+.footer-cta p { font-size: 14px; color: rgba(255,255,255,0.78); line-height: 1.8; margin-bottom: 28px; }
+.footer-cta .cta-tel { color: rgba(255,255,255,0.82); }
+.footer-cta .cta-tel svg { color: #ffb47e; }
+.footer-cta .cta-tel .tel-num { color: #fff; }
 .cta-btns { display: flex; gap: 12px; flex-wrap: wrap; }
 .btn-cta-green {
   display: inline-flex; align-items: center; gap: 8px;
@@ -842,7 +860,7 @@ footer {
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
-        <div class="flow-icon-wrap">
+        <div class="flow-icon-wrap green">
           <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
         <div class="flow-step-title">データ化・登録</div>
@@ -858,7 +876,7 @@ footer {
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
-        <div class="flow-icon-wrap">
+        <div class="flow-icon-wrap green">
           <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
         <div class="flow-step-title">請求・納品書発行</div>
@@ -882,49 +900,47 @@ footer {
     <div class="section-eyebrow" style="display:flex"><span></span>こんなお悩みありませんか？<span></span></div>
 
     <div class="pain-grid fade-up">
-      <div>
-        <div class="pain-box">
-          <div class="pain-box-title">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            よくあるお悩み
-          </div>
-          <ul class="pain-list">
-            <li>FAXや電話の注文を手作業で入力していて時間がかかる</li>
-            <li>注文内容の聞き間違いや入力ミスが多い</li>
-            <li>対応状況が分からず、確認の電話やFAXが多い</li>
-            <li>受注状況や売上を把握するのに時間がかかる</li>
-            <li>人が増えると、業務が属人化して困る</li>
-          </ul>
+      <div class="pain-box">
+        <div class="pain-box-title">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          よくあるお悩み
         </div>
-        <div class="pain-photo">
-          <img src="assets/lp/18.png" alt="業務に悩む担当者">
-        </div>
+        <ul class="pain-list">
+          <li>FAXや電話の注文を手作業で入力していて時間がかかる</li>
+          <li>注文内容の聞き間違いや入力ミスが多い</li>
+          <li>対応状況が分からず、確認の電話やFAXが多い</li>
+          <li>受注状況や売上を把握するのに時間がかかる</li>
+          <li>人が増えると、業務が属人化して困る</li>
+        </ul>
       </div>
 
       <div class="target-box">
-        <div class="target-box-title">MeguReeは、こんな方におすすめです</div>
+        <div class="target-box-title">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          MeguReeは、こんな方におすすめです
+        </div>
         <ul class="target-list">
           <li class="target-item">
-            <div class="target-icon-clip">
-              <img src="assets/lp/06.png" alt="観光卸">
+            <div class="target-ico">
+              <svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg>
             </div>
             <div>個人事業主・小規模企業（10〜20人規模）の観光卸業者様</div>
           </li>
           <li class="target-item">
-            <div class="target-icon-clip">
-              <img src="assets/lp/08.png" alt="酒類卸">
+            <div class="target-ico">
+              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </div>
             <div>FAXや電話での注文管理が中心で、業務効率化を進めたい方</div>
           </li>
           <li class="target-item">
-            <div class="target-icon-clip">
-              <img src="assets/lp/07.png" alt="花き卸">
+            <div class="target-ico">
+              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
             <div>少人数でも正確に、スピーディーに受注業務を行いたい方</div>
           </li>
           <li class="target-item">
-            <div class="target-icon-clip">
-              <img src="assets/lp/09.png" alt="農協">
+            <div class="target-ico">
+              <svg viewBox="0 0 24 24"><path d="M7 4l5 7 5-7"/><line x1="12" y1="11" x2="12" y2="20"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
             </div>
             <div>売上に応じた手数料ではなく、月額固定で使いたい方</div>
           </li>
@@ -1154,8 +1170,11 @@ footer {
         <span class="tel-num">080-9178-5170</span>
       </a>
     </div>
-    <div class="footer-cta-photo fade-up" style="transition-delay:0.12s">
-      <img src="assets/lp/19.png" alt="MeguReeを活用するビジネスパーソン">
+    <div class="footer-cta-shot fade-up" style="transition-delay:0.12s">
+      <div class="browser-frame">
+        <div class="browser-bar"><i></i><i></i><i></i><span class="addr"></span></div>
+        <img src="assets/lp/dash-pc.png" alt="MeguReeの管理画面（ダッシュボード）" class="browser-screen">
+      </div>
     </div>
   </div>
 </section>
