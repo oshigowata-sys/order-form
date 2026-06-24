@@ -75,6 +75,14 @@
   "mainEntity": [
     {
       "@type": "Question",
+      "name": "取引先にログインや入力をお願いしないと使えませんか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "いいえ。FAX・電話で受けた注文を、あなたがパソコンに入力するだけでもご利用いただけます。取引先のやり方を変えてもらう必要はありません。取引先がログインして直接注文する使い方は、できるところから少しずつ広げていただければ大丈夫です。"
+      }
+    },
+    {
+      "@type": "Question",
       "name": "導入までどのくらいの期間がかかりますか？",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -369,6 +377,26 @@ h2 {
 .flow-step-title { font-size: 13px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.4; }
 .flow-step-sub { font-size: 10.5px; color: var(--text-3); text-align: center; line-height: 1.5; }
 .flow-arrow { color: rgba(232,99,10,0.55); font-size: 18px; margin: 0 2px; margin-bottom: 36px; flex-shrink: 0; }
+
+/* ===== REASSURE（FAXのままでOK） ===== */
+.reassure {
+  max-width: 860px; margin: 48px auto 0; text-align: left;
+  display: flex; align-items: center; gap: 22px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--green-pale) 100%);
+  border: 1px solid rgba(30,102,65,0.2); border-left: 5px solid var(--green);
+  border-radius: 16px; padding: 26px 30px;
+  box-shadow: 0 14px 36px rgba(30,102,65,0.1);
+}
+.reassure-ico {
+  width: 58px; height: 58px; border-radius: 15px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--green-cta) 0%, var(--green-dark) 100%);
+  color: #fff; box-shadow: 0 10px 22px rgba(22,163,74,0.3);
+}
+.reassure-ico svg { width: 28px; height: 28px; }
+.reassure-h { font-size: 18px; font-weight: 800; color: var(--green); margin-bottom: 6px; }
+.reassure p { font-size: 13.5px; color: var(--text-2); line-height: 1.85; }
+@media (max-width: 600px) { .reassure { flex-direction: column; text-align: center; align-items: center; } }
 
 /* ===== PAIN ===== */
 .pain {
@@ -925,6 +953,16 @@ footer {
         <div class="flow-step-sub">売上や利益を可視化し経営判断をサポート</div>
       </div>
     </div>
+
+    <div class="reassure fade-up">
+      <div class="reassure-ico">
+        <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </div>
+      <div>
+        <div class="reassure-h">FAX・電話は、今までどおりで大丈夫です。</div>
+        <p>取引先にやり方を変えてもらう必要はありません。受けた注文をパソコンに入れるだけでも、一覧・卸価格の自動計算・納品書・請求書まで効きます。取引先がログインして直接入力する使い方は、できるところから少しずつで構いません。<strong>今のやり方を、無理に変えなくていい仕組みです。</strong></p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1105,6 +1143,13 @@ footer {
     <h2 style="text-align:center">お気軽にご質問ください</h2>
 
     <div class="faq-grid fade-up">
+      <div class="faq-item">
+        <button class="faq-q">
+          取引先にログインや入力をお願いしないと使えませんか？
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="faq-a">いいえ。FAX・電話で受けた注文を、あなたがパソコンに入力するだけでもご利用いただけます。取引先のやり方を変えてもらう必要はありません。取引先がログインして直接注文する使い方は、できるところから少しずつ広げていただければ大丈夫です。</div>
+      </div>
       <div class="faq-item">
         <button class="faq-q">
           導入までどのくらいの期間がかかりますか？
