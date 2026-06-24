@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-26ZR6LCJY2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-26ZR6LCJY2');
+</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>取引先ごとの卸価格・掛け率、エクセルでの限界とラクな管理方法 | MeguRee</title>
+<meta name="description" content="卸売は取引先ごとに卸価格（掛け率）が違うのが当たり前。でもエクセルや記憶で管理していると、価格改定のたびに地獄を見たり、担当が休むと誰も正しい卸値が分からなくなったり。取引先別の卸価格・掛け率を1か所でラクに管理し、納品書・請求書まで自動でつなげる考え方を、卸の現場目線で解説します。">
+<link rel="canonical" href="https://oshigowata-sys.github.io/order-form/oroshikakaku-kakeritsu-kanri.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="取引先ごとの卸価格・掛け率、エクセルでの限界とラクな管理方法 | MeguRee">
+<meta property="og:description" content="取引先ごとに違う卸価格・掛け率を、エクセルや記憶ではなく1か所でラクに管理する方法を、卸の現場目線で解説します。">
+<meta property="og:url" content="https://oshigowata-sys.github.io/order-form/oroshikakaku-kakeritsu-kanri.html">
+<meta property="og:image" content="https://oshigowata-sys.github.io/order-form/assets/lp/dash-pc.png">
+<meta property="og:site_name" content="MeguRee">
+<meta property="og:locale" content="ja_JP">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "取引先ごとの卸価格・掛け率、エクセルでの限界とラクな管理方法",
+  "description": "取引先ごとに違う卸価格・掛け率を、エクセルや記憶ではなく1か所でラクに管理し、納品書・請求書まで自動でつなげる考え方を、卸の現場目線で解説します。",
+  "datePublished": "2026-06-24",
+  "dateModified": "2026-06-24",
+  "author": {
+    "@type": "Organization",
+    "name": "MeguRee"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "MeguRee",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://oshigowata-sys.github.io/order-form/meguree_final%20(2).svg"
+    }
+  },
+  "mainEntityOfPage": "https://oshigowata-sys.github.io/order-form/oroshikakaku-kakeritsu-kanri.html"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "取引先ごとに卸価格や掛け率が違うのは普通ですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい、卸売ではごく普通のことです。取引量や関係性、販路に応じて、同じ商品でも取引先ごとに卸価格（掛け率）が変わるのが一般的です。問題は価格が違うこと自体ではなく、その違いを正確に・誰でも分かる形で管理し続けることの難しさにあります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "エクセルでの卸価格管理はなぜ大変になるのですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "取引先と商品が増えるほど表が大きくなり、価格改定のたびに全箇所を直す必要が出てきます。掛け率が担当者の記憶に頼っていると、休んだときに誰も正しい卸値を出せなくなることもあります。受注・納品書・請求書を別ファイルで作っていると、同じ数字を何度も打ち直す手間とミスも増えます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "MeguReeでは卸価格・掛け率をどう管理しますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "取引先×商品ごとの卸価格を一度登録しておくと、受注のときに自動でその価格が適用され、納品書・請求書まで一つながりで作れます。価格は一か所で管理するため、改定も登録のし直しも最小限で済みます。導入時には、いま使っているエクセルの価格表からの移行を一緒にサポートします。"
+      }
+    }
+  ]
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #e8630a;
+  --orange-dark: #c4510a;
+  --green: #1e6641;
+  --green-dark: #15803d;
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --text: #1c1917;
+  --muted: #6b6258;
+  --border: #e7e0d8;
+}
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.8;
+}
+a { color: inherit; }
+.header {
+  background: rgba(255,255,255,0.96);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.header-links { display: flex; align-items: center; gap: 18px; font-size: 13px; font-weight: 700; }
+.header-links a { text-decoration: none; color: var(--muted); }
+.header-links .cta {
+  background: var(--orange);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+.hero {
+  background: linear-gradient(160deg, #ffffff 0%, #f3f9f4 100%);
+  border-bottom: 1px solid var(--border);
+}
+.hero-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 24px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+.eyebrow {
+  display: inline-flex;
+  background: #fff4ec;
+  color: var(--orange);
+  border: 1px solid rgba(232,99,10,0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+h1 {
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.32;
+  letter-spacing: 0;
+  margin-bottom: 16px;
+}
+.lead { color: var(--muted); font-size: 16px; }
+.hero-image {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 48px rgba(28,25,23,0.16);
+}
+.hero-image img { width: 100%; display: block; }
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+.article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px;
+}
+.article h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 34px 0 14px;
+}
+.article h2:first-child { margin-top: 0; }
+.article h3 {
+  font-size: 18px;
+  margin: 24px 0 8px;
+}
+.article p { color: var(--muted); margin-bottom: 14px; }
+.article ul, .article ol { padding-left: 1.4em; color: var(--muted); margin-bottom: 18px; }
+.article li { margin-bottom: 8px; }
+.article a { color: var(--orange); }
+.note {
+  background: #f0f7f3;
+  border-left: 4px solid var(--green);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 24px 0;
+  color: var(--text);
+}
+.disclaimer { font-size: 13px; color: var(--muted); margin: 8px 0 14px; }
+
+/* ===== 卸価格の図解（クリーンな自作ビジュアル） ===== */
+.figure { margin: 26px 0 10px; }
+.pricecard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(28,25,23,0.08);
+}
+.pricecard .ph {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  color: #fff;
+  padding: 14px 20px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pricecard .ph .retail { font-size: 13px; font-weight: 600; color: #e9f6ee; }
+.pricerow {
+  display: grid;
+  grid-template-columns: 1.5fr 0.9fr 1fr;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+  font-size: 14px;
+  color: var(--text);
+}
+.pricerow.head {
+  background: #f7f3ec;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+}
+.pricerow .rate {
+  display: inline-block;
+  background: #fff4ec;
+  color: var(--orange-dark);
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 13px;
+}
+.pricerow .price { font-weight: 800; color: var(--green-dark); font-size: 16px; text-align: right; }
+.figcap { font-size: 12.5px; color: var(--muted); margin: 10px 2px 0; }
+
+.cta-box {
+  margin-top: 36px;
+  background: #1c1917;
+  color: #fff;
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.cta-box h2 { color: #fff; margin: 0 0 8px; font-size: 22px; }
+.cta-box p { color: rgba(255,255,255,0.72); margin: 0; }
+.cta-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--orange); color: #fff; }
+.btn-secondary { border: 1px solid rgba(255,255,255,0.32); color: #fff; }
+.footer {
+  background: #1c1917;
+  color: rgba(255,255,255,0.45);
+  padding: 24px;
+  font-size: 12px;
+}
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer a { color: rgba(255,255,255,0.65); text-decoration: none; margin-right: 16px; }
+@media (max-width: 760px) {
+  .header-inner { align-items: flex-start; flex-direction: column; }
+  .header-links { flex-wrap: wrap; gap: 12px; }
+  .hero-inner { grid-template-columns: 1fr; padding: 40px 20px; }
+  .main { padding: 32px 16px 48px; }
+  .article { padding: 24px; }
+  .pricerow { grid-template-columns: 1.4fr 0.8fr 0.9fr; gap: 8px; padding: 12px 14px; font-size: 13px; }
+  .cta-box { grid-template-columns: 1fr; }
+  .cta-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <a href="lp.html" class="logo">
+      <span style="font-family:'Palatino Linotype',Palatino,Georgia,serif;font-weight:700;font-size:30px;background:linear-gradient(90deg,#ff5500,#ff9900 55%,#00b850);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;line-height:1;white-space:nowrap;">MeguRee</span>
+    </a>
+    <nav class="header-links" aria-label="主要ページ">
+      <a href="lp.html">トップ</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html" class="cta">お問い合わせ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">卸の受注管理ガイド</div>
+      <h1>取引先ごとの卸価格・掛け率、エクセルでの限界とラクな管理方法</h1>
+      <p class="lead">
+        同じ商品でも、取引先ごとに卸値が違う——卸売では当たり前のことです。でもその「違い」を、エクセルや記憶で支え続けるのは、地味にしんどい仕事です。この記事では、取引先別の卸価格・掛け率を1か所でラクに管理し、納品書・請求書まで自動でつなげる考え方を、現場目線でやさしく整理します。
+      </p>
+    </div>
+    <div class="hero-image">
+      <img src="assets/lp/dash-pc.png" alt="MeguRee 取引先ごとの卸価格を管理する画面">
+    </div>
+  </div>
+</section>
+
+<main class="main">
+  <article class="article">
+    <p>「この取引先には65掛け、あちらは7掛け」。卸売をされている方の頭の中には、取引先ごとの卸値（掛け率）が、いくつも入っています。長く商売を続けている方ほど、その数は増えていきます。</p>
+    <p>この記事は「掛け率をやめましょう」という話ではありません。取引先ごとに値段を変えるのは、関係性や取引量に応じた、ごく自然な商習慣です。問題は<strong>価格が違うこと自体ではなく、その違いを正確に・誰でも分かる形で管理し続けること</strong>の難しさにあります。そこをどうラクにするかを、卸の現場目線で書いてみます。</p>
+
+    <h2>なぜ取引先ごとに卸価格・掛け率が変わるのか</h2>
+    <p>同じ商品でも、たくさん仕入れてくれる取引先には少し安く、付き合いの浅い相手には標準の掛け率で——というように、卸価格は相手ごとに変わるのが普通です。販路（観光施設・土産店・直営ECなど）によっても変わります。これは値引きというより、関係性に応じた「その人の値段」を持っている、ということです。</p>
+    <div class="figure">
+      <div class="pricecard">
+        <div class="ph"><span>商品：北海道 帆立スープ（12入）</span><span class="retail">上代 ¥770</span></div>
+        <div class="pricerow head"><span>取引先</span><span>掛け率</span><span>卸価格</span></div>
+        <div class="pricerow"><span>観光施設むけ（取引量・多）</span><span><span class="rate">65%</span></span><span class="price">¥500</span></div>
+        <div class="pricerow"><span>土産店むけ</span><span><span class="rate">70%</span></span><span class="price">¥539</span></div>
+        <div class="pricerow"><span>新規・直営ECむけ</span><span><span class="rate">80%</span></span><span class="price">¥616</span></div>
+      </div>
+      <p class="figcap">※ 同じ1商品でも、取引先ごとに卸価格が変わる例。商品が増えれば、この表が商品の数だけ存在することになります。</p>
+    </div>
+
+    <h2>エクセルや記憶での「取引先別価格」管理に出てくる限界</h2>
+    <p>取引先が数社のうちは、頭の中でも、エクセルの一覧でも十分に回ります。しんどくなるのは、商売が育って「増えてきたとき」です。よくあるのが次のような場面です。</p>
+
+    <h3>1. 掛け率が「人の記憶」に入っている</h3>
+    <p>正しい卸値が、ベテランの頭の中だけにある。その人が休むと、注文は受けられても「いくらで出すのが正解か」を誰も即答できない。代わりがきかない状態は、休めないという別のしんどさになります。</p>
+
+    <h3>2. 商品が増えると、表が横にも縦にも伸びて事故る</h3>
+    <p>取引先×商品の数だけマス目が増えます。価格を引くときにセルをひとつ取り違えたり、コピペがズレたり。気づかないまま納品書に乗ってしまうと、利益がそのまま削れます。</p>
+
+    <h3>3. 価格改定のたびに、全部を直すのが地獄</h3>
+    <p>仕入れ値が上がって卸価格を見直すとき、取引先ごと・商品ごとに散らばった数字を、ひとつずつ直していく。直し漏れがあると、古い値段のまま請求してしまうこともあります。</p>
+
+    <h3>4. 受注・納品書・請求書で、同じ卸値を何度も打ち直す</h3>
+    <p>受注はエクセル、納品書は別テンプレ、請求書はまた別。そのたびに同じ卸価格を打ち直していると、月末は半日仕事になり、打ち間違いも混ざります。</p>
+
+    <h2>ラクにする考え方は「取引先 × 商品」で1か所に持つこと</h2>
+    <p>解決の方向はシンプルです。<strong>取引先ごとの卸価格を、頭やバラバラのファイルではなく、一か所にまとめて持っておく</strong>。そして、受注のときにその価格が自動で当たるようにする。こうすると、上の4つの場面がまとめて軽くなります。</p>
+    <ul>
+      <li>正しい卸値が一か所にあるので、誰が対応しても同じ価格が出る</li>
+      <li>価格改定は、その一か所を直すだけ。直し漏れが起きにくい</li>
+      <li>受注した瞬間に卸価格が決まるので、納品書・請求書まで打ち直しがいらない</li>
+    </ul>
+
+    <h2>MeguReeでの卸価格・掛け率の管理</h2>
+    <p>MeguRee（めぐリー）という受注管理の仕組みでは、取引先×商品ごとの卸価格を最初に登録しておくと、受注のたびに自動でその価格が適用されます。掛け率（上代に対する割合）も参考として一緒に管理できるので、「この相手は何掛けだったか」を思い出す必要がなくなります。</p>
+    <p>そして、その価格はそのまま<strong>納品書・請求書まで一つながり</strong>で流れます。受注の一覧から、締め日にボタンひとつで帳票を作れるので、同じ卸値を何度も打ち直す作業がなくなります。FAX・電話で受けた注文を自分で入力する使い方でも、価格は自動で当たります。受注そのものをラクにする話は<a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>、観光・土産物の卸向けの整理は<a href="kanko-oroshi-juchu-kanri.html">観光卸の受注管理について</a>、エクセル全体の限界は<a href="excel-juchu-kanri-genkai.html">Excelでの受注管理、そろそろ限界かも</a>でもくわしく書いています。</p>
+    <div class="note">
+      いま使っているエクセルの価格表（取引先ごとの卸値・掛け率）は、導入支援としてこちらで一緒に移し替えます。「パソコンは得意じゃない」「今のやり方を手放すのが不安」という方でも、丸投げで始められるようにしています。
+    </div>
+
+    <h2>費用は「売上から取らない月額固定」</h2>
+    <p>取引先や注文が増えるほど料金が上がる仕組みだと、商売が育つほど費用も重くなります。MeguReeは月額固定（月9,800円〜・税別）です。取引先が10社でも30社でも費用は変わりません。卸価格の管理が大変になるのは「取引先が増えてきたとき」なので、その時期にこそ効いてほしくて、この料金の形にしています。</p>
+
+    <h2>浮いた時間は、自分で選べる</h2>
+    <p>卸値を思い出し、表を直し、帳票に打ち直す——その時間は、意外と孤独です。誰かと話すわけでもなく、黙々と数字を合わせている時間。</p>
+    <p>その時間が減ったら、何に使ってもいい。少し早く帰ってもいいし、お得意様ともう一本電話して関係を深めてもいい。もっと売りたいなら、その分を仕入れや新商品に回してもいい。MeguReeの役割は「選べる状態を渡すこと」だと思っています。</p>
+
+    <section class="cta-box" aria-label="資料ダウンロードと問い合わせ">
+      <div>
+        <h2>まずは中身を見てから決めてください</h2>
+        <p>機能・料金・導入の流れをまとめた資料をご覧いただけます。こちらから一方的に売り込みのお電話をすることはありません。気になったときに、のぞいてみてください。</p>
+      </div>
+      <div class="cta-actions">
+        <a href="download.html" class="btn btn-primary">資料ダウンロード</a>
+        <a href="contact.html" class="btn btn-secondary">相談・質問する</a>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <a href="lp.html">MeguRee</a>
+      <a href="kanko-oroshi-juchu-kanri.html">観光卸の受注管理</a>
+      <a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>
+      <a href="excel-juchu-kanri-genkai.html">Excel受注管理の限界</a>
+      <a href="miyagemono-oroshi-fax-dakkyaku.html">土産物卸のFAX脱却</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html">お問い合わせ</a>
+    </div>
+    <div>© 2026 MeguRee. All rights reserved.</div>
+  </div>
+</footer>
+<script src="analytics-events.js"></script>
+</body>
+</html>
