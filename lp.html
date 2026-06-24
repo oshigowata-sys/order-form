@@ -176,15 +176,18 @@ body {
 /* ===== HERO ===== */
 .hero {
   position: relative; overflow: hidden;
-  padding: 96px 40px 80px;
-  background: var(--cream);
+  padding: 104px 40px 92px;
+  background:
+    radial-gradient(circle at 10% 16%, rgba(232,99,10,0.18) 0%, transparent 42%),
+    radial-gradient(circle at 90% 8%, rgba(30,102,65,0.18) 0%, transparent 40%),
+    radial-gradient(circle at 78% 96%, rgba(232,99,10,0.12) 0%, transparent 46%),
+    linear-gradient(135deg, #fff6ee 0%, #faf7f2 45%, #ecf6f0 100%);
 }
 .hero::before {
   content: '';
-  position: absolute; top: 0; right: 0; width: 60%; height: 100%;
-  background:
-    radial-gradient(ellipse at 85% 20%, rgba(232,99,10,0.09) 0%, transparent 40%),
-    radial-gradient(ellipse at 60% 80%, rgba(30,102,65,0.07) 0%, transparent 35%);
+  position: absolute; top: -120px; right: -80px; width: 520px; height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,99,10,0.10) 0%, transparent 70%);
   pointer-events: none;
 }
 .hero-inner {
@@ -296,6 +299,42 @@ body {
 @media (max-width: 600px) {
   .hero-cta { flex-direction: column; }
   .btn-hero-primary, .btn-hero-secondary { justify-content: center; }
+}
+
+/* ===== HERO DEVICE MOCKUPS ===== */
+.hero-devices { position: relative; width: 100%; padding: 8px 0 44px; }
+.browser-frame {
+  position: relative; z-index: 1;
+  border-radius: 14px; overflow: hidden;
+  background: #fff; border: 1px solid var(--border);
+  box-shadow: 0 34px 80px rgba(28,25,23,0.24), 0 8px 20px rgba(28,25,23,0.10);
+  animation: floatY 6.5s ease-in-out infinite;
+}
+.browser-bar {
+  height: 36px; background: #f1ede7; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 7px; padding: 0 14px;
+}
+.browser-bar i { width: 11px; height: 11px; border-radius: 50%; background: #d8cfc3; flex-shrink: 0; }
+.browser-bar i:nth-child(1) { background: #ff5f57; }
+.browser-bar i:nth-child(2) { background: #febc2e; }
+.browser-bar i:nth-child(3) { background: #28c840; }
+.browser-bar .addr { margin-left: 10px; flex: 1; height: 18px; border-radius: 9px; background: #fff; border: 1px solid var(--border); }
+.browser-screen { display: block; width: 100%; height: auto; }
+.phone-frame {
+  position: absolute; z-index: 2; bottom: 0; left: -30px;
+  width: 172px; border-radius: 28px; padding: 8px;
+  background: #1c1917;
+  box-shadow: 0 28px 56px rgba(28,25,23,0.34);
+  animation: floatY 6.5s ease-in-out infinite; animation-delay: -3.2s;
+}
+.phone-frame::before {
+  content: ''; position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+  width: 48px; height: 5px; border-radius: 3px; background: #3a3633; z-index: 3;
+}
+.phone-screen { display: block; width: 100%; height: auto; border-radius: 20px; }
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .browser-frame, .phone-frame { animation: none; }
 }
 
 /* ===== ABOUT ===== */
@@ -609,6 +648,7 @@ footer {
   .hero { padding: 88px 20px 80px; }
   .hero-inner { grid-template-columns: 1fr; gap: 36px; }
   .hero-right { padding-bottom: 48px; }
+  .phone-frame { width: 140px; left: -8px; }
   .about, .pain, .strengths, .pricing, .faq { padding: 60px 20px; }
   .flow-steps { gap: 0; }
   .flow-arrow { display: none; }
@@ -622,6 +662,8 @@ footer {
 @media (max-width: 600px) {
   .strengths-grid { grid-template-columns: 1fr; }
   .hero-chips { gap: 6px; }
+  .phone-frame { width: 116px; left: 0; bottom: -6px; }
+  .hero-devices { padding-bottom: 28px; }
   .flow-steps { flex-direction: column; gap: 24px; }
   .blob-green { width: 160px; }
   .blob-orange { width: 120px; }
@@ -712,12 +754,15 @@ footer {
     </div>
 
     <div class="hero-right fade-up" style="transition-delay:0.12s">
-      <img src="assets/lp/57.png" alt="" class="deco-blob blob-green" aria-hidden="true">
-      <img src="assets/lp/58.png" alt="" class="deco-blob blob-orange" aria-hidden="true">
-      <div class="hero-main-photo">
-        <img src="assets/lp/17.png" alt="受注管理を行うビジネスパーソン">
+      <div class="hero-devices">
+        <div class="browser-frame">
+          <div class="browser-bar"><i></i><i></i><i></i><span class="addr"></span></div>
+          <img src="assets/lp/dash-pc.png" alt="MeguReeの管理画面（パソコン）" class="browser-screen">
+        </div>
+        <div class="phone-frame">
+          <img src="assets/lp/dash-mobile.png" alt="MeguReeの管理画面（スマートフォン）" class="phone-screen">
+        </div>
       </div>
-
     </div>
   </div>
 </section>
