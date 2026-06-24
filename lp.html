@@ -411,7 +411,7 @@ h2 {
 }
 
 /* ===== STRENGTHS ===== */
-.strengths { background: var(--white); padding: 80px 40px; }
+.strengths { background: linear-gradient(160deg, #ecf6f0 0%, #faf7f2 52%, #fff4ec 100%); padding: 88px 40px; }
 .strengths-inner { max-width: 1120px; margin: 0 auto; }
 .strengths-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
 .str-card {
@@ -443,6 +443,20 @@ h2 {
 .str-num { font-size: 11px; font-weight: 800; color: var(--orange); font-family: 'Inter', sans-serif; letter-spacing: 1px; }
 .str-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
 .str-text { font-size: 12px; color: var(--text-3); line-height: 1.8; }
+
+/* ===== STRENGTHS SHOWCASE (本物の画面) ===== */
+.str-showcase { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 48px; align-items: center; margin-top: 48px; }
+.str-shot .browser-frame { animation: floatY 7s ease-in-out infinite; }
+.str-reasons { display: flex; flex-direction: column; gap: 22px; }
+.str-reason { display: flex; gap: 16px; align-items: flex-start; }
+.str-ico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: #fff; box-shadow: 0 8px 18px rgba(232,99,10,0.28); }
+.str-reason:nth-child(even) .str-ico { background: linear-gradient(135deg, var(--green-cta) 0%, var(--green-dark) 100%); box-shadow: 0 8px 18px rgba(22,163,74,0.28); }
+.str-ico svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.str-reason h3 { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 5px; line-height: 1.4; }
+.str-reason p { font-size: 13px; color: var(--text-3); line-height: 1.75; }
+@media (max-width: 900px) {
+  .str-showcase { grid-template-columns: 1fr; gap: 32px; }
+}
 
 /* ===== PRICING ===== */
 .pricing { background: var(--cream); padding: 80px 40px; }
@@ -902,44 +916,29 @@ footer {
     <div class="section-eyebrow" style="display:flex"><span></span>MeguReeの強み<span></span></div>
     <h2 style="text-align:center">選ばれる4つの理由</h2>
 
-    <div class="strengths-grid fade-up">
-      <div class="str-card">
-        <div class="str-card-img photo">
-          <img src="assets/lp/15.png" alt="MeguRee管理画面">
-        </div>
-        <div class="str-body">
-          <div class="str-title">観光土産・食品卸に合う管理機能</div>
-          <p class="str-text">取引先・商品・掛け率・締め日など、卸売業務で必要な管理をまとめて扱えます。</p>
+    <div class="str-showcase fade-up">
+      <div class="str-shot">
+        <div class="browser-frame">
+          <div class="browser-bar"><i></i><i></i><i></i><span class="addr"></span></div>
+          <img src="assets/lp/orders.png" alt="MeguReeの受注一覧画面" class="browser-screen">
         </div>
       </div>
-
-      <div class="str-card">
-        <div class="str-card-img photo">
-          <img src="assets/lp/19.png" alt="シンプルな操作性">
+      <div class="str-reasons">
+        <div class="str-reason">
+          <div class="str-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+          <div><h3>観光土産・食品卸に合う管理機能</h3><p>取引先・商品・卸価格・締め日など、卸売業務で必要な管理をまとめて扱えます。</p></div>
         </div>
-        <div class="str-body">
-          <div class="str-title">誰でも使いやすいシンプルな操作性</div>
-          <p class="str-text">直感的に使えるUIで、ITが苦手な方でもすぐに使いこなせます。</p>
+        <div class="str-reason">
+          <div class="str-ico"><svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg></div>
+          <div><h3>誰でも使いやすいシンプルな操作性</h3><p>直感的に使える画面で、パソコンが苦手な方でもすぐに使いこなせます。</p></div>
         </div>
-      </div>
-
-      <div class="str-card">
-        <div class="str-card-img photo" style="height:auto;min-height:160px;display:flex;align-items:center;justify-content:center;background:var(--cream)">
-          <img src="assets/lp/16.png" alt="リアルタイム可視化" style="width:auto;max-width:100%;height:auto;max-height:200px;display:block">
+        <div class="str-reason">
+          <div class="str-ico"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div><h3>受注状況をひと目で確認</h3><p>新規受注・処理中・出荷済みなど、注文の状態を一覧でリアルタイムに把握できます。</p></div>
         </div>
-        <div class="str-body">
-          <div class="str-title">受注状況をすぐ確認</div>
-          <p class="str-text">未対応・準備中・納品済みなど、注文の状態を一覧で確認できます。</p>
-        </div>
-      </div>
-
-      <div class="str-card">
-        <div class="str-card-img photo">
-          <img src="assets/lp/22.png" alt="安心のサポート体制">
-        </div>
-        <div class="str-body">
-          <div class="str-title">安心のサポート体制</div>
-          <p class="str-text">導入サポートから運用後のフォローまで、担当者が丁寧にサポートいたします。</p>
+        <div class="str-reason">
+          <div class="str-ico"><svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>
+          <div><h3>安心のサポート体制</h3><p>導入サポートから運用後のフォローまで、担当者が丁寧にサポートいたします。</p></div>
         </div>
       </div>
     </div>
