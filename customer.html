@@ -74,6 +74,14 @@
     .kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
     .kpi-card.green::after{background:var(--green)}
     .kpi-card.yellow::after{background:#d97706}
+    .plan-notice{display:flex;align-items:center;gap:10px;border-radius:12px;padding:13px 16px;margin-bottom:20px;font-size:14px;line-height:1.6}
+    .plan-notice.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92520a}
+    .plan-notice.over{background:var(--orange-pale);border:1px solid #f5c39a;color:#9a4a06}
+    .plan-notice b{font-weight:700}
+    .plan-notice-ico{flex-shrink:0;font-size:16px;line-height:1}
+    .plan-notice-btn{flex-shrink:0;margin-left:auto;background:var(--orange);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+    .plan-notice-btn:hover{background:var(--orange-light)}
+    @media(max-width:640px){.plan-notice{flex-wrap:wrap}.plan-notice-btn{margin-left:0;width:100%}}
     .kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;}
     .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
     .kpi-value.warn{color:var(--orange)}
@@ -146,6 +154,7 @@
         <div class="kpi-sub">追加可能</div>
       </div>
     </div>
+    <div id="planNotice" class="plan-notice" style="display:none"></div>
     <div class="card">
       <div class="card-header">
         <div class="card-title">取引先一覧</div>
@@ -295,15 +304,15 @@
 <div class="overlay" id="upgradeOverlay">
   <div class="modal" style="max-width:440px">
     <div style="background:linear-gradient(135deg,var(--orange) 0%,#f97316 100%);padding:32px 28px 24px;text-align:center">
-      <div style="font-size:36px;margin-bottom:12px">🔒</div>
-      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">取引先の上限に達しました</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.85)">スタータープランは取引先8社まで登録できます</div>
+      <div style="font-size:36px;margin-bottom:12px">📈</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">プランのご案内</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.85)">取引先をもっと登録するなら上位プランへ</div>
     </div>
     <div style="padding:24px 28px">
       <div style="background:var(--bg);border-radius:12px;padding:16px 20px;margin-bottom:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
           <span style="font-size:14px;font-weight:700">スターター</span>
-          <span style="font-size:14px;color:var(--text-muted)">取引先 最大8社</span>
+          <span style="font-size:14px;color:var(--text-muted)">取引先 最大10社</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:14px;font-weight:700;color:var(--orange)">スタンダード</span>
@@ -378,6 +387,22 @@
   let editId = null;
   let tenantPlan = _storedPlan || 'standard';
 
+  // ===== プラン上限の対応表（1箇所に集約・後続の制限もここに追加する） =====
+  // 値は「上限」。Infinity = 無制限。starter 以外（standard / premium / monitor / 実額契約 / 未設定）は無制限扱い。
+  const PLAN_LIMITS = {
+    starter:  { customers: 10 },
+    standard: { customers: Infinity },
+    premium:  { customers: Infinity },
+    monitor:  { customers: Infinity },
+  };
+  // 上限を引く（未知のプランは無制限＝業務を止めない安全側）
+  function planLimit(plan, key) {
+    const p = PLAN_LIMITS[plan];
+    if (!p || p[key] == null) return Infinity;
+    return p[key];
+  }
+  function customerLimit() { return planLimit(tenantPlan, 'customers'); }
+
   function esc(str) {
     if (!str) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -434,12 +459,39 @@
   }
 
   function updateKPIs() {
-    const limit = tenantPlan === 'starter' ? 8 : 999;
-    const remaining = limit === 999 ? '∞' : Math.max(0, limit - customers.length);
+    const limit = customerLimit();
+    const unlimited = !isFinite(limit);
     document.getElementById('kpiTotal').textContent = customers.length;
-    document.getElementById('kpiLimit').textContent = limit === 999 ? '無制限' : limit;
-    document.getElementById('kpiLimitSub').textContent = limit === 999 ? '（スタンダード）' : '社まで（スターター）';
-    document.getElementById('kpiRemaining').textContent = remaining;
+    document.getElementById('kpiLimit').textContent = unlimited ? '無制限' : limit;
+    document.getElementById('kpiLimitSub').textContent = unlimited ? '（スタンダード以上）' : '社まで（スターター）';
+    document.getElementById('kpiRemaining').textContent = unlimited ? '∞' : Math.max(0, limit - customers.length);
+    renderPlanNotice(limit, unlimited);
+  }
+
+  // ソフト案内：上限が近い/到達したら案内を出す。登録は決してブロックしない（解約防止）
+  function renderPlanNotice(limit, unlimited) {
+    const el = document.getElementById('planNotice');
+    if (!el) return;
+    if (unlimited) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    const remaining = limit - customers.length;
+    if (remaining > 2) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    const cta = `<button type="button" class="plan-notice-btn" onclick="showUpgradeInfo()">プランを見る</button>`;
+    if (remaining > 0) {
+      // 予告（残り2社以下）
+      el.className = 'plan-notice warn';
+      el.innerHTML = `<span class="plan-notice-ico">⚠️</span><span>取引先の登録枠は<b>あと${remaining}社</b>です（スターターは${limit}社まで）。スタンダードプランなら<b>無制限</b>に登録できます。</span>${cta}`;
+    } else {
+      // 上限到達／超過（でも登録は続けられる）
+      const over = customers.length > limit;
+      el.className = 'plan-notice over';
+      el.innerHTML = `<span class="plan-notice-ico">ℹ️</span><span>取引先が上限の<b>${limit}社</b>${over ? 'を超えています' : 'に達しました'}。このまま追加登録もできますが、スタンダードプランなら取引先は<b>無制限</b>です。</span>${cta}`;
+    }
+    el.style.display = '';
+  }
+
+  function showUpgradeInfo() {
+    document.getElementById('upgradeOverlay').classList.add('open');
   }
 
   function render() {
@@ -676,12 +728,7 @@
         const res = await sbFetch('/rest/v1/customers?id=eq.' + editId, { method: 'PATCH', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
       } else {
-        if (tenantPlan === 'starter' && customers.length >= 8) {
-          saveBtn.disabled = false; saveBtn.textContent = '保存する';
-          closeModal();
-          document.getElementById('upgradeOverlay').classList.add('open');
-          return;
-        }
+        // ソフト制限：上限を超えても登録は止めない。案内は一覧上部のバナー（renderPlanNotice）で行う。
         const res = await sbFetch('/rest/v1/customers', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
