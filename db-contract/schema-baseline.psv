@@ -1,5 +1,5 @@
 # MeguRee DB後方互換 基準ファイル（スキーマの凍結契約）
-# 生成: 2026-06-22 / 形式: kind|obj|member|sig
+# 生成: 2026-06-25 / 形式: kind|obj|member|sig
 #   kind=column のとき obj=テーブル名, member=カラム名, sig=型+NOT NULL のmd5
 #   kind=function のとき obj=関数名, member=引数, sig=(引数->戻り値) のmd5
 # このファイルは「父親画面を将来凍結したあとも壊さないために守るDBの形」。
@@ -13,9 +13,9 @@ column|accounts|customer_id|ff29d8c1771c826946d40eebe0b5cef1
 column|accounts|id|f6a115564c68d53b8655e822621a179b
 column|accounts|login_id|016afdd8b2d57598e01e516cffb1f80c
 column|accounts|name|3455eeece8a52003d49d40dbd2ac6f3a
-column|accounts|password|3455eeece8a52003d49d40dbd2ac6f3a
 column|accounts|password_bcrypt|3455eeece8a52003d49d40dbd2ac6f3a
 column|accounts|password_hash|3455eeece8a52003d49d40dbd2ac6f3a
+column|accounts|password|3455eeece8a52003d49d40dbd2ac6f3a
 column|accounts|role|3455eeece8a52003d49d40dbd2ac6f3a
 column|accounts|tenant_id|ff29d8c1771c826946d40eebe0b5cef1
 column|audit_log|action|016afdd8b2d57598e01e516cffb1f80c
@@ -41,12 +41,12 @@ column|customers|closing_day|5d186f79bbf00bec75ab4481a3cce44d
 column|customers|company_name|016afdd8b2d57598e01e516cffb1f80c
 column|customers|contact_name|3455eeece8a52003d49d40dbd2ac6f3a
 column|customers|created_at|e102290fa00ffd0c15c0c0b38070c685
-column|customers|default_handling_fee|cea40e767d9d784073b41d7b117abd52
 column|customers|default_handling_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|customers|default_handling_fee_qty|cea40e767d9d784073b41d7b117abd52
-column|customers|default_shipping_fee|cea40e767d9d784073b41d7b117abd52
+column|customers|default_handling_fee|cea40e767d9d784073b41d7b117abd52
 column|customers|default_shipping_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|customers|default_shipping_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|customers|default_shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|customers|email|3455eeece8a52003d49d40dbd2ac6f3a
 column|customers|id|f6a115564c68d53b8655e822621a179b
 column|customers|is_personal_trade|ca898ca64aa03c5158f378a60bb9ccbb
@@ -96,9 +96,9 @@ column|invoice_items|unit_price|cb32bafc12fc0cf6001f43b2fb38b476
 column|invoices|cancelled_at|e102290fa00ffd0c15c0c0b38070c685
 column|invoices|created_at|e102290fa00ffd0c15c0c0b38070c685
 column|invoices|customer_id|ff29d8c1771c826946d40eebe0b5cef1
-column|invoices|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|invoices|handling_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|invoices|handling_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|invoices|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|invoices|id|f6a115564c68d53b8655e822621a179b
 column|invoices|invoice_number|3455eeece8a52003d49d40dbd2ac6f3a
 column|invoices|is_interim|ca898ca64aa03c5158f378a60bb9ccbb
@@ -109,9 +109,9 @@ column|invoices|notes|3455eeece8a52003d49d40dbd2ac6f3a
 column|invoices|paid_amount|5d186f79bbf00bec75ab4481a3cce44d
 column|invoices|period_end|559cfdfaaadba7a6e8d8bc5bd6e2a96d
 column|invoices|period_start|559cfdfaaadba7a6e8d8bc5bd6e2a96d
-column|invoices|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|invoices|shipping_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|invoices|shipping_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|invoices|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|invoices|superseded_at|e102290fa00ffd0c15c0c0b38070c685
 column|invoices|tax_amount|5d186f79bbf00bec75ab4481a3cce44d
 column|invoices|tenant_id|ff29d8c1771c826946d40eebe0b5cef1
@@ -161,9 +161,9 @@ column|order_items|tenant_id|ff29d8c1771c826946d40eebe0b5cef1
 column|order_items|unit_price|5d186f79bbf00bec75ab4481a3cce44d
 column|orders|created_at|e102290fa00ffd0c15c0c0b38070c685
 column|orders|customer_id|ff29d8c1771c826946d40eebe0b5cef1
-column|orders|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|orders|handling_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|orders|handling_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|orders|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|orders|id|f6a115564c68d53b8655e822621a179b
 column|orders|input_company_name|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|input_contact_name|3455eeece8a52003d49d40dbd2ac6f3a
@@ -171,9 +171,9 @@ column|orders|is_personal_trade|ca898ca64aa03c5158f378a60bb9ccbb
 column|orders|notes|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|order_code|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|order_date|559cfdfaaadba7a6e8d8bc5bd6e2a96d
-column|orders|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|orders|shipping_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|orders|shipping_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|orders|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|orders|status|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|tenant_id|ff29d8c1771c826946d40eebe0b5cef1
 column|pricing|created_at|e102290fa00ffd0c15c0c0b38070c685
@@ -216,17 +216,17 @@ column|quotations|customer_id|ff29d8c1771c826946d40eebe0b5cef1
 column|quotations|customer_snapshot|1451829672aaef86236ca02339743a7c
 column|quotations|expiry_date|689a78401c2c41f392b3436519a6287f
 column|quotations|expiry_type|016afdd8b2d57598e01e516cffb1f80c
-column|quotations|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|quotations|handling_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|quotations|handling_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|quotations|handling_fee|cea40e767d9d784073b41d7b117abd52
 column|quotations|id|f6a115564c68d53b8655e822621a179b
 column|quotations|is_personal_trade|ca898ca64aa03c5158f378a60bb9ccbb
 column|quotations|issued_date|689a78401c2c41f392b3436519a6287f
 column|quotations|notes|016afdd8b2d57598e01e516cffb1f80c
 column|quotations|quotation_number|016afdd8b2d57598e01e516cffb1f80c
-column|quotations|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|quotations|shipping_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|quotations|shipping_fee_qty|cea40e767d9d784073b41d7b117abd52
+column|quotations|shipping_fee|cea40e767d9d784073b41d7b117abd52
 column|quotations|subtotal|cea40e767d9d784073b41d7b117abd52
 column|quotations|tax_amount|cea40e767d9d784073b41d7b117abd52
 column|quotations|tenant_id|f6a115564c68d53b8655e822621a179b
@@ -283,6 +283,8 @@ function|create_anon_order|p_tenant_id uuid, p_customer_id uuid, p_order_code te
 function|create_meguree_invoice|p_tenant_id uuid, p_bill_to_name text, p_target_period text, p_issued_date date, p_due_date date, p_subtotal integer, p_tax_amount integer, p_total integer, p_items jsonb, p_notes text|54b04760a51cbf7138f19d1a0b826685
 function|create_my_order|p_order_code text, p_order_date date, p_status text, p_items jsonb, p_input_contact_name text, p_tenant_id uuid|3040aa72df92ad85c9022d6431a1a9d5
 function|create_retail_invitation|p_customer_id uuid|02045358e9d919178fb120e9fb278249
+function|create_staff_invitation||e86767f7d54ebe22973219d3734d3fd6
+function|delete_staff_account|p_login_id text|ef3ca9a9864e6a154f45cdb3adcf8261
 function|delete_tenant_cascade|p_tenant_id uuid|bfe1df57bdd84d3be2ae219d01301ca3
 function|diagnose_invited_account_registration|p_token text, p_company_name text, p_login_id text, p_password text|67f70dc9a11ce8205f8680be30e25303
 function|generate_product_code||164a1b60c8e567bc11cfe6768a46598a
@@ -299,14 +301,17 @@ function|get_my_products|p_tenant_id uuid|68fb3e6041ef0a9c7b350bfabd57f875
 function|get_pricing_for_customer|p_tenant_id uuid, p_customer_id uuid|4de39617a517e6fa0484a25cdc57be54
 function|get_products_for_tenant|p_tenant_id uuid|68fb3e6041ef0a9c7b350bfabd57f875
 function|get_retail_invitation_by_token|p_token text|c46434dfb1d843f4e1c01b6b734c413e
+function|get_staff_invitation_by_token|p_token text|7b29afa286b5da3330f72122e9a0e55b
 function|get_tenant_plan|p_tenant_id uuid|b79b6af4cf7d6f0998d3fbe9078639ed
 function|handle_auth_user_signup||164a1b60c8e567bc11cfe6768a46598a
 function|handle_inquiry_insert||164a1b60c8e567bc11cfe6768a46598a
 function|jwt_role||2e7ce5d2fc1dfc8799711e493191b018
 function|jwt_tenant_id||2e7ce5d2fc1dfc8799711e493191b018
 function|link_retail_membership|p_token text|b48299ac37d72be04f6a5f5fe913a8e0
+function|list_tenant_accounts||3ea764cd15f824481bb3762ec1b7e1d7
 function|register_invited_account|p_token text, p_company_name text, p_login_id text, p_password text, p_terms_version text, p_privacy_version text|90551d09f68c03b5562db212286498d3
 function|register_retail_account|p_token text, p_login_id text, p_password text, p_terms_version text, p_privacy_version text|e9a2b3a0fe9d29d8b6ff36ecbddc4599
+function|register_staff_account|p_token text, p_login_id text, p_password text, p_name text, p_terms_version text, p_privacy_version text|b24bfacc2e8c25ba7d6dafb3e3e93309
 function|retail_my_binding|p_tenant_id uuid|a431bd7455cb77b4ae95c107cbdc32ea
 function|set_quotations_updated_at||164a1b60c8e567bc11cfe6768a46598a
 function|sync_auth_super_admin_on_login|p_login_id text, p_password text|90c46dda8977f21097f0839001901d3b

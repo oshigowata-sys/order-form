@@ -229,14 +229,11 @@
       <div class="settings-card">
         <div class="settings-card-header">
           <span class="settings-card-icon">🔗</span>
-          <div class="settings-card-title">注文フォームURL</div>
+          <div class="settings-card-title">小売店の注文ログイン</div>
         </div>
         <div class="settings-card-body">
-          <p style="font-size:14px;color:var(--text-muted);line-height:1.7">このURLを取引先（小売店など）に共有してください。あなたの会社専用の注文フォームです。</p>
-          <div class="url-box">
-            <div class="url-text" id="orderFormUrl">読み込み中...</div>
-            <button class="copy-btn" onclick="copyOrderFormUrl()">コピー</button>
-          </div>
+          <p style="font-size:14px;color:var(--text-muted);line-height:1.7">小売店が注文できるログインは、<strong>取引先マスタ</strong>で各取引先の「ログイン発行」ボタンから招待リンクを発行してください。リンクを受け取った小売店がID・パスワードを設定すると、ログインして注文できるようになります。</p>
+          <a class="btn-secondary" href="customer.html" style="text-decoration:none;align-self:flex-start">取引先マスタへ →</a>
         </div>
       </div>
 
@@ -277,13 +274,6 @@
     return p[feat];
   }
   const staffAllowed = planAllows(tenantPlan || '', 'staff');
-
-  const ORDER_FORM_URL = location.origin + location.pathname.replace('settings.html', '') + 'order_form.html?tenant=' + tenantId;
-  document.getElementById('orderFormUrl').textContent = ORDER_FORM_URL;
-
-  function copyOrderFormUrl() {
-    navigator.clipboard.writeText(ORDER_FORM_URL).then(() => alert('コピーしました'));
-  }
 
   async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
