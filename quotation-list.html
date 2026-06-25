@@ -30,7 +30,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
 .page-title{font-size:18px;font-weight:700}
 .page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
-.content{padding:28px 32px;flex:1}
+.content{padding:28px 32px;flex:1;position:relative}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
 .search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
 .search-input:focus{border-color:var(--orange);background:#fff}
@@ -84,6 +84,28 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .toast{position:fixed;bottom:28px;right:28px;background:#1a1208;color:#fff;padding:13px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;font-family:'Noto Sans JP',sans-serif}
 .toast.show{opacity:1;transform:translateY(0)}
 tr.row-expired td{color:var(--text-muted)}
+/* ===== プラン機能ゲート（dashboard のチャートロックと統一） ===== */
+.plan-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(247,243,238,0.92);backdrop-filter:blur(3px);z-index:10;text-align:center;padding:16px}
+.plan-lock-icon{font-size:28px;line-height:1}
+.plan-lock-title{font-size:16px;font-weight:700;color:var(--text)}
+.plan-lock-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
+.plan-lock-btn{padding:9px 18px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.plan-lock-btn:hover{opacity:0.85}
+.upgrade-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+.upgrade-modal-overlay.open{display:flex}
+.upgrade-modal{background:var(--surface);border-radius:16px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:modalIn 0.25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.upgrade-modal-header{background:linear-gradient(135deg,#e8630a,#f97316);padding:24px 28px;color:white}
+.upgrade-modal-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.upgrade-modal-sub{font-size:14px;opacity:0.85}
+.upgrade-modal-body{padding:24px 28px}
+.upgrade-feature{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px}
+.upgrade-feature-icon{color:var(--green);font-size:16px;flex-shrink:0;margin-top:1px}
+.upgrade-modal-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.btn-upgrade{background:var(--orange);color:white;padding:10px 22px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
+.btn-upgrade:hover{opacity:0.85}
+.btn-later{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.btn-later:hover{border-color:var(--orange);color:var(--orange)}
 </style>
 <link rel="stylesheet" href="mobile.css?v=20260622">
 </head>
@@ -174,6 +196,29 @@ tr.row-expired td{color:var(--text-muted)}
     </div>
   </div>
 </main>
+
+<!-- アップグレード案内モーダル（dashboard と統一トーン） -->
+<div class="upgrade-modal-overlay" id="upgradeModal" onclick="if(event.target===this)closeUpgradeModal()">
+  <div class="upgrade-modal">
+    <div class="upgrade-modal-header">
+      <div class="upgrade-modal-title">スタンダードプランにアップグレード</div>
+      <div class="upgrade-modal-sub">取引先へ正式な見積書を発行できます</div>
+    </div>
+    <div class="upgrade-modal-body">
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📄</span><div><strong>見積書の作成・発行</strong><br><span style="color:var(--text-muted);font-size:14px">取引先ごとの卸価格で見積書をPDF発行</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">🏢</span><div><strong>取引先数 無制限</strong><br><span style="color:var(--text-muted);font-size:14px">スターター：10社まで → 無制限</span></div></div>
+      <div class="upgrade-feature"><span class="upgrade-feature-icon">📈</span><div><strong>売上の詳しいグラフ</strong><br><span style="color:var(--text-muted);font-size:14px">月次推移・商品別の分析を表示</span></div></div>
+      <div style="margin-top:16px;padding:14px 16px;background:var(--orange-pale);border-radius:10px;border:1px solid rgba(232,99,10,0.2)">
+        <div style="font-size:14px;color:var(--orange);font-weight:700;margin-bottom:4px">スタンダードプラン</div>
+        <div style="font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">¥19,800<span style="font-size:14px;font-weight:400;color:var(--text-muted)">/月（税別）</span></div>
+      </div>
+    </div>
+    <div class="upgrade-modal-footer">
+      <button class="btn-later" onclick="closeUpgradeModal()">後で</button>
+      <button class="btn-upgrade" onclick="location.href='contact.html?subject=upgrade'">お問い合わせ →</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -341,7 +386,38 @@ async function confirmDelete(id, number) {
   }
 }
 
-loadAll();
+// ===== プラン機能ゲート（見積書はスタンダード以上） =====
+// プラン→機能可否の対応表。未知/未設定プランは「許可（=ロックしない）」の安全側に倒す（業務を止めない）。
+const PLAN_FEATURES = { starter: { quotation: false } };
+function planAllows(plan, feat) {
+  const p = PLAN_FEATURES[plan];
+  if (!p || p[feat] == null) return true;
+  return p[feat];
+}
+const tenantPlan = userData.tenantPlan || '';
+const quotationAllowed = planAllows(tenantPlan, 'quotation');
+
+function openUpgradeModal()  { document.getElementById('upgradeModal').classList.add('open'); }
+function closeUpgradeModal() { document.getElementById('upgradeModal').classList.remove('open'); }
+
+function renderPlanGate() {
+  document.getElementById('quotationTbody').innerHTML =
+    '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">—</td></tr>';
+  const lock = document.createElement('div');
+  lock.className = 'plan-lock';
+  lock.innerHTML =
+    '<div class="plan-lock-icon">🔒</div>' +
+    '<div class="plan-lock-title">スタンダードプランで利用可能</div>' +
+    '<div class="plan-lock-sub">見積書の作成・発行は<br>スタンダードプラン以上でご利用いただけます</div>' +
+    '<button class="plan-lock-btn" onclick="openUpgradeModal()">アップグレードを見る</button>';
+  document.querySelector('.content').appendChild(lock);
+}
+
+if (quotationAllowed) {
+  loadAll();
+} else {
+  renderPlanGate();
+}
 </script>
 </body>
 </html>
