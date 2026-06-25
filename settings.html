@@ -75,6 +75,18 @@
     .url-text{flex:1;font-size:14px;font-family:monospace;color:var(--text-muted);word-break:break-all}
     .copy-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;white-space:nowrap}
     .copy-btn:hover{border-color:var(--orange);color:var(--orange)}
+    .staff-list{display:flex;flex-direction:column;gap:8px}
+    .staff-row{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);padding:10px 14px}
+    .staff-row .s-main{flex:1;min-width:0}
+    .staff-row .s-name{font-weight:700;font-size:14px}
+    .staff-row .s-id{font-size:13px;color:var(--text-muted);word-break:break-all}
+    .staff-self{font-size:11px;font-weight:700;color:var(--orange);background:var(--orange-pale);border:1px solid var(--border);border-radius:999px;padding:2px 8px;white-space:nowrap}
+    .staff-lock{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px 16px}
+    .staff-lock-icon{font-size:28px;line-height:1}
+    .staff-lock-title{font-size:14px;font-weight:700;color:var(--text)}
+    .staff-lock-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
+    .staff-lock-btn{padding:9px 18px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+    .staff-lock-btn:hover{background:var(--orange-light)}
   </style>
 <link rel="stylesheet" href="mobile.css?v=20260622">
 </head>
@@ -205,6 +217,15 @@
           <button class="btn-primary" onclick="saveLogin()">変更する</button>
         </div>
       </div>
+      <div class="settings-card" id="staffCard">
+        <div class="settings-card-header">
+          <span class="settings-card-icon">👥</span>
+          <div class="settings-card-title">スタッフ（ログインユーザー）</div>
+        </div>
+        <div class="settings-card-body" id="staffBody">
+          <div style="font-size:14px;color:var(--text-muted)">読み込み中...</div>
+        </div>
+      </div>
       <div class="settings-card">
         <div class="settings-card-header">
           <span class="settings-card-icon">🔗</span>
@@ -243,8 +264,18 @@
 <script src="auth.js?v=20260510-idletimer"></script>
 <script>
   checkAuth();
-  const { tenantId } = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const { tenantId, tenantPlan } = JSON.parse(sessionStorage.getItem('user') || '{}');
   let bankAccounts = [];
+
+  // ===== プラン機能ゲート（スタッフ管理＝スタンダード以上）=====
+  // 1箇所集約・未知/未設定プランは「許可」の安全側（父親/実額契約を締め出さない）。
+  const PLAN_FEATURES = { starter: { staff: false } };
+  function planAllows(plan, feat) {
+    const p = PLAN_FEATURES[plan];
+    if (!p || p[feat] == null) return true;
+    return p[feat];
+  }
+  const staffAllowed = planAllows(tenantPlan || '', 'staff');
 
   const ORDER_FORM_URL = location.origin + location.pathname.replace('settings.html', '') + 'order_form.html?tenant=' + tenantId;
   document.getElementById('orderFormUrl').textContent = ORDER_FORM_URL;
@@ -610,7 +641,128 @@
     if (el) el.addEventListener('input', updatePreview);
   });
 
+  // ===== スタッフ（ログインユーザー）管理 =====
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function rpc(name, body) {
+    return fetch(`${SB_URL}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+  }
+
+  function renderStaffLock() {
+    document.getElementById('staffBody').innerHTML =
+      '<div class="staff-lock">' +
+        '<div class="staff-lock-icon">🔒</div>' +
+        '<div class="staff-lock-title">スタンダードプランで利用可能</div>' +
+        '<div class="staff-lock-sub">複数のスタッフでログインできる機能は<br>スタンダードプラン以上でご利用いただけます</div>' +
+        '<button class="staff-lock-btn" onclick="location.href=\'contact.html?subject=upgrade\'">アップグレードを見る</button>' +
+      '</div>';
+  }
+
+  async function loadStaff() {
+    if (!staffAllowed) { renderStaffLock(); return; }
+    const body = document.getElementById('staffBody');
+    body.innerHTML = '<div style="font-size:14px;color:var(--text-muted)">読み込み中...</div>';
+    try {
+      const res = await rpc('list_tenant_accounts', {});
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+      renderStaff(Array.isArray(rows) ? rows : []);
+    } catch(e) {
+      console.error('スタッフ一覧の取得に失敗', e);
+      body.innerHTML = '<div style="font-size:14px;color:#991b1b">読み込みに失敗しました <button class="btn-secondary" onclick="loadStaff()">再読み込み</button></div>';
+    }
+  }
+
+  function renderStaff(rows) {
+    const me = (JSON.parse(sessionStorage.getItem('user') || '{}').id) || '';
+    const canDelete = rows.length > 1;
+    const list = rows.map(r => {
+      const isSelf = r.login_id === me;
+      const delBtn = (!isSelf && canDelete)
+        ? `<button class="btn-danger" onclick="deleteStaff('${escHtml(r.login_id).replace(/'/g,"\\'")}')">削除</button>`
+        : '';
+      return `<div class="staff-row">
+        <div class="s-main">
+          <div class="s-name">${escHtml(r.name)}</div>
+          <div class="s-id">${escHtml(r.login_id)}</div>
+        </div>
+        ${isSelf ? '<span class="staff-self">あなた</span>' : ''}
+        ${delBtn}
+      </div>`;
+    }).join('');
+
+    document.getElementById('staffBody').innerHTML =
+      `<p style="font-size:14px;color:var(--text-muted);line-height:1.7">この会社にログインできる人を管理します。「スタッフを招待」で発行したリンクを渡すと、相手が自分でIDとパスワードを設定して参加できます。全員が同じ管理画面を使えます。</p>
+       <div class="staff-list">${list}</div>
+       <div>
+         <button class="btn-secondary" id="inviteBtn" onclick="inviteStaff()">＋ スタッフを招待</button>
+       </div>
+       <div id="inviteLinkBox" style="display:none">
+         <div style="font-size:14px;font-weight:700;color:var(--text-muted);margin-bottom:6px">招待リンク（14日間有効・1回のみ使用可）</div>
+         <div class="url-box">
+           <div class="url-text" id="inviteLinkText"></div>
+           <button class="copy-btn" onclick="copyInviteLink()">コピー</button>
+         </div>
+         <div style="font-size:13px;color:var(--text-muted);margin-top:8px">このリンクを招待したい人に渡してください。</div>
+       </div>`;
+  }
+
+  async function inviteStaff() {
+    const btn = document.getElementById('inviteBtn');
+    btn.disabled = true; btn.textContent = '発行中...';
+    try {
+      const res = await rpc('create_staff_invitation', {});
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || !row.token) throw new Error('no token');
+      const url = location.origin + location.pathname.replace('settings.html', '') + 'invite-staff.html?token=' + row.token;
+      document.getElementById('inviteLinkText').textContent = url;
+      document.getElementById('inviteLinkBox').style.display = 'block';
+    } catch(e) {
+      console.error('招待発行に失敗', e);
+      alert('招待リンクの発行に失敗しました。もう一度お試しください。');
+    } finally {
+      btn.disabled = false; btn.textContent = '＋ スタッフを招待';
+    }
+  }
+
+  function copyInviteLink() {
+    const url = document.getElementById('inviteLinkText').textContent;
+    navigator.clipboard.writeText(url).then(() => alert('コピーしました'));
+  }
+
+  async function deleteStaff(loginId) {
+    if (!confirm('このスタッフのログインを削除します。よろしいですか？')) return;
+    try {
+      const res = await rpc('delete_staff_account', { p_login_id: loginId });
+      const result = await res.json().catch(() => null);
+      if (!res.ok || !result?.success) {
+        const e = result?.error;
+        alert(
+          e === 'cannot_delete_self' ? '自分自身は削除できません。' :
+          e === 'last_admin' ? '最後の1人は削除できません。' :
+          e === 'not_authorized' ? '権限がありません。' :
+          e === 'not_found' ? '対象が見つかりません。' :
+          '削除に失敗しました。'
+        );
+        return;
+      }
+      await loadStaff();
+    } catch(e) {
+      console.error('スタッフ削除に失敗', e);
+      alert('削除に失敗しました。');
+    }
+  }
+
   loadAll();
+  loadStaff();
 </script>
 <script src="mobile.js"></script>
 </body>
