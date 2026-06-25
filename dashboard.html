@@ -38,14 +38,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .period-select select:focus{border-color:var(--orange)}
 .content{padding:28px 32px;flex:1}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.kpi-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
-.kpi-card.green::before{background:var(--green)}
-.kpi-card.yellow::before{background:var(--yellow)}
-.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:8px;letter-spacing:0.5px}
-.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px}
+.kpi-label{font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:10px;letter-spacing:0.3px}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--text);line-height:1.05;letter-spacing:-0.5px}
 .kpi-value.warn{color:var(--orange)}
-.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
+.kpi-sub{font-size:13px;color:var(--text-muted);margin-top:8px}
 .section-col{display:flex;flex-direction:column;gap:20px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
@@ -89,14 +86,15 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
 .topbar-avatar{width:34px;height:34px;border-radius:10px;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
 /* ===== 今日やること ===== */
 .todo-bar{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;margin-bottom:24px}
-.todo-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px}
-.todo-card.accent{background:linear-gradient(135deg,#fff4ec,#ffffff);border-color:rgba(232,99,10,0.3)}
-.todo-ic{width:46px;height:46px;border-radius:13px;background:var(--orange-pale);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.todo-card.accent .todo-ic{background:var(--orange)}
+.todo-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+.todo-card.accent{border-color:rgba(232,99,10,0.4)}
+.todo-ic{width:42px;height:42px;border-radius:11px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-muted)}
+.todo-card.accent .todo-ic{background:var(--orange-pale);color:var(--orange)}
 .todo-main{flex:1;min-width:0}
-.todo-num{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;line-height:1.1}
+.todo-num{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;line-height:1.05}
+.todo-card.accent .todo-num{font-size:32px}
 .todo-num.warn{color:var(--orange)}
-.todo-lbl{font-size:13px;color:var(--text-muted);margin-top:3px}
+.todo-lbl{font-size:13px;color:var(--text-muted);margin-top:4px}
 .todo-act{font-size:13px;font-weight:700;color:var(--orange);text-decoration:none;white-space:nowrap;flex-shrink:0}
 .todo-act:hover{text-decoration:underline}
 /* ===== 受注カレンダー ===== */
@@ -117,9 +115,7 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
 .nav-item .icon svg{width:18px;height:18px;stroke-width:1.75}
 .logout-item .icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px}
 .logout-item .icon svg{width:18px;height:18px;stroke-width:1.75}
-.todo-ic{color:var(--orange)}
-.todo-card.accent .todo-ic{color:#fff}
-.todo-ic svg{width:22px;height:22px;stroke-width:1.75}
+.todo-ic svg{width:21px;height:21px;stroke-width:1.75}
 </style>
 <link rel="stylesheet" href="mobile.css?v=20260622">
 </head>
