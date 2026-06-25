@@ -30,7 +30,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .topbar-left{}
-.page-title{font-size:18px;font-weight:700}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.3px}
 .page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
 .period-select{display:flex;align-items:center;gap:8px}
 .period-select label{font-size:14px;color:var(--text-muted);font-weight:500}
@@ -43,9 +43,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .kpi-value{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--text);line-height:1.05;letter-spacing:-0.5px}
 .kpi-value.warn{color:var(--orange)}
 .kpi-sub{font-size:13px;color:var(--text-muted);margin-top:8px}
+.kpi-sub.up{color:var(--green);font-weight:600}
+.kpi-sub.down{color:#dc2626;font-weight:600}
 .section-col{display:flex;flex-direction:column;gap:20px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
 .card-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
 .card-title{font-size:14px;font-weight:700}
 .card-body{padding:20px}
@@ -63,10 +65,11 @@ tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg)}
 td{padding:13px 16px;font-size:14px;vertical-align:middle}
-.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:14px;font-weight:500}
-.badge-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.3)}
-.badge-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.3)}
-.badge-shipped{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:13px;font-weight:600}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.badge-new{background:var(--orange-pale);color:var(--orange)}
+.badge-processing{background:var(--yellow-pale);color:var(--yellow)}
+.badge-shipped{background:var(--green-pale);color:var(--green)}
 .status-sel{border-radius:20px;font-size:14px;font-weight:600;padding:3px 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;outline:none;-webkit-appearance:none;appearance:none;transition:box-shadow 0.2s}
 .status-sel.s-new{background:var(--orange-pale);color:var(--orange);border:1px solid rgba(232,99,10,0.2)}
 .status-sel.s-processing{background:var(--yellow-pale);color:var(--yellow);border:1px solid rgba(217,119,6,0.2)}
@@ -76,6 +79,8 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
 .btn:hover{opacity:0.85}
 .btn-primary{background:var(--orange);color:#fff}
 .btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
+.btn-quiet{color:var(--text-muted);font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+.btn-quiet:hover{color:var(--orange)}
 
 .sidebar-footer{padding:12px 12px 16px;border-top:1px solid rgba(255,255,255,0.08);margin-top:auto}
 .logout-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(232,213,188,0.5);font-size:14px;font-weight:500;transition:all 0.2s;text-decoration:none}
@@ -212,7 +217,7 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
       <div class="card">
         <div class="card-header">
           <div class="card-title">直近の受注</div>
-          <a href="orders.html" class="btn btn-primary btn-sm">すべて見る →</a>
+          <a href="orders.html" class="btn-quiet">すべて見る →</a>
         </div>
         <table id="recentOrders"></table>
       </div>
@@ -355,14 +360,19 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
 
     const prev = ordersForMonth(prevMonthKey(key));
     const prevSales = prev.reduce((s,o) => s + o.total, 0);
+    const salesSubEl = document.getElementById('kpiSalesSub');
     if (prevSales > 0) {
       const diff = ((sales - prevSales) / prevSales * 100).toFixed(1);
-      document.getElementById('kpiSalesSub').textContent = diff >= 0 ? `前月比 ↑ +${diff}%` : `前月比 ↓ ${diff}%`;
+      salesSubEl.textContent = diff >= 0 ? `前月比 ↑ +${diff}%` : `前月比 ↓ ${diff}%`;
+      salesSubEl.className = 'kpi-sub ' + (diff >= 0 ? 'up' : 'down');
     } else {
-      document.getElementById('kpiSalesSub').textContent = '—';
+      salesSubEl.textContent = '—';
+      salesSubEl.className = 'kpi-sub';
     }
     const cDiff = count - prev.length;
-    document.getElementById('kpiOrdersSub').textContent = `前月比 ${cDiff >= 0 ? '+' : ''}${cDiff}件`;
+    const ordersSubEl = document.getElementById('kpiOrdersSub');
+    ordersSubEl.textContent = `前月比 ${cDiff >= 0 ? '+' : ''}${cDiff}件`;
+    ordersSubEl.className = 'kpi-sub ' + (cDiff > 0 ? 'up' : cDiff < 0 ? 'down' : '');
 
     renderChart(key);
     renderPieChart(key);
