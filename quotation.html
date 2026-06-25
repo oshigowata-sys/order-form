@@ -299,6 +299,13 @@ checkAuth();
 const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
 const { tenantId } = userData;
 
+// ===== プラン機能ゲート：見積書はスタンダード以上 =====
+// スターターが直リンクで来た場合はロック表示のある見積書一覧へ戻す（行き止まりにしない）。
+// 未知/未設定プランは許可（=リダイレクトしない）の安全側＝父親/実額契約を絶対に締め出さない。
+if ((userData.tenantPlan || '') === 'starter') {
+  location.replace('quotation-list.html');
+}
+
 // ===== ヘルパー =====
 function esc(s) {
   if (s == null) return '';
@@ -447,6 +454,9 @@ let _isPersonalTrade = false;
 
 // ===== 初期ロード =====
 async function init() {
+  // スターターはこのページを使えない（上で一覧へリダイレクト済み）。
+  // リダイレクト遷移と競合してfetchが中断されないよう、ここで早期に抜ける。
+  if ((userData.tenantPlan || '') === 'starter') return;
   try {
     const [settingsRes, customersRes, productsRes, pricingRes, banksRes] = await Promise.all([
       sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&limit=1`),
