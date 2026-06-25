@@ -59,21 +59,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .plan-lock-sub{font-size:14px;color:var(--text-muted);line-height:1.5}
 .plan-lock-btn{padding:7px 16px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
 .plan-lock-btn:hover{opacity:0.85}
-.upgrade-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
-.upgrade-modal-overlay.open{display:flex}
-.upgrade-modal{background:var(--surface);border-radius:16px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:modalIn 0.25s ease}
-@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.upgrade-modal-header{background:linear-gradient(135deg,#e8630a,#f97316);padding:24px 28px;color:white}
-.upgrade-modal-title{font-size:17px;font-weight:700;margin-bottom:4px}
-.upgrade-modal-sub{font-size:14px;opacity:0.85}
-.upgrade-modal-body{padding:24px 28px}
-.upgrade-feature{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px}
-.upgrade-feature-icon{color:var(--green);font-size:16px;flex-shrink:0;margin-top:1px}
-.upgrade-modal-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
-.btn-upgrade{background:var(--orange);color:white;padding:10px 22px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:opacity 0.2s}
-.btn-upgrade:hover{opacity:0.85}
-.btn-later{background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
-.btn-later:hover{border-color:var(--orange);color:var(--orange)}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
 th{padding:10px 16px;text-align:left;font-size:14px;font-weight:700;color:var(--text-muted);letter-spacing:1px;white-space:nowrap}
@@ -230,32 +215,9 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
     </div>
   </div>
 </main>
-<!-- UPGRADE MODAL -->
-<div class="upgrade-modal-overlay" id="upgradeModal" onclick="if(event.target===this)closeUpgradeModal()">
-  <div class="upgrade-modal">
-    <div class="upgrade-modal-header">
-      <div class="upgrade-modal-title">スタンダードプランにアップグレード</div>
-      <div class="upgrade-modal-sub">より詳しい分析でビジネスを加速させましょう</div>
-    </div>
-    <div class="upgrade-modal-body">
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">📈</span><div><strong>月次売上推移グラフ</strong><br><span style="color:var(--text-muted);font-size:14px">過去6ヶ月の売上を視覚的に把握</span></div></div>
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">📊</span><div><strong>商品別注文数グラフ</strong><br><span style="color:var(--text-muted);font-size:14px">売れ筋商品を一目で確認</span></div></div>
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">🏢</span><div><strong>取引先数 無制限</strong><br><span style="color:var(--text-muted);font-size:14px">スターター：10社まで → 無制限</span></div></div>
-      <div class="upgrade-feature"><span class="upgrade-feature-icon">📄</span><div><strong>見積書の作成・発行</strong><br><span style="color:var(--text-muted);font-size:14px">取引先へ正式な見積書をPDF発行</span></div></div>
-      <div style="margin-top:16px;padding:14px 16px;background:var(--orange-pale);border-radius:10px;border:1px solid rgba(232,99,10,0.2)">
-        <div style="font-size:14px;color:var(--orange);font-weight:700;margin-bottom:4px">スタンダードプラン</div>
-        <div style="font-size:22px;font-weight:700;font-family:'Space Grotesk',sans-serif">¥19,800<span style="font-size:14px;font-weight:400;color:var(--text-muted)">/月（税別）</span></div>
-      </div>
-    </div>
-    <div class="upgrade-modal-footer">
-      <button class="btn-later" onclick="closeUpgradeModal()">後で</button>
-      <button class="btn-upgrade" onclick="location.href='contact.html?subject=upgrade'">お問い合わせ →</button>
-    </div>
-  </div>
-</div>
-
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
+<script src="upgrade-modal.js?v=20260625"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -298,13 +260,7 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle}
       </div>`;
   }
 
-  function openUpgradeModal() {
-    document.getElementById('upgradeModal').classList.add('open');
-  }
-
-  function closeUpgradeModal() {
-    document.getElementById('upgradeModal').classList.remove('open');
-  }
+  // openUpgradeModal / closeUpgradeModal は共通モジュール upgrade-modal.js が提供
 
   function esc(s) {
     if (s == null) return '';

@@ -262,6 +262,7 @@
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
+<script src="upgrade-modal.js?v=20260625"></script>
 <script>
   checkAuth();
   const { tenantId, tenantPlan } = JSON.parse(sessionStorage.getItem('user') || '{}');
@@ -660,7 +661,7 @@
         '<div class="staff-lock-icon">🔒</div>' +
         '<div class="staff-lock-title">スタンダードプランで利用可能</div>' +
         '<div class="staff-lock-sub">複数のスタッフでログインできる機能は<br>スタンダードプラン以上でご利用いただけます</div>' +
-        '<button class="staff-lock-btn" onclick="location.href=\'contact.html?subject=upgrade\'">アップグレードを見る</button>' +
+        '<button class="staff-lock-btn" onclick="openUpgradeModal()">アップグレードを見る</button>' +
       '</div>';
   }
 

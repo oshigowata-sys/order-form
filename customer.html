@@ -300,31 +300,6 @@
   </div>
 </div>
 
-<!-- Upgrade Modal -->
-<div class="overlay" id="upgradeOverlay">
-  <div class="modal" style="max-width:440px">
-    <div style="background:linear-gradient(135deg,var(--orange) 0%,#f97316 100%);padding:32px 28px 24px;text-align:center">
-      <div style="font-size:36px;margin-bottom:12px">📈</div>
-      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">プランのご案内</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.85)">取引先をもっと登録するなら上位プランへ</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="background:var(--bg);border-radius:12px;padding:16px 20px;margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-          <span style="font-size:14px;font-weight:700">スターター</span>
-          <span style="font-size:14px;color:var(--text-muted)">取引先 最大10社</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;font-weight:700;color:var(--orange)">スタンダード</span>
-          <span style="font-size:14px;color:var(--orange);font-weight:700">取引先 無制限 ✓</span>
-        </div>
-      </div>
-      <a href="https://oshigowata-sys.github.io/order-form/contact.html" style="display:block;background:var(--orange);color:#fff;text-align:center;padding:13px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px">アップグレードを申し込む</a>
-      <button onclick="document.getElementById('upgradeOverlay').classList.remove('open')" style="display:block;width:100%;background:none;border:1.5px solid var(--border);color:var(--text-muted);padding:11px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">閉じる</button>
-    </div>
-  </div>
-</div>
-
 <!-- ログイン発行 Modal -->
 <div class="overlay" id="loginIssueOverlay" onclick="if(event.target===this)closeLoginIssueModal()">
   <div class="modal" style="max-width:460px">
@@ -350,6 +325,7 @@
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
+<script src="upgrade-modal.js?v=20260625"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -476,7 +452,7 @@
     const remaining = limit - customers.length;
     if (remaining > 2) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
-    const cta = `<button type="button" class="plan-notice-btn" onclick="showUpgradeInfo()">プランを見る</button>`;
+    const cta = `<button type="button" class="plan-notice-btn" onclick="openUpgradeModal()">プランを見る</button>`;
     if (remaining > 0) {
       // 予告（残り2社以下）
       el.className = 'plan-notice warn';
@@ -490,9 +466,7 @@
     el.style.display = '';
   }
 
-  function showUpgradeInfo() {
-    document.getElementById('upgradeOverlay').classList.add('open');
-  }
+  // プラン案内は共通モジュール upgrade-modal.js の openUpgradeModal() を使用
 
   function render() {
     updateKPIs();
