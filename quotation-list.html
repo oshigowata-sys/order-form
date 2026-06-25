@@ -28,10 +28,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .nav-item .icon{font-size:16px;width:20px;text-align:center}
 .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
-.page-title{font-size:18px;font-weight:700}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.3px}
 .page-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
 .content{padding:28px 32px;flex:1;position:relative}
-.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
 .search-input{padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.2s;width:220px}
 .search-input:focus{border-color:var(--orange);background:#fff}
 .table-wrapper{overflow-x:auto}
@@ -52,28 +52,24 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
 .btn-new{background:var(--orange);color:#fff;padding:9px 18px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none}
 .btn-new:hover{background:#d4570a}
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:14px;font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:13px;font-weight:600}
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.badge-valid{background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.2)}
+.badge-valid{background:var(--green-pale);color:var(--green)}
 .badge-valid::before{background:var(--green)}
-.badge-expired{background:#f3f4f6;color:#6b7280;border:1px solid rgba(107,114,128,0.2)}
+.badge-expired{background:#f3f4f6;color:#6b7280}
 .badge-expired::before{background:#9ca3af}
 .filter-bar{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border)}
 .filter-btn{padding:5px 14px;border:1.5px solid var(--border);border-radius:20px;background:none;cursor:pointer;font-size:14px;font-weight:600;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;transition:all 0.15s}
 .filter-btn:hover{border-color:var(--orange);color:var(--orange)}
 .filter-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
-.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
-.kpi-card.green::after{background:var(--green)}
-.kpi-card.yellow::after{background:#d97706}
-.kpi-card.gray::after{background:#9ca3af}
-.kpi-label{font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;letter-spacing:0.5px;}
-.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2}
+.kpi-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:18px 20px}
+.kpi-label{font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:10px;letter-spacing:0.3px}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--text);line-height:1.05;letter-spacing:-0.5px}
 .kpi-value.warn{color:var(--orange)}
 .kpi-value.green{color:var(--green)}
 .kpi-value.gray{color:#6b7280}
-.kpi-sub{font-size:14px;color:var(--text-muted);margin-top:3px}
+.kpi-sub{font-size:13px;color:var(--text-muted);margin-top:8px}
 .topbar-user{display:flex;align-items:center;gap:10px}
 .topbar-user-name{font-size:14px;font-weight:600;color:var(--text)}
 .topbar-user-role{font-size:14px;color:var(--text-muted)}
