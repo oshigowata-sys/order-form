@@ -107,9 +107,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .amount-headline-value{font-size:26px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--text)}
 
 .quotation-table-wrap{margin-bottom:24px}
-.quotation-table{width:100%;border-collapse:collapse;font-size:13px}
+.quotation-table{width:100%;border-collapse:collapse;font-size:14px}
 .quotation-table th{padding:10px 8px;text-align:left;background:var(--bg);font-weight:700;font-size:11px;color:var(--text-muted);letter-spacing:1px;border-bottom:2px solid var(--border)}
 .quotation-table td{padding:10px 8px;border-bottom:1px solid var(--border)}
+/* 卸価格セルは「金額＋税マーク(ケ/コ)」が4桁以上で折り返して段崩れするのを防ぐ */
+.quotation-table tbody td:nth-child(4){white-space:nowrap}
 /* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に */
 .quotation-table thead th,
 .quotation-table tbody td,
