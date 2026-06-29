@@ -9,7 +9,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --orange:#e8630a;--green:#1e6641;
-  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;
+  --bg:#f7f3ee;--surface:#fff;--border:#e2d9ce;--border-strong:#b8a98f;
   --text:#1a1208;--text-muted:#7a6a55;
   --sidebar-bg:#1a1208;
 }
@@ -105,13 +105,14 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .amount-headline-value{font-size:26px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--text)}
 
 .quotation-table-wrap{margin-bottom:24px}
-.quotation-table{width:100%;border-collapse:collapse;font-size:13px}
+.quotation-table{width:100%;border-collapse:collapse;border:2px solid var(--border-strong);font-size:13px}
 .quotation-table th{padding:10px 8px;text-align:left;background:var(--bg);font-weight:700;font-size:11px;color:var(--text-muted);letter-spacing:1px;border-bottom:2px solid var(--border)}
 .quotation-table td{padding:10px 8px;border-bottom:1px solid var(--border)}
-/* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に */
+/* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に
+   罫線を太め(1.5px)＋濃いめ(--border-strong)にして印刷・FAXでもはっきり出るように */
 .quotation-table thead th,
 .quotation-table tbody td,
-.quotation-table tfoot td{border:1px solid var(--border)}
+.quotation-table tfoot td{border:1.5px solid var(--border-strong)}
 /* 空枠行：画面表示時も印刷時も常に表示（明細10行枠固定） */
 .quotation-table tbody tr.empty-row{display:table-row;background:transparent !important}
 .quotation-table tfoot td{padding:8px;font-size:13px;color:var(--text-muted)}

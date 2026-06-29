@@ -14,6 +14,7 @@
     --bg: #f7f3ee;
     --surface: #ffffff;
     --border: #e2d9ce;
+    --border-strong: #b8a98f;
     --text: #1a1208;
     --text-muted: #7a6a55;
     --sidebar-bg: #1a1208;
@@ -347,6 +348,7 @@
   .invoice-table {
     width: 100%;
     border-collapse: collapse;
+    border: 2px solid var(--border-strong); /* 帳票の外枠を強調（太線化） */
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 13px;
   }
@@ -387,10 +389,11 @@
   .invoice-table tbody tr:nth-child(even) { background: #faf8f5; }
   .invoice-table tbody tr:hover { background: #f3ede4; }
 
-  /* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に */
+  /* セル全体に枠線（左右・上下） — border-collapse: collapse により隣接セルで1本線に
+     罫線を太め（1.5px）＋濃いめ（--border-strong）にして印刷・FAXでもはっきり出るように */
   .invoice-table thead th,
   .invoice-table tbody td,
-  .invoice-table tfoot td { border: 1px solid var(--border); }
+  .invoice-table tfoot td { border: 1.5px solid var(--border-strong); }
 
   /* 空枠行：画面表示時も印刷時も常に表示（明細10行枠固定） */
   .invoice-table tbody tr.empty-row { display: table-row; }
@@ -663,9 +666,12 @@
     /* 印刷時は明細を常に10行分の枠で固定（請求明細書・納品書兼請求書のどちらも対象） */
     .invoice-table tbody tr.empty-row { display: table-row; }
 
-    /* 印刷時の行高さ。納品書・請求書とも同じ6mm/行に揃える
-       （ブラウザ印刷余白「デフォルト」でも合計まで確実に表示するための安全策） */
-    body.delivery-mode .invoice-table tbody td { height: 6mm; vertical-align: middle; }
+    /* 印刷時の行高さ。納品書・請求書とも同じ行高に揃える
+       （ブラウザ印刷余白「デフォルト」でも合計まで確実に表示するための安全策）
+       罫線を太く(1px→1.5px・外枠2px)すると10行で累積+約2mm増える。
+       加えて下半分(請求書)は元々余白が薄かった(備考まで0.3mm)ため、
+       6mm→5.4mmへ詰めて10行でも合計・備考に5mm以上の安全余裕を確保する */
+    body.delivery-mode .invoice-table tbody td { height: 5.4mm; vertical-align: middle; }
     body:not(.delivery-mode) .invoice-table tbody td { height: 14mm; vertical-align: middle; }
 
     /* 備考欄（下半分の最後）を縮める */
