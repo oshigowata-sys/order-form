@@ -642,6 +642,9 @@
       flex: 0 0 140mm;
       min-height: 0;
       box-sizing: border-box;
+      /* 上端ギリギリを避け、中身を約1cm下げる（下半分の請求書と上余白を対称に）。
+         納品書側は下に余白があるため行高5.4mmのまま収まる。 */
+      padding-top: 9mm;
       overflow: hidden;
     }
     /* 半分ラインから「請求書」タイトルまでの余白。物理半分(148.5mm)付近から開始。
