@@ -20,6 +20,10 @@
     --sidebar-bg: #1a1208;
   }
 
+  /* 帳票（納品書・請求書）の罫線は黒。ベージュ系だと薄く・緑がかって見えるため、
+     .invoice スコープで --border / --border-strong を黒に上書き（印刷・FAXでくっきり）。 */
+  .invoice { --border: #000000; --border-strong: #000000; }
+
   body {
     font-family: 'Noto Sans JP', sans-serif;
     background: var(--bg);
@@ -357,7 +361,7 @@
   .invoice-table thead tr {
     background: #f0ebe3;
     color: var(--text-muted);
-    border-bottom: 1.5px solid #d4c9bb;
+    border-bottom: 1.5px solid var(--border-strong);
   }
 
   .invoice-table thead th {
@@ -461,7 +465,7 @@
     outline: none;
     resize: none;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px; /* 商品名（明細）と同じ文字サイズに合わせる */
     line-height: 1.5;
     color: var(--text);
     background: transparent;
@@ -469,7 +473,7 @@
     min-height: 36px;
   }
   .totals-notes-text {
-    font-size: 12px;
+    font-size: 13px; /* 商品名（明細）と同じ文字サイズに合わせる */
     line-height: 1.5;
     color: var(--text);
     white-space: pre-wrap;
@@ -775,7 +779,7 @@
     body.delivery-mode .totals-row { margin-top: 3px; gap: 6px; }
     body.delivery-mode .totals-notes-box { padding: 4px 8px; }
     body.delivery-mode .totals-notes-label { font-size: 8px; margin-bottom: 1px; }
-    body.delivery-mode .totals-notes-textarea { font-size: 8px; min-height: 40px; }
+    body.delivery-mode .totals-notes-textarea { font-size: 9.5px; min-height: 40px; } /* 商品名（明細9.5px）と同じに */
     body.delivery-mode .totals-summary-table { font-size: 10px; }
     body.delivery-mode .totals-summary-table td { padding: 2px 8px; }
     body.delivery-mode .totals-summary-table tr.total-row td { font-size: 12px; }
