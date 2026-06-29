@@ -169,11 +169,12 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   .quotation-parties{margin-bottom:14px;gap:20px}
   .amount-headline{margin-bottom:10px;padding:10px 18px}
   .quotation-table-wrap{margin-bottom:10px}
-  /* セルの余白・文字を詰めて行を10mm枠に収める（詰めないと2行内容で行が膨らみ溢れる） */
-  .quotation-table{font-size:11px}
-  .quotation-table thead th{padding:4px 6px;font-size:10px}
-  .quotation-table tbody td{height:10mm;padding:2px 6px;font-size:11px;line-height:1.2;vertical-align:middle}
-  .quotation-table tbody td div,.quotation-table tbody td span{font-size:10px !important}
+  /* 明細行は固定12mm（若干の余白を残してA4をほどよく埋める。10行枠で約270mm）。
+     セル余白・文字は12mm枠で見栄えするサイズに。品目が約10を超えると自然に次ページへ続く */
+  .quotation-table{font-size:12px}
+  .quotation-table thead th{padding:5px 6px;font-size:11px}
+  .quotation-table tbody td{height:12mm;padding:3px 6px;font-size:12px;line-height:1.25;vertical-align:middle}
+  .quotation-table tbody td div,.quotation-table tbody td span{font-size:11px !important}
   .totals-row{margin-top:6px}
   .totals-notes{min-height:44px;padding:6px 10px}
   .totals-table td{padding:4px 10px}

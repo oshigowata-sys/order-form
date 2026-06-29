@@ -775,10 +775,10 @@
     body.delivery-mode .totals-summary-table { font-size: 10px; }
     body.delivery-mode .totals-summary-table td { padding: 2px 8px; }
     body.delivery-mode .totals-summary-table tr.total-row td { font-size: 12px; }
-    /* 期間請求書（請求明細書・非delivery）は明細が多数になりやすい。
-       行高14mmだと13明細で約331mmとなりA4(297mm)を溢れて2ページ化していたため、
-       9mmに詰めて1ページに収める（明細が更に多ければ自然に複数ページへ改ページ） */
-    body:not(.delivery-mode) .invoice-table tbody td { height: 9mm; vertical-align: middle; }
+    /* 期間請求書（請求明細書・非delivery）の明細行は固定12mm。
+       若干の余白を残してA4をほどよく埋める（10行枠で約270mm）。
+       品目が約10を超えると自然に次ページへ改ページ（長い明細書として正常） */
+    body:not(.delivery-mode) .invoice-table tbody td { height: 12mm; vertical-align: middle; }
 
     /* 備考欄（下半分の最後）を縮める */
     body.delivery-mode .invoice-footer { margin-top: 2px; padding-top: 2px; gap: 6px; }
