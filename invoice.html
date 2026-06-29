@@ -648,12 +648,13 @@
       overflow: hidden;
     }
     /* 半分ラインから「請求書」タイトルまでの余白。物理半分(148.5mm)付近から開始。
-       下半分は合計まで収めるため余白を 9mm に圧縮（合計の見切れ対策・PR後）。 */
+       折り線すれすれを避けるため 14mm に（実測：9mmだと折り線の約4.5mm下＝すれすれ。
+       下に約16mmの余裕があり、5mm下げても合計まで切れずA4 1枚維持）。 */
     body.delivery-mode #invoiceBody {
       flex: 0 0 140mm;
       min-height: 0;
       box-sizing: border-box;
-      padding-top: 9mm;
+      padding-top: 14mm;
       overflow: hidden;
     }
     /* 下半分（請求書）はヘッダー文字を上半分に合わせて拡大したぶん、明細行を 4.5mm/行に詰めて
