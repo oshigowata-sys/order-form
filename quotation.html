@@ -240,7 +240,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
             <input type="number" id="qHandlingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="qHandlingFeeQty" class="form-input" value="1" min="1" step="1" oninput="updateQuotationFees()">
+            <input type="number" id="qHandlingFeeQty" class="form-input" value="1" step="1" oninput="updateQuotationFees()">
             <select id="qHandlingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -250,7 +250,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
             <input type="number" id="qShippingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="qShippingFeeQty" class="form-input" value="1" min="1" step="1" oninput="updateQuotationFees()">
+            <input type="number" id="qShippingFeeQty" class="form-input" value="1" step="1" oninput="updateQuotationFees()">
             <select id="qShippingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -605,8 +605,8 @@ function onCustomerChange() {
 function updateQuotationFees() {
   _handlingFee = Math.max(0, Number(document.getElementById('qHandlingFee')?.value) || 0);
   _shippingFee = Math.max(0, Number(document.getElementById('qShippingFee')?.value) || 0);
-  _handlingQty = Math.max(1, Number(document.getElementById('qHandlingFeeQty')?.value) || 1);
-  _shippingQty = Math.max(1, Number(document.getElementById('qShippingFeeQty')?.value) || 1);
+  _handlingQty = Number(document.getElementById('qHandlingFeeQty')?.value) || 1;
+  _shippingQty = Number(document.getElementById('qShippingFeeQty')?.value) || 1;
   _handlingCharge = document.getElementById('qHandlingFeeDir')?.value === 'charge';
   _shippingCharge = document.getElementById('qShippingFeeDir')?.value === 'charge';
   renderPreview();
