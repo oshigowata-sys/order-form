@@ -13,6 +13,8 @@
   --text:#1a1208;--text-muted:#7a6a55;
   --sidebar-bg:#1a1208;
 }
+/* 帳票（見積書）の罫線は黒。.quotation スコープで --border / --border-strong を黒に上書き（印刷・FAXでくっきり）。 */
+.quotation{--border:#000000;--border-strong:#000000}
 body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
 /* ===== 操作バー（印刷時非表示） ===== */
@@ -121,7 +123,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .quotation-table tfoot td{padding:8px;font-size:13px;color:var(--text-muted)}
 .quotation-table tfoot tr.total-row td{font-size:15px;font-weight:700;color:var(--text);background:var(--bg)}
 .totals-row{display:flex;gap:8px;margin-top:8px;align-items:stretch}
-.totals-notes{flex:1;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;line-height:1.5;color:var(--text);white-space:pre-wrap;min-height:60px;background:#fff}
+.totals-notes{flex:1;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:14px;line-height:1.5;color:var(--text);white-space:pre-wrap;min-height:60px;background:#fff}/* 文字サイズは商品名（明細）に合わせる：画面14px */
 .totals-notes-label{font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
 .totals-table{width:280px;border-collapse:collapse;border:2px solid var(--border-strong);font-size:13px;flex-shrink:0}
 .totals-table td{padding:6px 10px;border:1.5px solid var(--border-strong)}
@@ -176,7 +178,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   .quotation-table tbody td{height:12mm;padding:3px 6px;font-size:12px;line-height:1.25;vertical-align:middle}
   .quotation-table tbody td div,.quotation-table tbody td span{font-size:11px !important}
   .totals-row{margin-top:6px}
-  .totals-notes{min-height:44px;padding:6px 10px}
+  .totals-notes{min-height:44px;padding:6px 10px;font-size:12px}/* 印刷時は商品名（明細12px）と同じに */
   .totals-table td{padding:4px 10px}
 }
 </style>
