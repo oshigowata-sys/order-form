@@ -161,8 +161,22 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   @page{size:A4;margin:0}
   /* 印刷時は明細を常に10行分の枠で固定表示 */
   .quotation-table tbody tr.empty-row{display:table-row}
-  /* 印刷時、テーブル下の余白を消すため各行の高さを大きくして10行で領域いっぱいに広げる */
-  .quotation-table tbody td{height:14mm;vertical-align:middle}
+  /* A4 1枚に確実に収めるための圧縮。
+     以前は明細行高14mm＋ヘッダーの大きな余白で合計約314mmとなりA4(297mm)を超え2ページに溢れていた。
+     ヘッダー余白を詰め、明細行高を14mm→10mmにして1ページへ収める（ブラウザ既定余白でも安全側）。 */
+  .quotation{padding:24px 40px}
+  .quotation-header{margin-bottom:14px;padding-bottom:12px}
+  .quotation-parties{margin-bottom:14px;gap:20px}
+  .amount-headline{margin-bottom:10px;padding:10px 18px}
+  .quotation-table-wrap{margin-bottom:10px}
+  /* セルの余白・文字を詰めて行を10mm枠に収める（詰めないと2行内容で行が膨らみ溢れる） */
+  .quotation-table{font-size:11px}
+  .quotation-table thead th{padding:4px 6px;font-size:10px}
+  .quotation-table tbody td{height:10mm;padding:2px 6px;font-size:11px;line-height:1.2;vertical-align:middle}
+  .quotation-table tbody td div,.quotation-table tbody td span{font-size:10px !important}
+  .totals-row{margin-top:6px}
+  .totals-notes{min-height:44px;padding:6px 10px}
+  .totals-table td{padding:4px 10px}
 }
 </style>
 </head>
