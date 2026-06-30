@@ -536,14 +536,23 @@
     updateKPIs();
     const tbody = document.getElementById('productTableBody');
     if (products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">商品が登録されていません</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:0">
+        <div class="empty-state">
+          <div class="empty-state-icon">📦</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">まだ商品がありません</div>
+          <div class="empty-state-text">商品を登録すると、ここに一覧で表示されます。</div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="openAddModal()">＋ 最初の商品を登録</button>
+        </div></td></tr>`;
       return;
     }
     const q = currentSearch.toLowerCase();
     const qJan = janDigits(currentSearch);
     const list = q ? products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || (qJan && (p.janCode || '').includes(qJan))) : products;
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">該当する商品が見つかりません</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:0">
+        <div class="empty-state">
+          <div class="empty-state-text">該当する商品が見つかりません。検索条件を変えてみてください。</div>
+        </div></td></tr>`;
       return;
     }
     const groups = {};
@@ -576,8 +585,8 @@
             : '<span style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:14px;font-weight:500">標準10%</span>'
           }</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(p.id)}')">編集</button>
-            <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;margin-left:4px" onclick="deleteProduct('${esc(p.id)}')">削除</button>
+            <button class="btn-secondary" style="padding:5px 12px" onclick="openEditModal('${esc(p.id)}')">編集</button>
+            <button class="btn-danger" style="padding:5px 12px;margin-left:4px" onclick="deleteProduct('${esc(p.id)}')">削除</button>
           </td>
         </tr>`;
       });
