@@ -177,6 +177,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   .quotation-table thead th{padding:5px 6px;font-size:11px}
   /* 印刷時は列見出し帯の地色を抜いて白背景・黒文字に（地色が緑がかって出る問題の解消） */
   .quotation-table thead th{background:#fff !important;color:#000 !important}
+  /* 合計欄（小計・消費税・合計の地色）も白に統一 */
+  .quotation-table tfoot tr.total-row td,
+  .totals-table td:first-child,
+  .totals-table tr.total-row td{background:#fff !important}
   .quotation-table tbody td{height:12mm;padding:3px 6px;font-size:12px;line-height:1.25;vertical-align:middle}
   .quotation-table tbody td div,.quotation-table tbody td span{font-size:11px !important}
   .totals-row{margin-top:6px}
