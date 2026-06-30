@@ -49,6 +49,10 @@ td{padding:13px 16px;font-size:14px;vertical-align:middle;white-space:nowrap}
 .btn-outline{background:none;border:1.5px solid var(--border);color:var(--text-muted)}
 .btn-danger{background:#fff;border:1.5px solid #fca5a5;color:#dc2626}
 .btn-danger:hover{background:#fef2f2}
+/* 空状態の案内ブロック */
+.empty-state{text-align:center;padding:56px 20px;color:var(--text-muted)}
+.empty-state-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.empty-state-desc{font-size:14px;margin:0}
 .btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
 .btn-new{background:var(--orange);color:#fff;padding:9px 18px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none}
 .btn-new:hover{background:#d4570a}
@@ -315,7 +319,11 @@ function renderAll() {
   _renderedRows = rows;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">該当する見積書はありません</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:0">
+      <div class="empty-state">
+        <div class="empty-state-title">表示できる見積書がありません</div>
+        <div class="empty-state-desc">「＋ 新規見積書」から作成すると、ここに一覧で表示されます。（検索中のときは条件を変えてみてください）</div>
+      </div></td></tr>`;
     return;
   }
 
@@ -326,7 +334,7 @@ function renderAll() {
       <td style="font-size:14px;color:var(--text-muted)">${r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '—'}</td>
       <td class="num-right" style="font-weight:700;font-family:'Space Grotesk',sans-serif">${fmt(r.total)}</td>
       <td>
-        <a class="btn btn-primary btn-sm" href="quotation.html?id=${encodeURIComponent(r.id)}">開く</a>
+        <a class="btn btn-outline btn-sm" href="quotation.html?id=${encodeURIComponent(r.id)}">開く</a>
         <button class="btn btn-danger btn-sm" onclick="confirmDelete('${r.id}','${esc(r.quotationNumber).replace(/'/g,"\\'")}')">削除</button>
       </td>
     </tr>
