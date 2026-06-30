@@ -634,6 +634,9 @@
     /* 印刷時は列見出し帯の地色を抜いて白背景・黒文字に（地色が緑がかって出る問題の解消） */
     .invoice-table thead tr { background: #fff !important; }
     .invoice-table thead th { color: #000 !important; }
+    /* 合計欄（小計・消費税のラベル列）の地色も白に統一 */
+    .totals-summary-table td:first-child { background: #fff !important; }
+    .invoice-table tfoot tr { background: #fff !important; }
     #sumPaid { cursor: default !important; }
     @page { margin: 4mm; size: A4; }
 
