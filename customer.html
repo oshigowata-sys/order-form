@@ -50,6 +50,13 @@
     .btn-danger-sm{display:inline-flex;align-items:center;padding:5px 12px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;margin-left:4px}
     .btn-danger-sm:hover{background:#fee2e2}
     .btn-sm{padding:5px 12px;font-size:14px;border-radius:8px}
+    /* 控えめな二次ボタン（主CTA＝＋新規取引先のオレンジを引き立てる。管理操作はグレー） */
+    .btn-secondary{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;font-size:14px;font-weight:600;background:var(--bg);color:var(--text);border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}
+    .btn-secondary:hover{border-color:var(--orange);color:var(--orange);opacity:1}
+    /* 空状態の案内ブロック */
+    .empty-state{text-align:center;padding:56px 20px;color:var(--text-muted)}
+    .empty-state-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+    .empty-state-desc{font-size:14px;margin-bottom:18px}
     .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
     .overlay.open{display:flex}
     .modal{background:var(--surface);border-radius:20px;width:520px;max-width:95vw;max-height:90vh;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18);display:flex;flex-direction:column}
@@ -470,13 +477,19 @@
     updateKPIs();
     const tbody = document.getElementById('customerTbody');
     if (customers.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">取引先が登録されていません</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:0">
+        <div class="empty-state">
+          <div class="empty-state-title">まだ取引先がありません</div>
+          <div class="empty-state-desc">取引先を登録すると、ここに一覧で表示されます。</div>
+          <button class="btn btn-primary" onclick="openAddModal()">＋ 最初の取引先を登録</button>
+        </div></td></tr>`;
       return;
     }
     const q = currentSearch.toLowerCase();
     const list = q ? customers.filter(c => c.company.toLowerCase().includes(q) || c.contact.toLowerCase().includes(q)) : customers;
     if (list.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">該当する取引先が見つかりません</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:0">
+        <div class="empty-state"><div class="empty-state-desc" style="margin:0">該当する取引先が見つかりません。検索条件を変えてみてください。</div></div></td></tr>`;
       return;
     }
     tbody.innerHTML = list.map(c => `<tr>
@@ -486,8 +499,8 @@
       <td style="color:var(--text-muted);font-size:14px">${esc(c.email)}</td>
       <td style="font-weight:600;color:var(--orange);font-size:14px">${formatClosingPayment(c.closing, c.paymentOffset, c.payment)}</td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick="openEditModal('${esc(c.id)}')">編集</button>
-        <button class="btn btn-outline btn-sm" style="border-color:var(--orange);color:var(--orange)" onclick="openLoginIssueModal('${esc(c.id)}')">ログイン発行</button>
+        <button class="btn-secondary" onclick="openEditModal('${esc(c.id)}')">編集</button>
+        <button class="btn-secondary" style="margin-left:4px" onclick="openLoginIssueModal('${esc(c.id)}')">ログイン発行</button>
         <button class="btn-danger-sm" onclick="deleteCustomer('${esc(c.id)}')">削除</button>
       </td>
     </tr>`).join('');
