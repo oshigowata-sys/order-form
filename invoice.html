@@ -631,7 +631,9 @@
     #invoice-wrap { box-shadow: none; border-radius: 0; }
     .invoice { padding: 6mm 8mm; }
     .invoice-table tbody tr:hover { background: transparent; }
-    .invoice-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* 印刷時は列見出し帯の地色を抜いて白背景・黒文字に（地色が緑がかって出る問題の解消） */
+    .invoice-table thead tr { background: #fff !important; }
+    .invoice-table thead th { color: #000 !important; }
     #sumPaid { cursor: default !important; }
     @page { margin: 4mm; size: A4; }
 
@@ -811,7 +813,7 @@
     </div>
     <a id="backBtn" href="orders.html" class="btn btn-ghost">← 戻る</a>
     <a href="settings.html" class="btn btn-secondary">⚙ 発行者設定</a>
-    <button class="btn btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
+    <button class="btn btn-primary" onclick="printInvoice()">🖨 印刷 / PDF保存</button>
   </div>
 </div>
 
@@ -1756,6 +1758,25 @@
         if (!res.ok) console.error('請求書備考の保存に失敗', await res.text());
       }
     } catch (e) { console.error('請求書備考の保存に失敗', e); }
+  }
+
+  // ===== 印刷：編集中の入力を保存してから印刷 =====
+  // 印刷ボタンだけで保存も走るようにする（保存忘れ防止）。
+  // 御入金額・備考は「欄からフォーカスが外れた時に保存される」作りなので、
+  // 編集中の欄のフォーカスを外して保存を確定させてから印刷する。
+  // ※ 納品書側・請求書側の備考は単一受注では同じ保存先（受注の備考）を共有するため、
+  //   両方をまとめて保存すると上書き事故になる。フォーカスアウト保存に委ねることで
+  //   ユーザーが編集した欄だけが正しく保存される。
+  async function printInvoice() {
+    try {
+      const ae = document.activeElement;
+      if (ae && typeof ae.blur === 'function') ae.blur();   // 編集中の欄を確定（onblurで保存が走る）
+      if (document.getElementById('sumPaidInput')) await endEditPaid();  // 御入金額が編集中なら確定保存
+      await new Promise(r => setTimeout(r, 300));            // 保存(通信)が走り切るのを待つ
+    } catch (e) {
+      console.error('印刷前の保存でエラー', e);
+    }
+    window.print();
   }
 
   // ===== データ取得（Supabase）=====
