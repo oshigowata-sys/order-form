@@ -175,6 +175,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
      セル余白・文字は12mm枠で見栄えするサイズに。品目が約10を超えると自然に次ページへ続く */
   .quotation-table{font-size:12px}
   .quotation-table thead th{padding:5px 6px;font-size:11px}
+  /* 印刷時は列見出し帯の地色を抜いて白背景・黒文字に（地色が緑がかって出る問題の解消） */
+  .quotation-table thead th{background:#fff !important;color:#000 !important}
   .quotation-table tbody td{height:12mm;padding:3px 6px;font-size:12px;line-height:1.25;vertical-align:middle}
   .quotation-table tbody td div,.quotation-table tbody td span{font-size:11px !important}
   .totals-row{margin-top:6px}
@@ -192,7 +194,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   </div>
   <div class="action-bar-right">
     <a class="btn btn-ghost" href="quotation-list.html">← 一覧へ戻る</a>
-    <button class="btn btn-secondary" onclick="window.print()" id="printBtn" style="display:none">🖨 印刷 / PDF</button>
+    <button class="btn btn-secondary" onclick="printQuotation()" id="printBtn">🖨 印刷 / PDF</button>
     <button class="btn btn-save" onclick="saveQuotation()" id="saveBtn">💾 保存</button>
   </div>
 </div>
@@ -455,6 +457,8 @@ function normalizeSettings(raw, bankAccounts) {
 const urlParams = new URLSearchParams(location.search);
 const mode = urlParams.get('mode') || (urlParams.get('id') ? 'edit' : 'new');
 const quotationId = urlParams.get('id') || null;
+// 保存済みの見積書ID（新規保存後はここに入り、再保存時は新規採番せず更新する＝印刷で保存を繰り返しても重複しない）
+let _persistedQuotationId = quotationId;
 
 let _settings = {};
 let _customers = [];
@@ -1060,10 +1064,10 @@ async function saveQuotation() {
       phone: customer.phone || ''
     } : {};
 
-    let qid = quotationId;
+    let qid = _persistedQuotationId;
     let qnumber = _existingNumber;
 
-    if (mode === 'new' || !qid) {
+    if (!qid) {
       // 見積番号採番
       const numRes = await sbFetch(`/rest/v1/rpc/generate_quotation_number`, {
         method: 'POST',
@@ -1097,6 +1101,7 @@ async function saveQuotation() {
       });
       const inserted = await insRes.json();
       qid = inserted[0]?.id;
+      _persistedQuotationId = qid;  // 以後の保存は新規採番せず更新（重複防止）
     } else {
       // 既存更新
       await writeQuotationHeader('PATCH', qid, {
@@ -1167,13 +1172,21 @@ async function saveQuotation() {
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 2000);
     showToast('✓ 保存しました');
+    return true;
   } catch (e) {
     console.error(e);
     showToast('⚠️ ' + (e.message || '保存に失敗しました'));
+    return false;
   } finally {
     btn.disabled = false;
     btn.innerHTML = '💾 保存';
   }
+}
+
+// ===== 印刷：保存してから印刷（印刷ボタンだけで保存も走る） =====
+async function printQuotation() {
+  const ok = await saveQuotation();
+  if (ok) window.print();
 }
 
 async function deleteQuotation() {
