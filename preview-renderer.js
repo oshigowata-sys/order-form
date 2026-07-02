@@ -321,7 +321,7 @@
     const shippingQty = Number(data.shippingQty) || 1;
     const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
 
-    const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date().toISOString().slice(0,10));
+    const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date());
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
 
     const itemRows = items.length > 0
@@ -392,7 +392,7 @@
     const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
 
     const invoiceNumLabel = data.invoiceNumber || '<span class="mini-preview-undecided">（未確定）</span>';
-    const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
+    const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date());
     const dueLabel = data.dueDate ? fmtJa(data.dueDate) : '<span class="mini-preview-undecided">（未確定）</span>';
 
     const dataRows = items.length > 0
@@ -478,7 +478,7 @@
     const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
 
     const numberLabel = data.quotationNumber || '<span class="mini-preview-undecided">（保存時に自動採番）</span>';
-    const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date().toISOString().slice(0,10));
+    const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date());
     const expiryLabel = data.expiryLabel || '<span class="mini-preview-undecided">（未確定）</span>';
 
     const buildQItem = it => {
