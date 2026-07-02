@@ -1145,9 +1145,26 @@
     return '〒' + formatted + (address ? '\n' + address : '');
   }
 
+  // ===== 日付フォーマット =====
+  // "YYYY-MM-DD"（受注日）を「YYYY年M月D日」へ。UTCズレを避けるためローカル(JST)でDateを構築。
+  // 受注日が無い/不正なら null を返す（呼び出し側で今日にフォールバック）。
+  function ymdToJaLong(ymd) {
+    if (!ymd) return null;
+    const p = String(ymd).split('-');
+    if (p.length < 3) return null;
+    const y = Number(p[0]), m = Number(p[1]), d = Number(p[2]);
+    if (!y || !m || !d) return null;
+    const dt = new Date(y, m - 1, d);
+    if (isNaN(dt.getTime())) return null;
+    return dt.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
   // ===== 納品書HTML生成 =====
   function renderDeliveryNote(f, items, s) {
-    const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    // 納品日 = 受注日（作成画面プレビューと一致させる。後日再印刷しても日付がズレない）。
+    // 納品書は単一受注モードでのみ生成されるため f['受注日'] は常に受注日(order_date)。
+    // 万一 受注日が無い場合のみ今日にフォールバック。
+    const today = ymdToJaLong(f['受注日']) || new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
     const isPersonal = !!f.isPersonalTrade;
     const handlingFee = Number(f.handlingFee) || 0;
     const shippingFee = Number(f.shippingFee) || 0;
@@ -1288,7 +1305,11 @@
     const shippingQty = Number(f.shippingQty) || 1;
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
-    const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    // 発行日：単一受注モードは受注日に合わせる（作成画面プレビューと一致・後日再印刷でもズレない）。
+    // 期間請求書（複数受注をまとめる月次請求書）は単一の受注日が無いため従来どおり今日。
+    const today = (!isPeriod && ymdToJaLong(f['受注日']))
+      ? ymdToJaLong(f['受注日'])
+      : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
     const dueDate = calcDueDate(f['受注日'], {
       closing_day:          f['締め日'],
       payment_month_offset: f['支払月オフセット'],
