@@ -442,7 +442,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       <div></div>
       <div class="modal-btns">
         <button class="btn btn-outline" onclick="closeNewOrder()">キャンセル</button>
-        <button class="btn btn-primary" id="saveOrderBtn" onclick="saveNewOrder()">受注を登録する</button>
+        <button class="btn btn-outline" id="saveOrderBtn" onclick="saveNewOrder()">受注を登録する</button>
+        <button class="btn btn-primary" id="saveIssueOrderBtn" onclick="saveNewOrder(true)">登録して納品書を発行</button>
       </div>
     </div>
   </div>
@@ -1762,7 +1763,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderNewTotals();
   }
 
-  async function saveNewOrder() {
+  async function saveNewOrder(issueAfter = false) {
     const customerId = document.getElementById('newOrderCustomer').value;
     const orderDate  = document.getElementById('newOrderDate').value;
     const status     = document.getElementById('newOrderStatus').value;
@@ -1773,8 +1774,11 @@ const errEl      = document.getElementById('orderError');
     if (!orderDate)  { errEl.textContent = '受注日を入力してください'; errEl.classList.add('show'); return; }
     if (newOrderItems.length === 0) { errEl.textContent = '商品を1つ以上追加してください'; errEl.classList.add('show'); return; }
 
-    const btn = document.getElementById('saveOrderBtn');
-    btn.disabled = true; btn.textContent = '登録中...';
+    const saveBtn  = document.getElementById('saveOrderBtn');
+    const issueBtn = document.getElementById('saveIssueOrderBtn');
+    saveBtn.disabled = true; issueBtn.disabled = true;
+    if (issueAfter) { issueBtn.textContent = '発行の準備中...'; }
+    else            { saveBtn.textContent  = '登録中...'; }
 
     try {
       const code = 'M-' + orderDate.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
@@ -1811,6 +1815,12 @@ const errEl      = document.getElementById('orderError');
       });
       if (!itemsRes.ok) throw new Error('order_items POST failed');
 
+      if (issueAfter) {
+        // 保存成功後、そのまま納品書発行画面へ直行（一覧には戻らない）
+        window.location.href = 'invoice.html?order_id=' + orderId;
+        return;
+      }
+
       closeNewOrder();
       await loadOrders();
     } catch(e) {
@@ -1818,7 +1828,8 @@ const errEl      = document.getElementById('orderError');
       errEl.textContent = '登録に失敗しました。もう一度お試しください。';
       errEl.classList.add('show');
     } finally {
-      btn.disabled = false; btn.textContent = '受注を登録する';
+      saveBtn.disabled = false;  saveBtn.textContent  = '受注を登録する';
+      issueBtn.disabled = false; issueBtn.textContent = '登録して納品書を発行';
     }
   }
 
