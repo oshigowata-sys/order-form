@@ -517,6 +517,20 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     background: #fff;
+    position: relative;
+  }
+  /* サイン欄ラベル：下罫線のすぐ上・左寄せ。手書きサインの邪魔にならないよう小さく薄く。
+     CSSのcontentで描画するため印刷時もそのまま表示される。 */
+  .delivery-sign-box::after {
+    content: 'サイン欄';
+    position: absolute;
+    left: 6px;
+    bottom: 3px;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #b3aa9e;
+    font-family: 'Noto Sans JP', sans-serif;
+    pointer-events: none;
   }
   /* 印刷時の自動保存ボタンは隠す */
   @media print { .notes-save-btn { display: none !important; } }
@@ -1193,8 +1207,10 @@
           const subDisp   = qty * priceDisp;
           const taxLabel = it.isFood ? '8%' : '10%';
           const remarks = it['備考'] || '';
+          // 上代（商品マスタの現在値）。未設定・スナップショット無しは「—」。書式は単価列と同じ（¥・カンマ区切り）。
+          const listPriceCell = it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>';
           return `<tr>
-            <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it['商品コード'] || '—')}</td>
+            <td style="text-align:right;font-size:11px;font-family:'Space Grotesk',sans-serif">${listPriceCell}</td>
             <td>${esc(it['商品名'] || '-')}</td>
             <td style="text-align:right">${qty.toLocaleString()}</td>
             <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
@@ -1261,7 +1277,7 @@
         <table class="invoice-table">
           <thead>
             <tr>
-              <th style="width:74px">商品コード</th>
+              <th style="text-align:right;width:74px">上代</th>
               <th>商品名</th>
               <th style="text-align:right;width:48px">数量</th>
               <th style="text-align:right;width:80px">単価</th>
@@ -1977,7 +1993,7 @@
         } else {
           query = '/rest/v1/orders?order=created_at.desc&limit=1';
         }
-        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))&order_items.order=display_order.asc';
+        query += '&select=id,order_code,order_date,input_company_name,input_contact_name,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,postal_code,address,closing_day,payment_month_offset,payment_day,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food,list_price))&order_items.order=display_order.asc';
 
         const res = await sbFetch(query);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2013,6 +2029,9 @@
         };
         const items = (order.order_items || []).map(it => ({
           '商品コード': it.products?.product_code || '',
+          // 上代＝商品マスタ(products.list_price)の現在値（納品書の先頭列用）。
+          // 商品マスタで上代未設定（オープンプライス等）や商品削除済みは null → 「—」表示。
+          '上代':   it.products?.list_price != null ? Number(it.products.list_price) : null,
           '商品名': it.products?.product_name || '',
           '数量':   it.quantity || 0,
           '単価':   it.unit_price || 0,
