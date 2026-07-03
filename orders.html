@@ -385,7 +385,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <select class="form-input2" id="newItemProduct">
                 <option value="">商品を選択してください</option>
               </select>
-              <input type="number" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" />
+              <input type="text" inputmode="numeric" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" oninput="normalizeNumInput(this)" />
               <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
             </div>
             <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
@@ -405,9 +405,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
-                <input type="number" id="newHandlingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" inputmode="decimal" id="newHandlingFee" value="0" min="0" oninput="normalizeNumInput(this); updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="number" id="newHandlingFeeQty" value="1" step="1" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" inputmode="numeric" id="newHandlingFeeQty" value="1" step="1" oninput="normalizeNumInput(this); updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newHandlingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -415,9 +415,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               </div>
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
-                <input type="number" id="newShippingFee" value="0" min="0" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" inputmode="decimal" id="newShippingFee" value="0" min="0" oninput="normalizeNumInput(this); updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="number" id="newShippingFeeQty" value="1" step="1" oninput="updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" inputmode="numeric" id="newShippingFeeQty" value="1" step="1" oninput="normalizeNumInput(this); updateNewFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newShippingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -1546,6 +1546,27 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
+  // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+  // 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+  // 変換対象：全角数字 ０-９ / 全角ピリオド ． / 全角マイナス各種 −(U+2212)・ー(U+30FC)・－(U+FF0D)
+  function zenkakuNum(str) {
+    return String(str == null ? '' : str)
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/．/g, '.')
+      .replace(/[−ー－]/g, '-');
+  }
+  // 数値入力欄の value をその場で半角化する（キャレット位置は保持＝置換で文字数が変わらないため安全）。
+  // input イベントで呼び、正規化後に既存の parseInt/parseFloat ロジックへ渡す。
+  function normalizeNumInput(el) {
+    if (!el) return;
+    const before = el.value;
+    const after = zenkakuNum(before);
+    if (before === after) return;
+    const pos = el.selectionStart;
+    el.value = after;
+    try { el.setSelectionRange(pos, pos); } catch (e) {}
+  }
+
   // 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
   // 例: "ホタテ" と "ほたて" は同じキーになる
   function normalizeSearch(s) {
@@ -1595,8 +1616,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
     newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, remarks: '', isFood: !!product.is_food });
     // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
+    // 追加後は検索窓へフォーカスを戻す＝一度ひらがなにすれば以降もひらがなのまま連続入力できる（IME手切替ゼロ）
     const search = document.getElementById('newItemSearch');
-    if (search) search.value = '';
+    if (search) { search.value = ''; search.focus(); }
     renderSearchResults('', []);
     document.getElementById('itemError').classList.remove('show');
     renderNewItems();
@@ -1644,7 +1666,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   function addNewItem() {
     const productId = document.getElementById('newItemProduct').value;
-    const qty = parseInt(document.getElementById('newItemQty').value, 10);
+    const qty = parseInt(zenkakuNum(document.getElementById('newItemQty').value), 10);
     const errEl = document.getElementById('itemError');
     // 数量0は不可（追加する意味がない）。マイナスは返品伝票用に許容。
     if (!productId || isNaN(qty) || qty === 0) { errEl.classList.add('show'); return; }
@@ -1665,10 +1687,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   function getNewFees() {
-    const h = Number(document.getElementById('newHandlingFee')?.value) || 0;
-    const s = Number(document.getElementById('newShippingFee')?.value) || 0;
-    const hq = Number(document.getElementById('newHandlingFeeQty')?.value) || 1;
-    const sq = Number(document.getElementById('newShippingFeeQty')?.value) || 1;
+    const h = Number(zenkakuNum(document.getElementById('newHandlingFee')?.value)) || 0;
+    const s = Number(zenkakuNum(document.getElementById('newShippingFee')?.value)) || 0;
+    const hq = Number(zenkakuNum(document.getElementById('newHandlingFeeQty')?.value)) || 1;
+    const sq = Number(zenkakuNum(document.getElementById('newShippingFeeQty')?.value)) || 1;
     const handlingCharge = document.getElementById('newHandlingFeeDir')?.value === 'charge';
     const shippingCharge = document.getElementById('newShippingFeeDir')?.value === 'charge';
     return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingQty: hq, shippingQty: sq, handlingCharge, shippingCharge };
@@ -1690,7 +1712,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   // 数量のインライン編集（返品伝票用に負の値も許容）
   function updateNewItemQty(idx, value) {
     if (!newOrderItems[idx]) return;
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(zenkakuNum(value), 10);
     const qty = isNaN(parsed) ? 0 : parsed;
     newOrderItems[idx].qty = qty;
     const subCell = document.querySelector(`[data-newitem-sub="${idx}"]`);
@@ -1708,7 +1730,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   // 個人取引（税込み入力）なら入力値を税抜きに換算してから保存する。
   function updateNewItemPrice(idx, value) {
     if (!newOrderItems[idx]) return;
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(zenkakuNum(value), 10);
     const inputPrice = isNaN(parsed) ? 0 : parsed;
     const it = newOrderItems[idx];
     it.unitPrice = toStoredPrice(inputPrice, it.isFood, currentNewIsPersonalTrade);
@@ -1748,12 +1770,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 単価は常にインライン編集可能。
       // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = item.unitPrice !== 0
-        ? `<input type="number" value="${priceDisp}" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
+        ? `<input type="text" inputmode="decimal" value="${priceDisp}" oninput="normalizeNumInput(this); updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`
+        : `<input type="text" inputmode="decimal" value="" placeholder="要相談" oninput="normalizeNumInput(this); updateNewItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
-        <td style="text-align:right"><input type="number" value="${item.qty}" oninput="updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td style="text-align:right"><input type="text" inputmode="numeric" value="${item.qty}" oninput="normalizeNumInput(this); updateNewItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateNewItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
