@@ -669,8 +669,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
+  // ローカル（日本時間）基準の YYYY-MM-DD。toISOString はUTC変換で朝9時前に前日へずれるため使わない
+  function ymdLocal(d = new Date()) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
   function updateKPIs() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = ymdLocal();
     const thisMonth = today.slice(0, 7);
     const pending = allOrders.filter(o => o.status === '新規受注' || o.status === '処理中').length;
     const todayCount = allOrders.filter(o => o.date === today).length;
@@ -1493,7 +1499,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   async function openNewOrderModal() {
     newOrderItems = [];
     _currentNewOrderCustomer = null;
-    document.getElementById('newOrderDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('newOrderDate').value = ymdLocal();
     document.getElementById('newOrderStatus').value = '新規受注';
     document.getElementById('newOrderCustomer').value = '';
     document.getElementById('newItemProduct').value = '';

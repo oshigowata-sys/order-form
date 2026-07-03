@@ -1068,8 +1068,14 @@
     });
   }
 
+  // ローカル（日本時間）基準の YYYY-MM-DD。toISOString はUTC変換で朝9時前に前日へずれるため使わない
+  function ymdLocal(d = new Date()) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
   async function generateOrderCode() {
-    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const dateStr = ymdLocal().replace(/-/g,'');
     try {
       const res = await sbFetch('/rest/v1/rpc/count_today_orders', { method: 'POST', body: '{}' });
       if (!res.ok) return `ORD-${dateStr}-001`;
@@ -1103,7 +1109,7 @@
         return { product_id: item.id, quantity: item.qty, unit_price: unitPrice };
       });
 
-      const today = new Date().toISOString().slice(0,10);
+      const today = ymdLocal();
       const orderCode = await generateOrderCode();
       // 取引先(tenant/customer)はサーバ側でログインユーザーから導出される（なりすまし不可）
       const rpcRes = await sbFetch('/rest/v1/rpc/create_my_order', {
