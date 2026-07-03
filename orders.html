@@ -278,9 +278,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
-                <input type="number" id="editHandlingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="dec" id="editHandlingFee" value="0" min="0" oninput="onNumInput(this, event, updateEditFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="number" id="editHandlingFeeQty" value="1" step="1" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="int" id="editHandlingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateEditFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="editHandlingFeeDir" onchange="updateEditFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -288,9 +288,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               </div>
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
-                <input type="number" id="editShippingFee" value="0" min="0" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="dec" id="editShippingFee" value="0" min="0" oninput="onNumInput(this, event, updateEditFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="number" id="editShippingFeeQty" value="1" step="1" oninput="updateEditFees()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="int" id="editShippingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateEditFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="editShippingFeeDir" onchange="updateEditFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -309,7 +309,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <select class="form-input2" id="editItemProduct">
                 <option value="">商品を選択してください</option>
               </select>
-              <input type="number" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" />
+              <input type="text" data-num="int" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" oninput="onNumInput(this, event)" />
               <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
             </div>
             <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
@@ -1064,7 +1064,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   function addEditItemFromSelect() {
     const productId = document.getElementById('editItemProduct').value;
-    const qty = parseInt(document.getElementById('editItemQty').value, 10);
+    const qty = parseInt(zenkakuNum(document.getElementById('editItemQty').value), 10);
     const errEl = document.getElementById('editItemError');
     // 数量0は不可（追加する意味がない）。マイナスは返品伝票用に許容。
     if (!productId || isNaN(qty) || qty === 0) { errEl.classList.add('show'); return; }
@@ -1099,13 +1099,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 単価は常にインライン編集可能。
       // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = it.unitPrice !== 0
-        ? `<input type="number" value="${priceDisp}" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`
-        : `<input type="number" value="" placeholder="要相談" oninput="updateEditItemPrice(${i}, this.value)" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`;
+        ? `<input type="text" data-num="dec" value="${priceDisp}" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`
+        : `<input type="text" data-num="dec" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
         <td style="font-weight:500;white-space:normal">${esc(it.name)}</td>
-        <td class="num-right"><input type="number" value="${it.qty}" oninput="updateEditItemQty(${i}, this.value)" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td class="num-right"><input type="text" data-num="int" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td class="num-right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateEditItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
@@ -1122,10 +1122,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   function getEditFees() {
-    const h = Number(document.getElementById('editHandlingFee')?.value) || 0;
-    const s = Number(document.getElementById('editShippingFee')?.value) || 0;
-    const hq = Number(document.getElementById('editHandlingFeeQty')?.value) || 1;
-    const sq = Number(document.getElementById('editShippingFeeQty')?.value) || 1;
+    const h = Number(zenkakuNum(document.getElementById('editHandlingFee')?.value)) || 0;
+    const s = Number(zenkakuNum(document.getElementById('editShippingFee')?.value)) || 0;
+    const hq = Number(zenkakuNum(document.getElementById('editHandlingFeeQty')?.value)) || 1;
+    const sq = Number(zenkakuNum(document.getElementById('editShippingFeeQty')?.value)) || 1;
     const handlingCharge = document.getElementById('editHandlingFeeDir')?.value === 'charge';
     const shippingCharge = document.getElementById('editShippingFeeDir')?.value === 'charge';
     return { handlingFee: Math.max(0, h), shippingFee: Math.max(0, s), handlingQty: hq, shippingQty: sq, handlingCharge, shippingCharge };
@@ -1145,7 +1145,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function updateEditItemQty(idx, value) {
     if (!editItems[idx]) return;
     // 返品伝票用に負の数量も許容（空文字は0扱い）
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(zenkakuNum(value), 10);
     const qty = isNaN(parsed) ? 0 : parsed;
     editItems[idx].qty = qty;
     // 行小計の部分更新（テーブル全体を再描画するとフォーカスを奪うため）
@@ -1177,7 +1177,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   // 個人取引（税込み入力）なら入力値を税抜きに換算してから保存する。
   function updateEditItemPrice(idx, value) {
     if (!editItems[idx]) return;
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(zenkakuNum(value), 10);
     const inputPrice = isNaN(parsed) ? 0 : parsed;
     const it = editItems[idx];
     it.unitPrice = toStoredPrice(inputPrice, it.isFood, currentEditIsPersonalTrade);
@@ -1240,7 +1240,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       isFood: product.is_food || false,
       remarks: '',
     });
-    document.getElementById('editItemSearch').value = '';
+    // 検索窓と候補リストはリセット。
+    // 追加後は検索窓へフォーカスを戻す＝一度ひらがなにすれば以降もひらがなのまま連続入力できる（IME手切替ゼロ）
+    const search = document.getElementById('editItemSearch');
+    if (search) { search.value = ''; search.focus(); }
     renderEditSearchResults('', []);
     renderEditItems();
     updateEditOrderPreview();
