@@ -507,9 +507,10 @@
     background: #fff;
     border-top: 2px solid var(--text);
   }
-  /* 納品書：備考の右に置くサイン用の空枠（ラベルなし・手書き用／DB保存なし）。
+  /* 納品書・請求書：備考の右に置くサイン用の空枠（ラベルなし・手書き用／DB保存なし）。
      .totals-row は align-items:stretch のflex行なので、この枠を挟んでも行の高さは
-     既存アイテム（合計サマリー表）で決まり縦は増えない＝A4段組みを崩さない。 */
+     既存アイテム（合計サマリー表）で決まり縦は増えない＝A4段組みを崩さない。
+     納品書側・請求書側の両方の .totals-row で同じ枠を共通使用する。 */
   .delivery-sign-box {
     width: 150px;
     flex-shrink: 0;
@@ -1513,6 +1514,7 @@
             <div class="totals-notes-label">備考 / NOTES</div>
             <textarea class="totals-notes-textarea" id="invoiceNotesTextarea" maxlength="200" placeholder="（任意）" onblur="saveInvoiceNotes()">${esc(f['備考'] || '')}</textarea>
           </div>
+          <div class="delivery-sign-box"></div>
           <table class="totals-summary-table">
             ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
