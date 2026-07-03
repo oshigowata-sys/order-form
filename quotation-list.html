@@ -290,7 +290,8 @@ function updateKPIs() {
   const today = new Date();
   const cutoff = new Date(today);
   cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const p = n => String(n).padStart(2, '0');
+  const cutoffStr = `${cutoff.getFullYear()}-${p(cutoff.getMonth() + 1)}-${p(cutoff.getDate())}`;
   const recentCount = _allRows.filter(r => r.issuedDate && r.issuedDate >= cutoffStr).length;
   const totalAmount = _allRows.reduce((s, r) => s + r.total, 0);
   const customerSet = new Set(_allRows.filter(r => r.customerId).map(r => r.customerId));

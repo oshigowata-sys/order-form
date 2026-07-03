@@ -361,10 +361,16 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   });
 });
 
+// ローカル（日本時間）基準の YYYY-MM-DD。toISOString はUTC変換で日付が1日前にずれるため使わない
+function ymdLocal(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 // ── 締め日から完了済み期間・進行中期間を算出 ──
 function calcBillingPeriods(closingDay, today = new Date()) {
   const cd = closingDay || 31;
-  const todayStr   = today.toISOString().slice(0, 10);
+  const todayStr   = ymdLocal(today);
   const todayDay   = today.getDate();
   const todayMonth = today.getMonth();
   const todayYear  = today.getFullYear();
@@ -392,8 +398,8 @@ function calcBillingPeriods(closingDay, today = new Date()) {
   inProgressStart.setDate(inProgressStart.getDate() + 1);
 
   return [
-    { periodStart: startD.toISOString().slice(0,10), periodEnd: endD.toISOString().slice(0,10), isInProgress: false },
-    { periodStart: inProgressStart.toISOString().slice(0,10), periodEnd: todayStr, isInProgress: true },
+    { periodStart: ymdLocal(startD), periodEnd: ymdLocal(endD), isInProgress: false },
+    { periodStart: ymdLocal(inProgressStart), periodEnd: todayStr, isInProgress: true },
   ];
 }
 
@@ -744,7 +750,7 @@ async function confirmIssue() {
       customer_id:    r.customerId,
       period_start:   periodStart,
       period_end:     periodEnd,
-      issued_date:    today.toISOString().slice(0,10),
+      issued_date:    ymdLocal(today),
       total_excl_tax: r.excl,
       tax_amount:     r.tax,
       total_incl_tax: incl,

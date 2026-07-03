@@ -400,7 +400,9 @@ function buildQuotationTotalsRows(t, isPersonalTrade) {
     <tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`;
 }
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  // ローカル（日本時間）基準。toISOString はUTC変換で朝9時前に前日へずれるため使わない
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr);
