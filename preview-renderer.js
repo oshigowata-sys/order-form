@@ -290,7 +290,8 @@
     return rows.join('');
   }
 
-  function buildOrderItemRow(it, isPersonal) {
+  // firstCellHtml: 先頭列の<td>を差し替えたい時に指定（納品書＝上代／請求書＝商品コードのまま）
+  function buildOrderItemRow(it, isPersonal, firstCellHtml) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
     const sub = qty * price;
@@ -298,7 +299,7 @@
     const priceCell = isReq ? '<span style="color:#dc2626">要相談</span>' : `${fmtYen(price)}<span style="margin-left:3px;color:#7a6a55">${taxMark(!!it.is_food, isPersonal)}</span>`;
     const subCell = isReq ? '<span style="color:#dc2626">要相談</span>' : fmtYen(sub);
     return `<tr>
-      <td class="code">${esc(it.product_code || '—')}</td>
+      ${firstCellHtml || `<td class="code">${esc(it.product_code || '—')}</td>`}
       <td>${esc(it.product_name || '-')}</td>
       <td class="num">${qty.toLocaleString()}</td>
       <td class="num">${priceCell}</td>
@@ -324,8 +325,10 @@
     const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date());
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
 
+    // 納品書プレビューの先頭列は上代（実物 invoice.html の納品書と同じ）。未設定は「—」。
+    const listPriceCell = it => `<td class="num">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>`;
     const itemRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it))).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
     const dataRows = itemRows;
 
@@ -355,7 +358,7 @@
         </div>
         <table class="mini-preview-table">
           <thead><tr>
-            <th>商品コード</th><th>商品名</th>
+            <th style="text-align:right">上代</th><th>商品名</th>
             <th style="text-align:right">数量</th>
             <th style="text-align:right">単価</th>
             <th style="text-align:right">金額</th>

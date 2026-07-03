@@ -846,7 +846,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     currentEditIsPersonalTrade = !!o.isPersonalTrade;
     try {
       const res = await sbFetch(
-        `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food)&order_id=eq.${orderId}&order=display_order.asc`
+        `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food,list_price)&order_id=eq.${orderId}&order=display_order.asc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const items = await res.json();
@@ -896,6 +896,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // ビューモード用にプレビュー描画
       window._viewModeItems = items.map(it => ({
         product_code: it.products?.product_code || '',
+        list_price: it.products?.list_price != null ? Number(it.products.list_price) : null,
         product_name: it.products?.product_name || '',
         quantity: it.quantity || 0,
         unit_price: it.unit_price || 0,
@@ -1406,6 +1407,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const isFood = (it.isFood != null) ? !!it.isFood : !!product.is_food;
       return {
         product_code: it.productCode || product.product_code || '',
+        // 上代（納品書プレビューの先頭列用）。商品マスタ未設定は null → 「—」表示
+        list_price: product.list_price != null ? Number(product.list_price) : null,
         product_name: it.name || product.product_name || '',
         quantity: Number(it.qty || 0),
         unit_price: Number(it.unitPrice || 0),
