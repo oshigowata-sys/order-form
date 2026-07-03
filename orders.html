@@ -385,7 +385,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               <select class="form-input2" id="newItemProduct">
                 <option value="">商品を選択してください</option>
               </select>
-              <input type="text" inputmode="numeric" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" oninput="onNumInput(this, event)" />
+              <input type="text" data-num="int" class="form-input2" id="newItemQty" placeholder="数量" min="1" value="1" oninput="onNumInput(this, event)" />
               <button class="btn btn-primary btn-sm" onclick="addNewItem()">＋ 追加</button>
             </div>
             <input type="text" class="form-input2" id="newItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
@@ -405,9 +405,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
-                <input type="text" inputmode="decimal" id="newHandlingFee" value="0" min="0" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="dec" id="newHandlingFee" value="0" min="0" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="text" inputmode="numeric" id="newHandlingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="int" id="newHandlingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newHandlingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -415,9 +415,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               </div>
               <div>
                 <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
-                <input type="text" inputmode="decimal" id="newShippingFee" value="0" min="0" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="dec" id="newShippingFee" value="0" min="0" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-                <input type="text" inputmode="numeric" id="newShippingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+                <input type="text" data-num="int" id="newShippingFeeQty" value="1" step="1" oninput="onNumInput(this, event, updateNewFees)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
                 <select id="newShippingFeeDir" onchange="updateNewFees()" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
                   <option value="deduct" selected>差し引く（−）</option>
                   <option value="charge">請求に加える（＋）</option>
@@ -1577,21 +1577,35 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   // compositionend（IME確定）は HTML属性（oncompositionend）が Chrome 等で未対応のため、
   // document への委譲リスナーで受ける。確定した文字列を半角化し、input を再発火して
   // 既存の oninput（onNumInput → 各更新関数）に計算・再描画を引き継ぐ。
-  // 対象は数値欄（inputmode=numeric/decimal）のみ。検索欄・備考には触れない。
+  // 対象は数値欄（data-num属性付き）のみ。検索欄・備考には触れない。
+  // ※数値欄に inputmode を付けない理由：Windowsの日本語入力（Microsoft IME）が
+  //   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、検索欄に戻っても
+  //   ひらがなに戻らない。ひらがな入力を維持するため目印は付けず、
+  //   全角で入った数字は確定時にこちらで半角化する。
   document.addEventListener('compositionend', (e) => {
     const el = e.target;
-    if (!el || !el.matches || !el.matches('input[inputmode="numeric"], input[inputmode="decimal"]')) return;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
     normalizeNumInput(el);
     el.dispatchEvent(new InputEvent('input', { bubbles: true }));
   });
   // 保険：フォーカスが外れた時（change）にも同じ正規化を通す（IMEの確定パターン差異に備える）。
   document.addEventListener('change', (e) => {
     const el = e.target;
-    if (!el || !el.matches || !el.matches('input[inputmode="numeric"], input[inputmode="decimal"]')) return;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
     if (el.value === zenkakuNum(el.value)) return;
     normalizeNumInput(el);
     el.dispatchEvent(new InputEvent('input', { bubbles: true }));
   });
+  // タッチ端末（スマホ・タブレット）のみ、フォーカス時に数字キーパッドの目印を付与。
+  // PCには付けない＝上記のIMEモード切替問題を避ける。
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+        el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+      }
+    });
+  }
 
   // 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
   // 例: "ホタテ" と "ほたて" は同じキーになる
@@ -1796,12 +1810,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // 単価は常にインライン編集可能。
       // 単価0のみ「要相談」（赤枠＋placeholder）、マイナス値は通常入力扱い（返品用）。
       const priceCell = item.unitPrice !== 0
-        ? `<input type="text" inputmode="decimal" value="${priceDisp}" oninput="onNumInput(this, event, el=>updateNewItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`
-        : `<input type="text" inputmode="decimal" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateNewItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
+        ? `<input type="text" data-num="dec" value="${priceDisp}" oninput="onNumInput(this, event, el=>updateNewItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`
+        : `<input type="text" data-num="dec" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateNewItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
         <td style="white-space:normal">${esc(item.name)}</td>
-        <td style="text-align:right"><input type="text" inputmode="numeric" value="${item.qty}" oninput="onNumInput(this, event, el=>updateNewItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td style="text-align:right"><input type="text" data-num="int" value="${item.qty}" oninput="onNumInput(this, event, el=>updateNewItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateNewItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
