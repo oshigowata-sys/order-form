@@ -188,11 +188,11 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
           </div>
           <div class="form-group">
             <label class="form-label">卸価格（円）</label>
-            <input type="number" class="form-input" id="fWholesalePrice" min="0" step="1" placeholder="例: 455" oninput="onWholesalePriceInput()">
+            <input type="text" data-num="int" class="form-input" id="fWholesalePrice" placeholder="例: 455" oninput="onNumInput(this, event, onWholesalePriceInput)">
           </div>
           <div class="form-group">
             <label class="form-label">掛け率（参考・0〜1）</label>
-            <input type="number" class="form-input" id="fRate" min="0" max="1" step="0.001" placeholder="例: 0.65" oninput="onRateInput()">
+            <input type="text" data-num="dec" class="form-input" id="fRate" placeholder="例: 0.65" oninput="onNumInput(this, event, onRateInput)">
             <div id="fRateNote" style="display:none;font-size:12px;color:#b45309;margin-top:6px;line-height:1.4">⚠ 商品マスタで上代を設定すると掛け率が使えます（卸価格は直接入力できます）</div>
           </div>
           <div class="preview-box" id="previewBox" style="display:none">
@@ -312,6 +312,59 @@ async function loadAll() {
 function setTableLoading(on) {
   if (on) document.getElementById('pricingTbody').innerHTML =
     '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr>';
+}
+
+// ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+// 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+// 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+function zenkakuNum(str) {
+  return String(str == null ? '' : str)
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/．/g, '.')
+    .replace(/[−ー－]/g, '-');
+}
+// 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+function normalizeNumInput(el) {
+  if (!el) return;
+  const before = el.value;
+  const after = zenkakuNum(before);
+  if (before === after) return;
+  const pos = el.selectionStart;
+  el.value = after;
+  try { el.setSelectionRange(pos, pos); } catch (e) {}
+}
+// IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+function onNumInput(el, ev, cb) {
+  if (ev && ev.isComposing) return;
+  normalizeNumInput(el);
+  if (typeof cb === 'function') cb(el);
+}
+// IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+// ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+//   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、検索欄に戻っても
+//   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+document.addEventListener('compositionend', (e) => {
+  const el = e.target;
+  if (!el || !el.matches || !el.matches('input[data-num]')) return;
+  normalizeNumInput(el);
+  el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+});
+// 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (!el || !el.matches || !el.matches('input[data-num]')) return;
+  if (el.value === zenkakuNum(el.value)) return;
+  normalizeNumInput(el);
+  el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+});
+// タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+      el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+    }
+  });
 }
 
 // 検索用文字列正規化（lowercase + カタカナ→ひらがな統一）
@@ -557,7 +610,7 @@ function applyListPriceState() {
 function onWholesalePriceInput() {
   if (_suppressSync) return;
   const pid = document.getElementById('fProduct').value;
-  const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
+  const wholesale = parseFloat(zenkakuNum(document.getElementById('fWholesalePrice').value));
   const prod = PRODUCTS.find(x => x.id === pid);
   if (prod && prod.listPrice > 0 && wholesale > 0) {
     const rate = wholesale / prod.listPrice;
@@ -576,7 +629,7 @@ function onWholesalePriceInput() {
 function onRateInput() {
   if (_suppressSync) return;
   const pid = document.getElementById('fProduct').value;
-  const rate = parseFloat(document.getElementById('fRate').value);
+  const rate = parseFloat(zenkakuNum(document.getElementById('fRate').value));
   const prod = PRODUCTS.find(x => x.id === pid);
   if (prod && prod.listPrice > 0 && rate > 0) {
     const wholesale = Math.round(prod.listPrice * rate);
@@ -594,8 +647,8 @@ function onRateInput() {
 // 取引先・商品が変わったとき：プレビュー更新
 function updatePreview() {
   const pid = document.getElementById('fProduct').value;
-  const wholesale = parseFloat(document.getElementById('fWholesalePrice').value);
-  const rate = parseFloat(document.getElementById('fRate').value);
+  const wholesale = parseFloat(zenkakuNum(document.getElementById('fWholesalePrice').value));
+  const rate = parseFloat(zenkakuNum(document.getElementById('fRate').value));
   const box  = document.getElementById('previewBox');
   const prod = PRODUCTS.find(x => x.id === pid);
   if (!prod || (!wholesale && !rate)) { box.style.display = 'none'; return; }
@@ -715,7 +768,7 @@ async function savePricing() {
   const id         = document.getElementById('editKey').value;
   const customerId = document.getElementById('fCustomer').value;
   const productId  = document.getElementById('fProduct').value;
-  const wholesale  = parseInt(document.getElementById('fWholesalePrice').value, 10);
+  const wholesale  = parseInt(zenkakuNum(document.getElementById('fWholesalePrice').value), 10);
   if (!customerId || !productId || isNaN(wholesale)) { alert('取引先・商品・卸価格をすべて入力してください'); return; }
   if (wholesale <= 0) { alert('卸価格は1円以上で入力してください'); return; }
 
