@@ -1359,8 +1359,8 @@
       const p = String(d).split('-');
       return p.length >= 3 ? `${Number(p[1])}/${Number(p[2])}` : esc(String(d));
     };
-    // 1商品行のHTML（先頭列に first を表示：通常=商品コード／請求明細書=日付）
-    const buildItemRow = (it, first) => {
+    // 1商品行のHTML（先頭列 firstTd に<td>丸ごとを渡す：通常=上代（納品書と同じ）／請求明細書=日付）
+    const buildItemRow = (it, firstTd) => {
       const qty = Number(it['数量'] || 0);
       const priceStored = Number(it['単価'] || 0);
       const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
@@ -1369,7 +1369,7 @@
       const remarks = it['備考'] || '';
       return `
             <tr>
-              <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${first}</td>
+              ${firstTd}
               <td>${esc(it['商品名'] || '-')}</td>
               <td style="text-align:right">${qty.toLocaleString()}</td>
               <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
@@ -1386,7 +1386,8 @@
       renderedRowCount = 0;
       const blocks = periodGroups.map(g => {
         const ds = fmtItemDate(g.date);
-        const itemHtml = (g.items || []).map(it => buildItemRow(it, ds)).join('');
+        const dateTd = `<td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${ds}</td>`;
+        const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd)).join('');
         const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty);
         const feeCount = ((Number(g.handlingFee)||0) > 0 ? 1 : 0) + ((Number(g.shippingFee)||0) > 0 ? 1 : 0);
         renderedRowCount += (g.items || []).length + feeCount;
@@ -1396,8 +1397,10 @@
         ? blocks
         : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
     } else {
+      // 先頭列＝上代（納品書と同じ書式・products.list_priceの現在値・未設定は「—」）
+      const listPriceTd = it => `<td style="text-align:right;font-size:11px;font-family:'Space Grotesk',sans-serif">${it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>'}</td>`;
       dataRows = items.length > 0
-        ? items.map(it => buildItemRow(it, esc(it['商品コード'] || '—'))).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+        ? items.map(it => buildItemRow(it, listPriceTd(it))).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
         : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
       const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
       renderedRowCount = items.length + feeRowCount;
@@ -1514,7 +1517,7 @@
         <table class="invoice-table">
           <thead>
             <tr>
-              <th style="width:74px">${isPeriod ? '日付' : '商品コード'}</th>
+              ${isPeriod ? '<th style="width:74px">日付</th>' : '<th style="text-align:right;width:74px">上代</th>'}
               <th>商品名</th>
               <th style="text-align:right;width:48px">数量</th>
               <th style="text-align:right;width:80px">単価</th>

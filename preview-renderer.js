@@ -290,7 +290,7 @@
     return rows.join('');
   }
 
-  // firstCellHtml: 先頭列の<td>を差し替えたい時に指定（納品書＝上代／請求書＝商品コードのまま）
+  // firstCellHtml: 先頭列の<td>を差し替えたい時に指定（納品書・請求書とも上代）
   function buildOrderItemRow(it, isPersonal, firstCellHtml) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
@@ -398,8 +398,10 @@
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date());
     const dueLabel = data.dueDate ? fmtJa(data.dueDate) : '<span class="mini-preview-undecided">（未確定）</span>';
 
+    // 請求書プレビューの先頭列も上代（実物 invoice.html の請求書と同じ）。未設定は「—」。
+    const listPriceCell = it => `<td class="num">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>`;
     const dataRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it))).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
 
     const bankBlock = banks.length > 0
@@ -445,7 +447,7 @@
         </div>
         <table class="mini-preview-table">
           <thead><tr>
-            <th>商品コード</th><th>商品名</th>
+            <th style="text-align:right">上代</th><th>商品名</th>
             <th style="text-align:right">数量</th>
             <th style="text-align:right">単価</th>
             <th style="text-align:right">金額</th>
