@@ -358,10 +358,10 @@
         </div>
         <table class="mini-preview-table">
           <thead><tr>
-            <th style="text-align:right">上代</th><th>商品名</th>
-            <th style="text-align:right">数量</th>
-            <th style="text-align:right">単価</th>
-            <th style="text-align:right">金額</th>
+            <th style="text-align:center">上代</th><th>商品名</th>
+            <th style="text-align:center">数量</th>
+            <th style="text-align:center">単価</th>
+            <th style="text-align:center">金額</th>
             <th style="text-align:center">税率</th>
             <th>備考</th>
           </tr></thead>
@@ -447,10 +447,10 @@
         </div>
         <table class="mini-preview-table">
           <thead><tr>
-            <th style="text-align:right">上代</th><th>商品名</th>
-            <th style="text-align:right">数量</th>
-            <th style="text-align:right">単価</th>
-            <th style="text-align:right">金額</th>
+            <th style="text-align:center">上代</th><th>商品名</th>
+            <th style="text-align:center">数量</th>
+            <th style="text-align:center">単価</th>
+            <th style="text-align:center">金額</th>
             <th style="text-align:center">税率</th>
             <th>備考</th>
           </tr></thead>
