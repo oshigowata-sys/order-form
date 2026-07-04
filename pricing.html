@@ -237,6 +237,9 @@ function sbFetch(path, options = {}) {
 
 let CUSTOMERS = [];
 let PRODUCTS  = [];
+// 連続登録用：最後に使った取引先を覚えておき、保存後もフォームに残す
+// （ユーザーが取引先を選び直すまで固定。ページを開いている間だけ有効＝メモリ内変数）
+let _stickyCustomerId = '';
 let PRICING   = [];
 
 // 取引先グループの折りたたみ状態（ページ内メモリ・リロードでリセット）
@@ -322,10 +325,15 @@ function normalizeSearch(s) {
 function populateSelects() {
   const cs = document.getElementById('fCustomer');
   const ps = document.getElementById('fProduct');
+  // 再読み込みで選択状態が消えないよう、選択中の値を保持して復元する
+  const prevC = cs.value;
+  const prevP = ps.value;
   cs.innerHTML = '<option value="">選択してください</option>' +
     CUSTOMERS.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   ps.innerHTML = '<option value="">選択してください</option>' +
     PRODUCTS.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  if (prevC) cs.value = prevC;
+  if (prevP) ps.value = prevP;
 }
 
 // 取引先の検索結果リストを描画
@@ -383,6 +391,7 @@ function selectCustomer(id) {
   const c = CUSTOMERS.find(x => x.id === id);
   if (!c) return;
   document.getElementById('fCustomer').value = id;
+  _stickyCustomerId = id;
   // 検索窓と結果リストはクリア（再検索の邪魔にならないように）
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fCustomerResults').style.display = 'none';
@@ -403,6 +412,7 @@ function selectProduct(id) {
 
 // プルダウンから直接選択した場合：検索窓・結果リストをクリアしてプレビュー更新
 function onCustomerSelectChange() {
+  _stickyCustomerId = document.getElementById('fCustomer').value;
   document.getElementById('fCustomerSearch').value = '';
   document.getElementById('fCustomerResults').style.display = 'none';
   document.getElementById('fCustomerResults').innerHTML = '';
@@ -644,7 +654,9 @@ function editPricing(id) {
 function resetForm() {
   editId = '';
   document.getElementById('editKey').value          = '';
-  document.getElementById('fCustomer').value         = '';
+  // 取引先は最後に使ったものを残す（同じ取引先へ商品を連続登録する手間を減らす）
+  document.getElementById('fCustomer').value         =
+    (_stickyCustomerId && CUSTOMERS.some(c => c.id === _stickyCustomerId)) ? _stickyCustomerId : '';
   document.getElementById('fProduct').value          = '';
   document.getElementById('fWholesalePrice').value   = '';
   document.getElementById('fRate').value             = '';
@@ -761,6 +773,8 @@ async function savePricing() {
         { wholesale_price: wholesale, rate: Number(rate.toFixed(3)), custName, prodName, basePrice: prod?.basePrice || 0 }
       );
     }
+    // 保存した取引先を次の登録でも使う（連続登録の手間削減）
+    _stickyCustomerId = customerId;
     resetForm();
     await loadAll();
   } catch(e) {
