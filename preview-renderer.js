@@ -557,12 +557,12 @@
         </div>
         <table class="mini-preview-table">
           <thead><tr>
-            <th style="text-align:right">上代</th>
+            <th style="text-align:center">上代</th>
             <th>商品名</th>
-            <th style="text-align:right">入数</th>
-            <th style="text-align:right">数量</th>
-            <th style="text-align:right">単価</th>
-            <th style="text-align:right">金額</th>
+            <th style="text-align:center">入数</th>
+            <th style="text-align:center">数量</th>
+            <th style="text-align:center">単価</th>
+            <th style="text-align:center">金額</th>
             <th>JAN</th>
           </tr></thead>
           <tbody>${dataRows}</tbody>
