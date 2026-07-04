@@ -266,10 +266,49 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         <div class="split-edit">
           <div id="editWarning" style="display:none"></div>
           <div class="info-grid" id="modalInfo"></div>
-          <div class="items-section-title">注文商品</div>
+          <!-- 編集モード用の上部フォーム（新規納品書入力と同じ構成） -->
+          <div id="editHeadForm" style="display:none">
+            <div class="form-row2">
+              <div class="form-group2">
+                <label class="form-label2">取引先 <span style="color:#dc2626">*</span></label>
+                <select class="form-input2" id="editOrderCustomer" onchange="onEditCustomerChange()">
+                  <option value="">選択してください</option>
+                </select>
+              </div>
+              <div class="form-group2">
+                <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
+                <input type="date" class="form-input2" id="editOrderDate" oninput="updateEditOrderPreview()" />
+              </div>
+            </div>
+            <div class="form-row2">
+              <div class="form-group2">
+                <label class="form-label2">ステータス</label>
+                <select class="form-input2" id="editOrderStatus">
+                  <option value="新規受注">新規受注</option>
+                  <option value="処理中">処理中</option>
+                  <option value="出荷済み">出荷済み</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="editAddSection" style="display:none;border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+            <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
+            <div class="add-item-row">
+              <select class="form-input2" id="editItemProduct">
+                <option value="">商品を選択してください</option>
+              </select>
+              <input type="text" data-num="int" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" oninput="onNumInput(this, event)" />
+              <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
+            </div>
+            <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
+            <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
+            <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
+          </div>
+          <div class="items-section-title" id="modalItemsTitle">注文商品</div>
           <div class="table-wrapper">
             <table id="modalItems"></table>
           </div>
+          <div class="totals" id="editTotalsInline" style="display:none;justify-content:flex-end;padding:12px 0 4px"></div>
           <div id="orderFeesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
               <label class="form-label2" style="margin:0">手数料・送料（税込・消費税は計算しません）</label>
@@ -302,19 +341,6 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <div id="orderNotesSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
             <label class="form-label2" style="display:block;margin-bottom:6px">帳票全体の備考（納品書フッターに表示）</label>
             <textarea id="orderNotes" maxlength="200" placeholder="（任意）" oninput="updateOrderNotes(this.value)" style="width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);resize:vertical" disabled></textarea>
-          </div>
-          <div id="editAddSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
-            <div class="form-label2" style="margin-bottom:10px">商品を追加</div>
-            <div class="add-item-row">
-              <select class="form-input2" id="editItemProduct">
-                <option value="">商品を選択してください</option>
-              </select>
-              <input type="text" data-num="int" class="form-input2" id="editItemQty" placeholder="数量" min="1" value="1" oninput="onNumInput(this, event)" />
-              <button class="btn btn-primary btn-sm" onclick="addEditItemFromSelect()">＋ 追加</button>
-            </div>
-            <input type="text" class="form-input2" id="editItemSearch" placeholder="🔍 商品名・商品コードで検索（クリックで即追加）" oninput="filterEditProductOptions(this.value)" style="margin-top:10px;margin-bottom:10px">
-            <div id="editSearchResults" class="search-results-wrap" style="display:none"></div>
-            <div class="entry-error" id="editItemError">商品と数量を選択してください</div>
           </div>
           <div id="detailStatusSection" style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <label class="form-label2" style="white-space:nowrap;margin:0">ステータス変更</label>
@@ -791,7 +817,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       {label:'受注日',    val:esc(o.date)},
       {label:'ステータス',val:`<span class="badge ${BADGE[o.status]||''}">${esc(o.status)}</span>`},
     ].map(x=>`<div class="info-item"><label>${x.label}</label><span>${x.val}</span></div>`).join('');
-    document.getElementById('modalItems').innerHTML =
+    const modalItemsInit = document.getElementById('modalItems');
+    modalItemsInit.className = '';
+    modalItemsInit.innerHTML =
       `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th></tr></thead>
       <tbody><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">読み込み中...</td></tr></tbody>`;
     document.getElementById('detailStatusSelect').value = o.status;
@@ -895,7 +923,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>送料</td><td class="num-right">${qtyS}</td><td class="num-right">${fmtYen(unitDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(lineDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
       }
 
-      document.getElementById('modalItems').innerHTML =
+      const modalItemsView = document.getElementById('modalItems');
+      modalItemsView.className = '';
+      modalItemsView.innerHTML =
         `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th></tr></thead>
         <tbody>${rows + feeRows.join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
       document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
@@ -945,8 +975,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const o = allOrders.find(x => x.id === currentDetailId);
     if (!o) return;
 
-    // 商品マスタ・取引先掛け率をロード
-    await loadProductsForEntry();
+    // 商品マスタ・取引先マスタ・取引先掛け率をロード
+    await Promise.all([loadProductsForEntry(), loadCustomersForEntry()]);
     if (o.customer_id) {
       const pRes = await sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&select=product_id,rate,wholesale_price`);
       allPricing = pRes.ok ? await pRes.json() : [];
@@ -991,6 +1021,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
 
     editMode = true;
+    // 上部フォーム（取引先・受注日・ステータス）を初期化（新規納品書入力と同じ構成）
+    const custSel = document.getElementById('editOrderCustomer');
+    custSel.innerHTML = '<option value="">選択してください</option>' +
+      allCustomers.map(c => `<option value="${esc(c.id)}">${esc(c.company_name)}${c.is_personal_trade ? '（個人取引）' : ''}</option>`).join('');
+    custSel.value = o.customer_id || '';
+    document.getElementById('editOrderDate').value = o.order_date || '';
+    document.getElementById('editOrderStatus').value = o.status || '新規受注';
+    document.getElementById('modalTitle').textContent = `納品書編集 — ${o.code}`;
     // 帳票全体の備考欄を編集可能化
     const notesEl = document.getElementById('orderNotes');
     if (notesEl) notesEl.disabled = false;
@@ -1021,7 +1059,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 手数料・送料セクションを隠す（ビューモードでは loadOrderDetail が明細に表示）
     document.getElementById('orderFeesSection').style.display = 'none';
     toggleEditUI(false);
-    loadOrderDetail(currentDetailId);
+    // openDetail でタイトル・情報グリッド・プレビューまで元の状態に戻す
+    openDetail(currentDetailId);
   }
 
   function toggleEditUI(isEdit) {
@@ -1032,6 +1071,10 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('detailPrintBtn').style.display = isEdit ? 'none' : 'flex';
     document.getElementById('viewModeBtns').style.display = isEdit ? 'none' : 'flex';
     document.getElementById('editModeBtns').style.display = isEdit ? 'flex' : 'none';
+    // 新規納品書入力と同じ構成：編集中は上部フォーム表示・情報グリッド非表示・合計は商品表の直下
+    document.getElementById('editHeadForm').style.display = isEdit ? 'block' : 'none';
+    document.getElementById('modalInfo').style.display = isEdit ? 'none' : 'grid';
+    if (!isEdit) document.getElementById('editTotalsInline').style.display = 'none';
   }
 
   function renderEditMode() {
@@ -1055,6 +1098,32 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('editItemError').classList.remove('show');
     renderEditProductOptions(allProducts);
     renderEditItems();
+  }
+
+  // 編集モードで取引先を変更したとき（新規納品書入力の onCustomerChange と同じ挙動）。
+  // 既存の商品行の単価は自動では変えない＝新規側と同じ。以後追加する商品に新取引先の卸価格が使われる。
+  async function onEditCustomerChange() {
+    const customerId = document.getElementById('editOrderCustomer').value;
+    if (!customerId) {
+      allPricing = [];
+      _currentEditOrderCustomer = null;
+      currentEditIsPersonalTrade = false;
+      document.getElementById('editFeesTaxMode').textContent = '';
+      renderEditItems();
+      updateEditOrderPreview();
+      return;
+    }
+    const [pricingRes, extra] = await Promise.all([
+      sbFetch(`/rest/v1/pricing?tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&select=product_id,rate,wholesale_price`),
+      ensureCustomerExtra(customerId)
+    ]);
+    allPricing = pricingRes.ok ? await pricingRes.json() : [];
+    _currentEditOrderCustomer = extra;
+    const customer = allCustomers.find(c => c.id === customerId);
+    currentEditIsPersonalTrade = !!(customer && customer.is_personal_trade);
+    document.getElementById('editFeesTaxMode').textContent = currentEditIsPersonalTrade ? '個人取引' : '卸取引';
+    renderEditItems();
+    updateEditOrderPreview();
   }
 
   function renderEditProductOptions(list) {
@@ -1109,21 +1178,22 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         ? `<input type="text" data-num="dec" value="${priceDisp}" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`
         : `<input type="text" data-num="dec" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
+      // 列構成は新規納品書入力の商品表と同一（商品名・数量・単価・備考・小計・削除）
       return `<tr>
-        <td style="font-size:14px;color:var(--text-muted)">${esc(it.productCode || '—')}</td>
-        <td style="font-weight:500;white-space:normal">${esc(it.name)}</td>
-        <td class="num-right"><input type="text" data-num="int" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
-        <td class="num-right">${priceCell}</td>
+        <td style="white-space:normal">${esc(it.name)}</td>
+        <td style="text-align:right"><input type="text" data-num="int" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateEditItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
-        <td class="num-right" style="font-weight:600" data-edititem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
-        <td><span class="${it.isFood?'badge-food':'badge-regular'}">${it.isFood?'軽減8%':'標準10%'}</span></td>
-        <td><button onclick="removeEditItem(${i})" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit">✕</button></td>
+        <td style="text-align:right;font-weight:600" data-edititem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
+        <td><button class="btn-danger-sm" onclick="removeEditItem(${i})">✕</button></td>
       </tr>`;
     }).join('');
 
-    document.getElementById('modalItems').innerHTML =
-      `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
+    const modalItemsEl = document.getElementById('modalItems');
+    modalItemsEl.className = 'entry-items-table';
+    modalItemsEl.innerHTML =
+      `<thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
 
     renderEditTotals();
   }
@@ -1141,7 +1211,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function renderEditTotals() {
     const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getEditFees();
     const totals = calcOrderTotals(editItems, handlingFee * handlingQty, shippingFee * shippingQty, currentEditIsPersonalTrade, handlingCharge, shippingCharge);
-    document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
+    // 新規納品書入力と同じく、合計は商品表の直下に表示（フッターではなく）
+    const inlineEl = document.getElementById('editTotalsInline');
+    if (editItems.length === 0) {
+      inlineEl.style.display = 'none';
+      inlineEl.innerHTML = '';
+    } else {
+      inlineEl.style.display = 'flex';
+      inlineEl.innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
+    }
+    document.getElementById('modalTotals').innerHTML = '';
   }
 
   function updateEditFees() {
@@ -1257,9 +1336,30 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   async function saveEditMode() {
+    const o0 = allOrders.find(x => x.id === currentDetailId);
+    const newCustomerId = document.getElementById('editOrderCustomer').value;
+    const newOrderDate  = document.getElementById('editOrderDate').value;
+    const newStatus     = document.getElementById('editOrderStatus').value;
+    // 元からマスタ紐付きの受注は取引先必須（マスタ未登録受注のみ空を許容＝従来の状態を維持）
+    if (o0 && o0.customer_id && !newCustomerId) { alert('取引先を選択してください'); return; }
+    if (!newOrderDate) { alert('受注日を入力してください'); return; }
     if (editItems.length === 0) {
       alert('商品を1つ以上追加してください');
       return;
+    }
+    // 変更後の取引先・受注日が、別の発行済み請求書の期間に入る場合は確認して無効化対象に加える
+    const movedIntoOther = o0 && (newCustomerId !== (o0.customer_id || '') || newOrderDate !== o0.order_date);
+    let newSideInvoices = [];
+    if (movedIntoOther && newCustomerId) {
+      try {
+        const invRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${newCustomerId}&superseded_at=is.null&cancelled_at=is.null&select=invoice_number&period_start=lte.${newOrderDate}&period_end=gte.${newOrderDate}`);
+        if (invRes.ok) newSideInvoices = await invRes.json();
+      } catch(e) { console.error('変更先の請求書チェック失敗:', e); }
+      if (newSideInvoices.length > 0) {
+        const nums = newSideInvoices.map(i => i.invoice_number).join('、');
+        const proceed = confirm(`変更後の取引先・受注日は発行済み請求書（${nums}）の期間に含まれます。\n保存するとその請求書が無効になり、再発行が必要になります。\n続行しますか？`);
+        if (!proceed) return;
+      }
     }
     const btn = document.getElementById('saveEditBtn');
     btn.disabled = true; btn.textContent = '保存中...';
@@ -1289,7 +1389,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       if (!insRes.ok) throw new Error('明細追加失敗');
 
       const o = allOrders.find(x => x.id === currentDetailId);
-      // 帳票全体の備考欄＋手数料・送料・個人取引フラグを orders に保存
+      // 帳票全体の備考欄＋取引先・受注日・ステータス＋手数料・送料・個人取引フラグを orders に保存
       const notesEl = document.getElementById('orderNotes');
       const notesValue = notesEl ? (notesEl.value || '').trim() : '';
       const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getEditFees();
@@ -1297,6 +1397,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({
+          customer_id: newCustomerId || null,
+          order_date: newOrderDate,
+          status: newStatus,
           notes: notesValue || null,
           is_personal_trade: !!currentEditIsPersonalTrade,
           handling_fee: handlingFee,
@@ -1307,22 +1410,20 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           shipping_fee_charge: !!shippingCharge,
         })
       });
-      if (!notesPatchRes.ok) throw new Error('受注メモ保存失敗');
+      if (!notesPatchRes.ok) throw new Error('受注保存失敗');
       _editOrderNotesOriginal = notesValue;
-      if (o) {
-        o.notes = notesValue;
-        o.isPersonalTrade = !!currentEditIsPersonalTrade;
-        o.handlingFee = handlingFee;
-        o.shippingFee = shippingFee;
-        o.handlingQty = handlingQty;
-        o.shippingQty = shippingQty;
-        o.handlingCharge = !!handlingCharge;
-        o.shippingCharge = !!shippingCharge;
-      }
 
+      // 影響する請求書を無効化：元の期間（editAffectedInvoices）＋変更後の期間（newSideInvoices）
+      const supersededAt = new Date().toISOString();
       if (o && editAffectedInvoices.length > 0) {
-        const supersededAt = new Date().toISOString();
         await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${o.customer_id}&superseded_at=is.null&period_start=lte.${o.order_date}&period_end=gte.${o.order_date}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ superseded_at: supersededAt })
+        });
+      }
+      if (newSideInvoices.length > 0) {
+        await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&customer_id=eq.${newCustomerId}&superseded_at=is.null&cancelled_at=is.null&period_start=lte.${newOrderDate}&period_end=gte.${newOrderDate}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
           body: JSON.stringify({ superseded_at: supersededAt })
@@ -1336,7 +1437,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       if (notesEl) notesEl.disabled = true;
       await loadOrders();
       toggleEditUI(false);
-      loadOrderDetail(currentDetailId);
+      // 取引先・受注日・ステータスの変更を情報グリッド・タイトルにも反映するため openDetail で再描画
+      openDetail(currentDetailId);
     } catch(e) {
       console.error('受注編集保存失敗:', e);
       alert('保存に失敗しました。もう一度お試しください。');
@@ -1464,15 +1566,19 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     // 編集モードなら入力中の手数料・送料・フラグを使用、ビューモードなら保存済みの値を使用
     const fees = editMode ? getEditFees() : { handlingFee: Number(o.handlingFee) || 0, shippingFee: Number(o.shippingFee) || 0, handlingQty: Number(o.handlingQty) || 1, shippingQty: Number(o.shippingQty) || 1, handlingCharge: !!o.handlingCharge, shippingCharge: !!o.shippingCharge };
     const isPersonal = editMode ? currentEditIsPersonalTrade : !!o.isPersonalTrade;
+    // 編集モードなら入力中の受注日をプレビューに反映
+    const previewDate = editMode
+      ? (document.getElementById('editOrderDate')?.value || o.date || null)
+      : (o.date || null);
     MeguReePreview.renderOrder(wrap, {
       customer: _currentEditOrderCustomer || {},
       settings: _previewSettings || {},
       bankAccounts: _previewBankAccounts || [],
       items: items,
       orderId: o.code || null,
-      deliveryDate: o.date || null,
+      deliveryDate: previewDate,
       invoiceNumber: null,
-      issuedDate: o.date || null,
+      issuedDate: previewDate,
       dueDate: null,
       notes,
       isPersonalTrade: isPersonal,
