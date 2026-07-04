@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-26ZR6LCJY2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-26ZR6LCJY2');
+</script>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>「受発注システムの月額、高くない？」と感じたら——売上から取らない月額固定という選択肢 | MeguRee</title>
+<meta name="description" content="受発注システムの費用が売上や注文数と一緒に増えていく——頑張るほど月額が重くなる仕組みに、モヤモヤしていませんか。従量課金・取引先数課金・売上連動の仕組みをやさしく整理し、小規模の卸に合う「売上から取らない月額固定」という選択肢を、乗り換え時の正直な注意点まで含めて解説します。">
+<link rel="canonical" href="https://oshigowata-sys.github.io/order-form/juhatchu-getsugaku-kotei.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="「受発注システムの月額、高くない？」と感じたら——売上から取らない月額固定という選択肢 | MeguRee">
+<meta property="og:description" content="費用が売上や注文数と一緒に増える仕組みにモヤモヤしていませんか。小規模の卸に合う「売上から取らない月額固定」という選択肢を、正直な注意点まで含めて解説します。">
+<meta property="og:url" content="https://oshigowata-sys.github.io/order-form/juhatchu-getsugaku-kotei.html">
+<meta property="og:image" content="https://oshigowata-sys.github.io/order-form/assets/lp/dash-pc.png">
+<meta property="og:site_name" content="MeguRee">
+<meta property="og:locale" content="ja_JP">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "「受発注システムの月額、高くない？」と感じたら——売上から取らない月額固定という選択肢",
+  "description": "受発注システムの費用が売上や注文数と一緒に増えていく仕組みをやさしく整理し、小規模の卸に合う「売上から取らない月額固定」という選択肢を、乗り換え時の正直な注意点まで含めて解説します。",
+  "datePublished": "2026-07-04",
+  "dateModified": "2026-07-04",
+  "author": {
+    "@type": "Organization",
+    "name": "MeguRee"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "MeguRee",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://oshigowata-sys.github.io/order-form/meguree_final%20(2).svg"
+    }
+  },
+  "mainEntityOfPage": "https://oshigowata-sys.github.io/order-form/juhatchu-getsugaku-kotei.html"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "受発注システムの費用が高いと感じたら、まず何をすればいいですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "まず「何にいくら払っているか」の棚卸しをおすすめします。基本の月額に加えて、注文件数やデータ量で増える分、取引先やアカウント数で増える分、オプション費用を書き出し、その費用で実際にラクになっている業務がどれかを突き合わせます。払っている額と助かっている実感が釣り合っていない部分が、見直しの候補です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "月額固定と、売上や注文数に連動する料金は、どちらがいいのですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "規模と使い方によります。取引量の波が大きい大企業には従量型が合理的な場合もあります。一方、これから取引先や注文を増やしていきたい小規模の卸にとっては、頑張るほど費用が増える仕組みは負担になりやすく、毎月の支出が読める月額固定のほうが安心して使えるケースが多いです。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "取引先（発注側）に指定されたシステムはやめられません。それでも見直せますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "発注側が指定している仕組みは、受注側の一存では外せないのが正直なところです。ただし「自社に届いた注文をまとめて管理し、納品書・請求書を作る」という自社側の業務は、自分で道具を選べる領域です。指定されたシステムはそのまま使いながら、自社側の受注管理だけを月額固定の仕組みに整える、という併用が現実的です。"
+      }
+    }
+  ]
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #e8630a;
+  --orange-dark: #c4510a;
+  --green: #1e6641;
+  --green-dark: #15803d;
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --text: #1c1917;
+  --muted: #6b6258;
+  --border: #e7e0d8;
+}
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.8;
+}
+a { color: inherit; }
+.header {
+  background: rgba(255,255,255,0.96);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.header-links { display: flex; align-items: center; gap: 18px; font-size: 13px; font-weight: 700; }
+.header-links a { text-decoration: none; color: var(--muted); }
+.header-links .cta {
+  background: var(--orange);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+.hero {
+  background: linear-gradient(160deg, #ffffff 0%, #f3f9f4 100%);
+  border-bottom: 1px solid var(--border);
+}
+.hero-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 24px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+.eyebrow {
+  display: inline-flex;
+  background: #fff4ec;
+  color: var(--orange);
+  border: 1px solid rgba(232,99,10,0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+h1 {
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.32;
+  letter-spacing: 0;
+  margin-bottom: 16px;
+}
+.lead { color: var(--muted); font-size: 16px; }
+.hero-image {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 48px rgba(28,25,23,0.16);
+}
+.hero-image img { width: 100%; display: block; }
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+.article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px;
+}
+.article h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 34px 0 14px;
+}
+.article h2:first-child { margin-top: 0; }
+.article h3 {
+  font-size: 18px;
+  margin: 24px 0 8px;
+}
+.article p { color: var(--muted); margin-bottom: 14px; }
+.article ul, .article ol { padding-left: 1.4em; color: var(--muted); margin-bottom: 18px; }
+.article li { margin-bottom: 8px; }
+.article a { color: var(--orange); }
+.note {
+  background: #f0f7f3;
+  border-left: 4px solid var(--green);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 24px 0;
+  color: var(--text);
+}
+
+/* ===== 料金の伸び方 比較図（自作ビジュアル） ===== */
+.figure { margin: 26px 0 10px; }
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.compare-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(28,25,23,0.08);
+}
+.compare-card .ch {
+  padding: 13px 18px;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #fff;
+}
+.compare-card.rise .ch { background: linear-gradient(135deg, #8a5a1f 0%, #6e4715 100%); }
+.compare-card.flat .ch { background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); }
+.compare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+  color: var(--text);
+}
+.compare-row .lbl { color: var(--muted); }
+.compare-row .val { font-weight: 800; }
+.compare-card.rise .val { color: var(--orange-dark); }
+.compare-card.flat .val { color: var(--green-dark); }
+.figcap { font-size: 12.5px; color: var(--muted); margin: 10px 2px 0; }
+
+.cta-box {
+  margin-top: 36px;
+  background: #1c1917;
+  color: #fff;
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.cta-box h2 { color: #fff; margin: 0 0 8px; font-size: 22px; }
+.cta-box p { color: rgba(255,255,255,0.72); margin: 0; }
+.cta-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--orange); color: #fff; }
+.btn-secondary { border: 1px solid rgba(255,255,255,0.32); color: #fff; }
+.footer {
+  background: #1c1917;
+  color: rgba(255,255,255,0.45);
+  padding: 24px;
+  font-size: 12px;
+}
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer a { color: rgba(255,255,255,0.65); text-decoration: none; margin-right: 16px; }
+@media (max-width: 760px) {
+  .header-inner { align-items: flex-start; flex-direction: column; }
+  .header-links { flex-wrap: wrap; gap: 12px; }
+  .hero-inner { grid-template-columns: 1fr; padding: 40px 20px; }
+  .main { padding: 32px 16px 48px; }
+  .article { padding: 24px; }
+  .compare { grid-template-columns: 1fr; }
+  .cta-box { grid-template-columns: 1fr; }
+  .cta-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <a href="lp.html" class="logo">
+      <span style="font-family:'Palatino Linotype',Palatino,Georgia,serif;font-weight:700;font-size:30px;background:linear-gradient(90deg,#ff5500,#ff9900 55%,#00b850);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;line-height:1;white-space:nowrap;">MeguRee</span>
+    </a>
+    <nav class="header-links" aria-label="主要ページ">
+      <a href="lp.html">トップ</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html" class="cta">お問い合わせ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">卸の受注管理ガイド</div>
+      <h1>「受発注システムの月額、高くない？」と感じたら——売上から取らない月額固定という選択肢</h1>
+      <p class="lead">
+        毎月の請求を見て、「この額、うちの規模に合っているのかな」と思ったことはありませんか。システム自体は便利。でも費用が売上や注文数と一緒に育っていく仕組みだと、商売を頑張るほど支払いも重くなります。この記事では、受発注まわりの費用が高くなりがちな仕組みをやさしく整理して、「売上から取らない月額固定」という選択肢を、乗り換え時の正直な注意点まで含めて紹介します。
+      </p>
+    </div>
+    <div class="hero-image">
+      <img src="assets/lp/dash-pc.png" alt="MeguRee 受注管理の画面">
+    </div>
+  </div>
+</section>
+
+<main class="main">
+  <article class="article">
+    <p>最初に書いておくと、これは「今のシステムをすぐやめましょう」という話ではありません。取引先との関係で使い続けるべきものもありますし、規模によっては従量型の料金が合理的なこともあります。</p>
+    <p>ただ、<strong>「なんとなく高い気がするけれど、何と比べていいか分からない」まま払い続けている</strong>としたら、一度だけ立ち止まって整理する価値があります。この記事はそのための整理です。</p>
+
+    <h2>受発注システムの費用が「高くなりがち」な3つの仕組み</h2>
+    <p>受発注まわりのサービスの多くは、次のどれか（または組み合わせ）で料金が決まっています。</p>
+
+    <h3>1. 注文の件数やデータ量で増える（従量型）</h3>
+    <p>使った分だけ払う、一見フェアな仕組みです。ただ、繁忙期に注文をたくさん受けた月ほど請求も増えるので、「売れた月ほど手取りの伸びが鈍い」という感覚になりやすい形でもあります。</p>
+
+    <h3>2. つながる取引先やアカウントの数で増える</h3>
+    <p>取引先を1社増やすたび、担当者を1人増やすたびに月額が上がる仕組みです。商売を広げる努力が、そのまま固定費の増加として跳ね返ってきます。</p>
+
+    <h3>3. 売上に対する割合で取られる（手数料型）</h3>
+    <p>売上の数％を手数料として支払う形です。導入のハードルは低い反面、売上が育つほど支払いも比例して育ちます。年間で見ると、月額固定の何倍も払っていた——ということも起こります。</p>
+
+    <div class="figure">
+      <div class="compare">
+        <div class="compare-card rise">
+          <div class="ch">売上・取引量に連動する料金</div>
+          <div class="compare-row"><span class="lbl">注文が増えると</span><span class="val">費用も増える</span></div>
+          <div class="compare-row"><span class="lbl">売上が伸びると</span><span class="val">支払いも増える</span></div>
+          <div class="compare-row"><span class="lbl">来月の支払い</span><span class="val">締めてみないと分からない</span></div>
+        </div>
+        <div class="compare-card flat">
+          <div class="ch">月額固定の料金</div>
+          <div class="compare-row"><span class="lbl">注文が増えても</span><span class="val">変わらない</span></div>
+          <div class="compare-row"><span class="lbl">売上が伸びても</span><span class="val">変わらない</span></div>
+          <div class="compare-row"><span class="lbl">来月の支払い</span><span class="val">今月と同じ</span></div>
+        </div>
+      </div>
+      <p class="figcap">※ どちらが正解というより「向き不向き」の話。これから取引を増やしたい小規模の卸には、支出が読める固定型が合いやすい、というのがこの記事の立場です。</p>
+    </div>
+
+    <h2>「高い」と感じる、よくある場面</h2>
+    <p>費用への違和感には、だいたい共通のパターンがあります。心当たりがないか、眺めてみてください。</p>
+    <ul>
+      <li><strong>頑張った月ほど請求が増える。</strong>繁忙期を乗り切った達成感と一緒に、いつもより重い請求が届く。</li>
+      <li><strong>使っているのは一部の機能だけ。</strong>多機能なパッケージのうち、実際に触っているのは受注の確認と帳票だけ——なのに、フルセット分を払っている。</li>
+      <li><strong>取引先の都合で入ったので、自社の業務には合っていない。</strong>発注側に合わせて加入したシステムは、発注側の業務のために設計されていることが多く、こちらの受注管理や請求づくりは結局手作業のまま、ということがあります。</li>
+      <li><strong>「何にいくら払っているか」を最近見ていない。</strong>基本料金・従量分・オプションが混ざって、合計しか見ていない。</li>
+    </ul>
+
+    <h2>見直しの手順は「棚卸し」から</h2>
+    <p>乗り換えを考える前に、まず現状を3つに分けて書き出すのがおすすめです。10分でできます。</p>
+    <ol>
+      <li><strong>何にいくら払っているか。</strong>基本の月額、注文数などで増える分、取引先・アカウント数で増える分、オプション。ざっくりで大丈夫です。</li>
+      <li><strong>その費用で、実際にラクになっている業務はどれか。</strong>「注文を受け取る」「注文をまとめて管理する」「納品書・請求書を作る」に分けて、どこが助かっていて、どこが手作業のまま残っているかを見ます。</li>
+      <li><strong>やめられる部分と、やめられない部分を分ける。</strong>ここが一番大事なので、次の章で正直に書きます。</li>
+    </ol>
+
+    <h2>正直な話：取引先が指定した仕組みは、こちらだけではやめられない</h2>
+    <p>発注側（買い手）が「このシステムで発注します」と決めている場合、受注側の一存でそこから抜けるのは現実的ではありません。取引を続ける以上、その部分の費用は付き合いのコストとして残ります。ここをぼかして「乗り換えれば全部解決」と書くのは不誠実なので、はっきり書いておきます。</p>
+    <p>ただし、それは「注文を受け取る入口」の話です。<strong>受け取った注文をまとめて管理し、取引先ごとの卸価格を当てて、納品書・請求書を作る——という自社側の業務は、自分で道具を選べる領域</strong>です。入口は取引先に合わせつつ、自社側の管理だけを安く・ラクな仕組みに整える。この「併用」が、小規模の卸にとって一番現実的な見直し方だと考えています。</p>
+
+    <h2>売上から取らない月額固定、という選択肢</h2>
+    <p>MeguRee（めぐリー）は、FAX・電話・ネットで受けた注文をPCの一覧にまとめて、取引先ごとの卸価格を自動で当てて、納品書・請求書まで一つながりで作れる、小規模の卸のための受注管理の仕組みです。</p>
+    <p>料金は<strong>月額固定で ¥9,800／月（税別）から</strong>。注文が増えても、売上が伸びても、月額は変わらず、売上から手数料を取ることもありません。「商売を頑張るほど費用が増える」を、ここでは起こさない設計です（プランは取引先数などの規模に応じて選べる形で、どのプランも月額固定です）。初期費用は0円で、初回の導入支援（¥50,000・税別）は必要な方だけの任意です。解約費用もかからず、最低利用期間もありません。</p>
+    <p>機能は、小規模の卸が受注から請求までを回すのに必要なものに絞っています。大企業向けの多機能さはありませんが、その分、迷わず使えて、費用も固定にできています。エクセル管理から移る場合の考え方は<a href="excel-juchu-kanri-genkai.html">Excelでの受注管理の限界</a>、取引先ごとの卸価格の管理は<a href="oroshikakaku-kakeritsu-kanri.html">卸価格・掛け率のラクな管理方法</a>、FAX注文そのものの整理は<a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>でくわしく書いています。</p>
+    <div class="note">
+      いまお使いの仕組みからの移り替えは、導入支援としてこちらで一緒に進めます。取引先の一覧や価格表の移し替えも含めて、「パソコンは得意じゃない」という方でも丸投げで始められるようにしています。
+    </div>
+
+    <h2>浮いた費用と時間は、自分で選べる</h2>
+    <p>費用の見直しは、単なる節約の話ではないと思っています。毎月の支払いが読めるようになると、先の計画が立てやすくなる。手作業が減ると、数字を打ち直すだけの孤独な時間が減る。</p>
+    <p>浮いたお金と時間を何に使うかは、あなたが決めていい。仕入れに回してもいいし、少し早く帰ってもいい。MeguReeの役割は「選べる状態を渡すこと」だと思っています。</p>
+
+    <section class="cta-box" aria-label="資料ダウンロードと問い合わせ">
+      <div>
+        <h2>まずは中身と料金を見てから決めてください</h2>
+        <p>機能・料金・導入の流れをまとめた資料をご覧いただけます。こちらから一方的に売り込みのお電話をすることはありません。いまの費用と見比べる材料として、のぞいてみてください。</p>
+      </div>
+      <div class="cta-actions">
+        <a href="download.html" class="btn btn-primary">資料ダウンロード</a>
+        <a href="contact.html" class="btn btn-secondary">相談・質問する</a>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <a href="lp.html">MeguRee</a>
+      <a href="kanko-oroshi-juchu-kanri.html">観光卸の受注管理</a>
+      <a href="fax-order-management.html">FAX注文の管理を効率化する方法</a>
+      <a href="excel-juchu-kanri-genkai.html">Excel受注管理の限界</a>
+      <a href="miyagemono-oroshi-fax-dakkyaku.html">土産物卸のFAX脱却</a>
+      <a href="oroshikakaku-kakeritsu-kanri.html">卸価格・掛け率の管理</a>
+      <a href="download.html">資料ダウンロード</a>
+      <a href="contact.html">お問い合わせ</a>
+    </div>
+    <div>© 2026 MeguRee. All rights reserved.</div>
+  </div>
+</footer>
+<script src="analytics-events.js"></script>
+</body>
+</html>
