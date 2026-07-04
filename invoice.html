@@ -1334,10 +1334,15 @@
 
     const invoiceNo = generateInvoiceNo(f['受注ID']);
     // 発行日：単一受注モードは受注日に合わせる（作成画面プレビューと一致・後日再印刷でもズレない）。
-    // 期間請求書（複数受注をまとめる月次請求書）は単一の受注日が無いため従来どおり今日。
-    const today = (!isPeriod && ymdToJaLong(f['受注日']))
-      ? ymdToJaLong(f['受注日'])
-      : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    // 期間請求書（請求明細書）は invoices に保存された発行日（issued_date）で固定する。
+    // 未発行のプレビュー（保存された発行日が無い）だけ今日を出す。
+    const savedIssuedDate = (isPeriod && currentInvoice && currentInvoice.issued_date)
+      ? ymdToJaLong(String(currentInvoice.issued_date).slice(0, 10)) : null;
+    const today = savedIssuedDate
+      ? savedIssuedDate
+      : (!isPeriod && ymdToJaLong(f['受注日']))
+        ? ymdToJaLong(f['受注日'])
+        : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
     const dueDate = calcDueDate(f['受注日'], {
       closing_day:          f['締め日'],
       payment_month_offset: f['支払月オフセット'],
@@ -1869,7 +1874,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -1882,6 +1887,7 @@
         let currentInvoicePaidAmount = null;
         let currentInvoiceManualPrev = null;
         let currentInvoiceNotes = '';
+        let currentInvoiceIssuedDate = null;
         let snapshotItems = [];
         let currentIsPersonal = null;
         let currentHandlingFee = null;
@@ -1894,6 +1900,7 @@
             currentInvoicePaidAmount = d[0].paid_amount;
             currentInvoiceManualPrev = d[0].manual_prev_amount;
             currentInvoiceNotes = d[0].notes || '';
+            currentInvoiceIssuedDate = d[0].issued_date || null;
             window._currentInvoiceId = d[0].id;
             snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
             currentIsPersonal = !!d[0].is_personal_trade;
@@ -1904,7 +1911,7 @@
           }
         }
 
-        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, notes: currentInvoiceNotes } : null;
+        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, notes: currentInvoiceNotes, issued_date: currentInvoiceIssuedDate } : null;
 
         // 個人取引フラグ・手数料・送料：発行済 invoices のスナップショットを優先、
         // 無ければ期間内 orders を集計。向き（＋/−）が受注ごとに混在しうるため、

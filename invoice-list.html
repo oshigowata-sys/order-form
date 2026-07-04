@@ -225,6 +225,11 @@ tr.row-inprogress td{color:var(--text-muted)}
         </div>
       </div>
       <div style="margin-top:14px">
+        <label class="form-label">発行日（請求書に印字される日付）</label>
+        <input type="date" class="form-input" id="issueDate" style="width:100%">
+        <div style="margin-top:6px;font-size:12.5px;color:var(--text-muted)">通常はこのまま（今日）。月末日付で発行したい場合などに変更できます。発行後も変更できます。</div>
+      </div>
+      <div style="margin-top:14px">
         <label class="form-label">帳票全体の備考（請求書フッターに表示・任意）</label>
         <textarea class="form-input" id="issueNotes" maxlength="200" placeholder="（任意）" style="min-height:60px;resize:vertical;width:100%"></textarea>
       </div>
@@ -233,6 +238,31 @@ tr.row-inprogress td{color:var(--text-muted)}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeIssueModal()">キャンセル</button>
       <button class="btn btn-primary" id="issueConfirmBtn" onclick="confirmIssue()">発行する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 発行日変更モーダル（発行済み請求書の発行日を後から修正する） -->
+<div class="overlay" id="editDateModalOverlay" onclick="if(event.target===this)closeEditDateModal()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">発行日の変更</div>
+      <button class="modal-close" onclick="closeEditDateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;font-size:14px">
+        請求書：<strong id="editDateInvoiceNum"></strong><br>
+        取引先：<strong id="editDateCustomer"></strong>
+      </div>
+      <label class="form-label">発行日</label>
+      <input type="date" class="form-input" id="editDateInput" style="width:100%">
+      <div style="margin-top:10px;font-size:12.5px;color:var(--text-muted);line-height:1.7">
+        請求書に印字される発行日が変わります。金額・支払期限・請求書番号は変わりません。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditDateModal()">キャンセル</button>
+      <button class="btn btn-primary" id="editDateSaveBtn" onclick="saveIssuedDate()">変更する</button>
     </div>
   </div>
 </div>
@@ -569,7 +599,7 @@ function renderAll() {
         const unpaidBadge = r.paidAmount == null
           ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700">入金未登録</span>' : '';
         badge        = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
-        action       = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button><button class="btn btn-sm" style="background:#fff;color:#92400e;border:1.5px solid #fcd34d;font-weight:600" onclick="confirmCancelInvoice(${idx})">発行取り消し</button><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:600" onclick="confirmDeleteInvoice(${idx})">削除</button></div>`;
+        action       = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button><button class="btn btn-outline btn-sm" onclick="openEditDateModal(${idx})">発行日変更</button><button class="btn btn-sm" style="background:#fff;color:#92400e;border:1.5px solid #fcd34d;font-weight:600" onclick="confirmCancelInvoice(${idx})">発行取り消し</button><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:600" onclick="confirmDeleteInvoice(${idx})">削除</button></div>`;
       }
       ordersCell     = `${r.orders}件`;
       issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '未発行';
@@ -611,6 +641,68 @@ function openPdf(idx) {
   window.location.href = url;
 }
 
+// ── 発行日変更（発行済み請求書の発行日を後から修正する） ──
+let _editDateTarget = null;
+
+function openEditDateModal(idx) {
+  const r = _renderedRows[idx];
+  if (!r || !r.invoiceId) return;
+  _editDateTarget = r;
+  document.getElementById('editDateInvoiceNum').textContent = r.invoiceNumber || '—';
+  document.getElementById('editDateCustomer').textContent   = r.customer || '—';
+  document.getElementById('editDateInput').value            = r.issuedDate || ymdLocal();
+  document.getElementById('editDateModalOverlay').classList.add('open');
+}
+
+function closeEditDateModal() {
+  document.getElementById('editDateModalOverlay').classList.remove('open');
+  _editDateTarget = null;
+}
+
+async function saveIssuedDate() {
+  if (!_editDateTarget) return;
+  const newDate = document.getElementById('editDateInput').value;
+  if (!newDate) {
+    showToast('⚠️ 発行日を入力してください');
+    return;
+  }
+  const btn = document.getElementById('editDateSaveBtn');
+  btn.disabled = true; btn.textContent = '変更中...';
+  try {
+    const oldDate = _editDateTarget.issuedDate || null;
+    const res = await sbFetch(`/rest/v1/invoices?id=eq.${encodeURIComponent(_editDateTarget.invoiceId)}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ issued_date: newDate })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    try {
+      await sbFetch('/rest/v1/audit_log', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          user_name: userName || '—',
+          action: 'update',
+          table_name: 'invoices',
+          record_id: String(_editDateTarget.invoiceId),
+          record_label: `${_editDateTarget.customer} 発行日変更（${_editDateTarget.invoiceNumber}）`,
+          old_values: { issued_date: oldDate },
+          new_values: { issued_date: newDate }
+        })
+      });
+    } catch(e) { console.warn('audit_log書き込み失敗:', e); }
+    showToast('発行日を変更しました');
+    closeEditDateModal();
+    loadAll();
+  } catch(e) {
+    console.error(e);
+    showToast('⚠️ 発行日の変更に失敗しました');
+  } finally {
+    btn.disabled = false; btn.textContent = '変更する';
+  }
+}
+
 // ── 発行モーダル ──
 let _issueTarget = null;
 let _isInterim   = false;
@@ -623,6 +715,7 @@ async function openIssueModal(r, isInterim = false) {
   document.getElementById('issueCustomerName').textContent = r.customer;
   document.getElementById('issuePeriodStart').value        = r.periodStart;
   document.getElementById('issuePeriodEnd').value          = r.periodEnd;
+  document.getElementById('issueDate').value               = ymdLocal();
   // 備考欄の初期値：同じ期間に既存の途中発行があればその notes を引き継ぐ、無ければ空
   const notesEl = document.getElementById('issueNotes');
   if (notesEl) {
@@ -672,6 +765,11 @@ async function confirmIssue() {
   const periodEnd   = document.getElementById('issuePeriodEnd').value;
   if (!periodStart || !periodEnd || periodStart > periodEnd) {
     showToast('⚠️ 期間の開始日・終了日を正しく入力してください');
+    return;
+  }
+  const issuedDate = document.getElementById('issueDate').value;
+  if (!issuedDate) {
+    showToast('⚠️ 発行日を入力してください');
     return;
   }
   const btn = document.getElementById('issueConfirmBtn');
@@ -737,8 +835,8 @@ async function confirmIssue() {
       manualPrevAmount = Number(String(ans).replace(/[^0-9]/g, '')) || 0;
     }
 
-    const today = new Date();
-    const ym    = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
+    // 請求書番号の年月は発行日（画面で選んだ日付）基準にする
+    const ym    = issuedDate.slice(0, 4) + issuedDate.slice(5, 7);
     const cntRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=id`);
     const cnt    = (await cntRes.json()).length + 1;
     const num    = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
@@ -750,7 +848,7 @@ async function confirmIssue() {
       customer_id:    r.customerId,
       period_start:   periodStart,
       period_end:     periodEnd,
-      issued_date:    ymdLocal(today),
+      issued_date:    issuedDate,
       total_excl_tax: r.excl,
       tax_amount:     r.tax,
       total_incl_tax: incl,
