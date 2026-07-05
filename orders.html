@@ -221,10 +221,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     </div>
     <div class="card">
       <div class="filter-tabs">
-        <button class="tab active" data-filter="all">すべて</button>
-        <button class="tab" data-filter="新規受注">新規受注</button>
-        <button class="tab" data-filter="処理中">処理中</button>
-        <button class="tab" data-filter="出荷済み">出荷済み</button>
+        <button class="tab active" data-sort="default">すべて</button>
+        <button class="tab" data-sort="date">日付別</button>
+        <button class="tab" data-sort="customer">得意先別</button>
       </div>
       <div class="table-wrapper">
         <table>
@@ -511,7 +510,6 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   let allOrders = [];
-  let currentFilter = 'all';
   let currentSearch = '';
   // 一覧の並び替え（見出しクリック）。既定は受注日の新しい順。
   let currentSort = { key: 'date', dir: 'desc' };
@@ -720,7 +718,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   function renderOrders() {
     const tbody = document.getElementById('ordersTbody');
-    let list = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+    // タブは状態での絞り込みではなく並び替え（すべて／日付別／得意先別）に統一。一覧は常に全件表示。
+    let list = allOrders.slice();
     if (currentSearch) {
       const q = currentSearch.toLowerCase();
       list = list.filter(o => (o.customerSearch || o.customer).toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
@@ -1466,11 +1465,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
+  // タブ＝並び替えの切り替え（すべて／日付別／得意先別）。
+  //   すべて・日付別＝受注日の新しい順／得意先別＝取引先名の五十音順。
+  //   見出しクリックの並び替え（setSort）と同じ currentSort を動かすので、▲▼表示も連動する。
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
-      currentFilter = t.dataset.filter;
+      currentSort = (t.dataset.sort === 'customer')
+        ? { key: 'customer', dir: 'asc' }
+        : { key: 'date', dir: 'desc' };
       renderOrders();
     });
   });
