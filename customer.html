@@ -275,9 +275,9 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
-            <input type="number" id="fDefHandlingFee" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <input type="text" data-num="dec" id="fDefHandlingFee" value="0" oninput="onNumInput(this, event)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="fDefHandlingFeeQty" value="1" min="1" step="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <input type="text" data-num="int" id="fDefHandlingFeeQty" value="1" oninput="onNumInput(this, event)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
             <select id="fDefHandlingFeeDir" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -285,9 +285,9 @@
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
-            <input type="number" id="fDefShippingFee" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <input type="text" data-num="dec" id="fDefShippingFee" value="0" oninput="onNumInput(this, event)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="fDefShippingFeeQty" value="1" min="1" step="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
+            <input type="text" data-num="int" id="fDefShippingFeeQty" value="1" oninput="onNumInput(this, event)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--surface)">
             <select id="fDefShippingFeeDir" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--surface)">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -682,6 +682,59 @@
     if (!insRes.ok) throw new Error('contacts insert HTTP ' + insRes.status);
   }
 
+  // ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+  // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+  // 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+  function zenkakuNum(str) {
+    return String(str == null ? '' : str)
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/．/g, '.')
+      .replace(/[−ー－]/g, '-');
+  }
+  // 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+  function normalizeNumInput(el) {
+    if (!el) return;
+    const before = el.value;
+    const after = zenkakuNum(before);
+    if (before === after) return;
+    const pos = el.selectionStart;
+    el.value = after;
+    try { el.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  // IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+  function onNumInput(el, ev, cb) {
+    if (ev && ev.isComposing) return;
+    normalizeNumInput(el);
+    if (typeof cb === 'function') cb(el);
+  }
+  // IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+  // ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+  //   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、他の欄に戻っても
+  //   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+  document.addEventListener('compositionend', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    if (el.value === zenkakuNum(el.value)) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+        el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+      }
+    });
+  }
+
   async function saveCustomer() {
     const company = document.getElementById('fCompany').value.trim();
     if (!company) { alert('会社名は必須です'); document.getElementById('fCompany').focus(); return; }
@@ -697,12 +750,12 @@
       payment_month_offset:  document.getElementById('fPaymentOffset').value !== '' ? Number(document.getElementById('fPaymentOffset').value) : null,
       payment_day:           Number(document.getElementById('fPayment').value)        || null,
       is_personal_trade:     document.getElementById('fIsPersonalTrade').checked,
-      default_handling_fee:        Number(document.getElementById('fDefHandlingFee').value) || 0,
-      default_shipping_fee:        Number(document.getElementById('fDefShippingFee').value) || 0,
+      default_handling_fee:        Number(zenkakuNum(document.getElementById('fDefHandlingFee').value)) || 0,
+      default_shipping_fee:        Number(zenkakuNum(document.getElementById('fDefShippingFee').value)) || 0,
       default_handling_fee_charge: document.getElementById('fDefHandlingFeeDir').value === 'charge',
       default_shipping_fee_charge: document.getElementById('fDefShippingFeeDir').value === 'charge',
-      default_handling_fee_qty:    Number(document.getElementById('fDefHandlingFeeQty').value) || 1,
-      default_shipping_fee_qty:    Number(document.getElementById('fDefShippingFeeQty').value) || 1,
+      default_handling_fee_qty:    Number(zenkakuNum(document.getElementById('fDefHandlingFeeQty').value)) || 1,
+      default_shipping_fee_qty:    Number(zenkakuNum(document.getElementById('fDefShippingFeeQty').value)) || 1,
       tenant_id:    tenantId,
     };
     const saveBtn = document.querySelector('#modalOverlay .btn-primary');

@@ -181,7 +181,7 @@
           <button class="btn-secondary" type="button" onclick="addBankAccount()">+ 振込先を追加</button>
           <div class="form-group">
             <label class="form-label">支払期限（受注日から何日後）</label>
-            <input type="number" class="form-input" id="paymentDays" placeholder="例：30" value="30" style="max-width:120px" />
+            <input type="text" data-num="int" class="form-input" id="paymentDays" placeholder="例：30" value="30" oninput="onNumInput(this, event)" style="max-width:120px" />
           </div>
         </div>
         <div class="settings-card-footer">
@@ -507,6 +507,59 @@
     }
   }
 
+  // ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+  // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+  // 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+  function zenkakuNum(str) {
+    return String(str == null ? '' : str)
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/．/g, '.')
+      .replace(/[−ー－]/g, '-');
+  }
+  // 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+  function normalizeNumInput(el) {
+    if (!el) return;
+    const before = el.value;
+    const after = zenkakuNum(before);
+    if (before === after) return;
+    const pos = el.selectionStart;
+    el.value = after;
+    try { el.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  // IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+  function onNumInput(el, ev, cb) {
+    if (ev && ev.isComposing) return;
+    normalizeNumInput(el);
+    if (typeof cb === 'function') cb(el);
+  }
+  // IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+  // ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+  //   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、他の欄に戻っても
+  //   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+  document.addEventListener('compositionend', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    if (el.value === zenkakuNum(el.value)) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+        el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+      }
+    });
+  }
+
   async function saveBank() {
     try {
       const banks = bankAccounts
@@ -520,7 +573,7 @@
         bank_number: firstBank.bank_number,
         bank_holder: firstBank.bank_holder,
         bank_note: firstBank.bank_note,
-        payment_days: parseInt(document.getElementById('paymentDays').value) || 30,
+        payment_days: parseInt(zenkakuNum(document.getElementById('paymentDays').value)) || 30,
       });
       await saveBankAccounts(banks);
       bankAccounts = banks.length > 0 ? banks : [blankBankAccount()];
