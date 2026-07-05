@@ -341,7 +341,7 @@
       </div>
       <div class="form-group">
         <label>月額（円・実額）</label>
-        <input type="number" id="inviteMonthlyAmount" min="0" step="100" placeholder="交渉価格があれば入力（例：24800）" />
+        <input type="text" data-num="int" id="inviteMonthlyAmount" placeholder="交渉価格があれば入力（例：24800）" oninput="onNumInput(this, event)" />
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">空欄ならプラン金額で集計します</div>
       </div>
       <div class="form-group full">
@@ -396,7 +396,7 @@
       </div>
       <div class="form-group">
         <label>月額（円・実額）</label>
-        <input type="number" id="editMonthlyAmount" min="0" step="100" placeholder="交渉価格があれば入力（例：24800）" />
+        <input type="text" data-num="int" id="editMonthlyAmount" placeholder="交渉価格があれば入力（例：24800）" oninput="onNumInput(this, event)" />
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">空欄ならプラン金額で集計します</div>
       </div>
       <div class="form-group">
@@ -514,8 +514,61 @@
   const PLAN_PRICES = { starter: 9800, standard: 19800, premium: 29800, monitor: 9800, enterprise: 29800 };
 
   // 入力欄の月額実額を読み取る。空欄は null（＝プラン金額で集計）。数値以外も null。
+  // ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+  // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+  // 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+  function zenkakuNum(str) {
+    return String(str == null ? '' : str)
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/．/g, '.')
+      .replace(/[−ー－]/g, '-');
+  }
+  // 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+  function normalizeNumInput(el) {
+    if (!el) return;
+    const before = el.value;
+    const after = zenkakuNum(before);
+    if (before === after) return;
+    const pos = el.selectionStart;
+    el.value = after;
+    try { el.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  // IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+  function onNumInput(el, ev, cb) {
+    if (ev && ev.isComposing) return;
+    normalizeNumInput(el);
+    if (typeof cb === 'function') cb(el);
+  }
+  // IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+  // ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+  //   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、他の欄に戻っても
+  //   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+  document.addEventListener('compositionend', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    if (el.value === zenkakuNum(el.value)) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+        el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+      }
+    });
+  }
+
   function parseMonthlyAmount(elId) {
-    const raw = (document.getElementById(elId)?.value || '').trim();
+    const raw = zenkakuNum((document.getElementById(elId)?.value || '').trim());
     if (raw === '') return null;
     const n = Math.round(Number(raw));
     if (Number.isNaN(n) || n < 0) return null;
@@ -1129,14 +1182,14 @@
     const body = document.getElementById('invItemsBody');
     body.innerHTML = invItems.map((it, i) => `<tr>
       <td><input type="text" value="${esc(it.label)}" oninput="updateInvoiceItem(${i},'label',this.value)" style="margin:0"/></td>
-      <td class="num"><input type="number" min="0" step="100" value="${it.amount}" oninput="updateInvoiceItem(${i},'amount',this.value)" style="margin:0;text-align:right"/></td>
+      <td class="num"><input type="text" data-num="int" value="${it.amount}" oninput="onNumInput(this, event, el=>updateInvoiceItem(${i},'amount',el.value))" style="margin:0;text-align:right"/></td>
       <td><button type="button" class="btn-secondary btn-sm" onclick="removeInvoiceItem(${i})">削除</button></td>
     </tr>`).join('');
     recomputeInvoice();
   }
   function updateInvoiceItem(i, field, val) {
     if (!invItems[i]) return;
-    invItems[i][field] = field === 'amount' ? Math.round(Number(val) || 0) : val;
+    invItems[i][field] = field === 'amount' ? Math.round(Number(zenkakuNum(val)) || 0) : val;
     if (field === 'amount') recomputeInvoice();
   }
   function addInvoiceItem() { invItems.push({ label: '', amount: 0 }); renderInvoiceItems(); }

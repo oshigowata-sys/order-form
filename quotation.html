@@ -246,9 +246,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">手数料（1単位あたり）</label>
-            <input type="number" id="qHandlingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <input type="text" data-num="dec" id="qHandlingFee" class="form-input" value="0" oninput="onNumInput(this, event, updateQuotationFees)">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="qHandlingFeeQty" class="form-input" value="1" step="1" oninput="updateQuotationFees()">
+            <input type="text" data-num="int" id="qHandlingFeeQty" class="form-input" value="1" oninput="onNumInput(this, event, updateQuotationFees)">
             <select id="qHandlingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -256,9 +256,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">送料（1単位あたり）</label>
-            <input type="number" id="qShippingFee" class="form-input" value="0" min="0" oninput="updateQuotationFees()">
+            <input type="text" data-num="dec" id="qShippingFee" class="form-input" value="0" oninput="onNumInput(this, event, updateQuotationFees)">
             <label style="display:block;font-size:11px;color:var(--text-muted);margin:6px 0 2px">× 数量</label>
-            <input type="number" id="qShippingFeeQty" class="form-input" value="1" step="1" oninput="updateQuotationFees()">
+            <input type="text" data-num="int" id="qShippingFeeQty" class="form-input" value="1" oninput="onNumInput(this, event, updateQuotationFees)">
             <select id="qShippingFeeDir" class="form-input" onchange="updateQuotationFees()" style="margin-top:6px;font-size:12px">
               <option value="deduct" selected>差し引く（−）</option>
               <option value="charge">請求に加える（＋）</option>
@@ -614,11 +614,64 @@ function onCustomerChange() {
   renderPreview();
 }
 
+// ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+// 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+// 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+function zenkakuNum(str) {
+  return String(str == null ? '' : str)
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/．/g, '.')
+    .replace(/[−ー－]/g, '-');
+}
+// 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+function normalizeNumInput(el) {
+  if (!el) return;
+  const before = el.value;
+  const after = zenkakuNum(before);
+  if (before === after) return;
+  const pos = el.selectionStart;
+  el.value = after;
+  try { el.setSelectionRange(pos, pos); } catch (e) {}
+}
+// IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+function onNumInput(el, ev, cb) {
+  if (ev && ev.isComposing) return;
+  normalizeNumInput(el);
+  if (typeof cb === 'function') cb(el);
+}
+// IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+// ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+//   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、検索欄に戻っても
+//   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+document.addEventListener('compositionend', (e) => {
+  const el = e.target;
+  if (!el || !el.matches || !el.matches('input[data-num]')) return;
+  normalizeNumInput(el);
+  el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+});
+// 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (!el || !el.matches || !el.matches('input[data-num]')) return;
+  if (el.value === zenkakuNum(el.value)) return;
+  normalizeNumInput(el);
+  el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+});
+// タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+      el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+    }
+  });
+}
+
 function updateQuotationFees() {
-  _handlingFee = Math.max(0, Number(document.getElementById('qHandlingFee')?.value) || 0);
-  _shippingFee = Math.max(0, Number(document.getElementById('qShippingFee')?.value) || 0);
-  _handlingQty = Number(document.getElementById('qHandlingFeeQty')?.value) || 1;
-  _shippingQty = Number(document.getElementById('qShippingFeeQty')?.value) || 1;
+  _handlingFee = Math.max(0, Number(zenkakuNum(document.getElementById('qHandlingFee')?.value)) || 0);
+  _shippingFee = Math.max(0, Number(zenkakuNum(document.getElementById('qShippingFee')?.value)) || 0);
+  _handlingQty = Number(zenkakuNum(document.getElementById('qHandlingFeeQty')?.value)) || 1;
+  _shippingQty = Number(zenkakuNum(document.getElementById('qShippingFeeQty')?.value)) || 1;
   _handlingCharge = document.getElementById('qHandlingFeeDir')?.value === 'charge';
   _shippingCharge = document.getElementById('qShippingFeeDir')?.value === 'charge';
   renderPreview();
@@ -730,8 +783,8 @@ function renderItems() {
                 <div style="font-weight:600">${esc(it.product_name)}</div>
                 ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
               </td>
-              <td class="num"><input type="number" class="qty" step="1" value="${Number(it.quantity || 0)}" oninput="updateItem(${i}, 'quantity', this.value)"></td>
-              <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px"><input type="number" class="price" step="1" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="updateItem(${i}, 'unit_price', this.value)" style="flex:1;min-width:0${Number(it.unit_price || 0) === 0 ? ';border-color:#fca5a5;background:#fff7ed;color:#dc2626' : ''}">${priceMark ? `<span style="flex-shrink:0;font-size:11px;color:var(--text-muted);font-weight:600">${priceMark}</span>` : ''}</div></td>
+              <td class="num"><input type="text" data-num="int" class="qty" value="${Number(it.quantity || 0)}" oninput="onNumInput(this, event, el=>updateItem(${i}, 'quantity', el.value))"></td>
+              <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px"><input type="text" data-num="dec" class="price" value="${Number(it.unit_price || 0) !== 0 ? toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade) : ''}" placeholder="要相談" oninput="onNumInput(this, event, el=>updateItem(${i}, 'unit_price', el.value))" style="flex:1;min-width:0${Number(it.unit_price || 0) === 0 ? ';border-color:#fca5a5;background:#fff7ed;color:#dc2626' : ''}">${priceMark ? `<span style="flex-shrink:0;font-size:11px;color:var(--text-muted);font-weight:600">${priceMark}</span>` : ''}</div></td>
               <td class="num" style="font-weight:600" data-line-subtotal="${i}">${Number(it.unit_price || 0) !== 0 ? fmt(Number(it.quantity || 0) * toDisplayPrice(Number(it.unit_price), !!it.is_food, _isPersonalTrade)) : '<span style="color:#dc2626">要相談</span>'}</td>
               <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateItemRemarks(${i}, this.value)" maxlength="40" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg)"></td>
               <td class="snapshot">${it.jan_code ? esc(formatJan(it.jan_code)) : '—'}</td>
@@ -755,7 +808,7 @@ function updateItem(idx, key, value) {
   if (!_items[idx]) return;
   // 単価・数量ともマイナス値を許容（返品用）。
   // 個人取引でも卸取引でも入力値をそのまま保存（個人取引は税込み・卸取引は税抜きという運用ルール）。
-  _items[idx][key] = Number(value || 0);
+  _items[idx][key] = Number(zenkakuNum(value) || 0);
   const cell = document.querySelector(`[data-line-subtotal="${idx}"]`);
   if (cell) {
     const it = _items[idx];

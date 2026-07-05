@@ -372,7 +372,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">JANコード</label>
-          <input type="text" class="form-input" id="formJanCode" inputmode="numeric" maxlength="14" placeholder="例：4976176　102229" oninput="onJanInput(this)" />
+          <input type="text" data-num="int" class="form-input" id="formJanCode" maxlength="14" placeholder="例：4976176　102229" oninput="onNumInput(this, event, onJanInput)" />
           <div class="form-hint">8桁または13桁の数字（入力すると自動で全角スペースが入ります）</div>
         </div>
       </div>
@@ -395,17 +395,17 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">上代（円）</label>
-          <input type="text" class="form-input" id="formListPrice" inputmode="numeric" placeholder="例：1,500（オープンプライスは空欄）" oninput="onYenInput(this)" />
+          <input type="text" data-num="int" class="form-input" id="formListPrice" placeholder="例：1,500（オープンプライスは空欄）" oninput="onNumInput(this, event, onYenInput)" />
           <div class="form-hint">定価／メーカー希望小売価格。オープンプライス商品は空欄でOK（注文時は「要相談」と表示されます）</div>
         </div>
         <div class="form-group">
           <label class="form-label">仕入価格（円）</label>
-          <input type="text" class="form-input" id="formCostPrice" inputmode="numeric" placeholder="例：800" oninput="onYenInput(this)" />
+          <input type="text" data-num="int" class="form-input" id="formCostPrice" placeholder="例：800" oninput="onNumInput(this, event, onYenInput)" />
           <div class="form-hint">原価</div>
         </div>
         <div class="form-group">
           <label class="form-label">ケース入数</label>
-          <input type="number" class="form-input" id="formCaseQuantity" min="1" value="1" placeholder="例：24" />
+          <input type="text" data-num="int" class="form-input" id="formCaseQuantity" value="1" placeholder="例：24" oninput="onNumInput(this, event)" />
           <div class="form-hint">バラ売りは1</div>
         </div>
       </div>
@@ -640,6 +640,59 @@
     el.value = formatYen(el.value);
   }
 
+  // ===== 数値欄のIME対策（納品書一覧 orders.html と同じ仕組み） =====
+  // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
+  // 日本語入力(ひらがな)のまま数字を打っても半角に直るので、欄ごとのIME手切替が不要になる。
+  function zenkakuNum(str) {
+    return String(str == null ? '' : str)
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/．/g, '.')
+      .replace(/[−ー－]/g, '-');
+  }
+  // 数値入力欄の value をその場で半角化する（キャレット位置は保持）
+  function normalizeNumInput(el) {
+    if (!el) return;
+    const before = el.value;
+    const after = zenkakuNum(before);
+    if (before === after) return;
+    const pos = el.selectionStart;
+    el.value = after;
+    try { el.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  // IME変換中(composition中)は value を触らない＝ひらがな入力を妨げない
+  function onNumInput(el, ev, cb) {
+    if (ev && ev.isComposing) return;
+    normalizeNumInput(el);
+    if (typeof cb === 'function') cb(el);
+  }
+  // IME確定時に半角化して input を再発火（対象は data-num 属性付きの欄のみ）
+  // ※数値欄に type=number / inputmode を付けない理由：Windowsの日本語入力が
+  //   「数字の欄」の目印を見て勝手に半角英数モードへ切り替え、他の欄に戻っても
+  //   ひらがなに戻らないため。目印は付けず、全角で入った数字は確定時に半角化する。
+  document.addEventListener('compositionend', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // 保険：フォーカスが外れた時（change）にも同じ正規化を通す
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input[data-num]')) return;
+    if (el.value === zenkakuNum(el.value)) return;
+    normalizeNumInput(el);
+    el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
+  // タッチ端末のみ、フォーカス時に数字キーパッドの目印を付与（PCには付けない）
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (el && el.matches && el.matches('input[data-num]') && !el.getAttribute('inputmode')) {
+        el.setAttribute('inputmode', el.getAttribute('data-num') === 'dec' ? 'decimal' : 'numeric');
+      }
+    });
+  }
+
   function openAddModal() {
     document.getElementById('editRecordId').value = '';
     document.getElementById('modalTitle').textContent = '商品を追加';
@@ -717,7 +770,7 @@
     const taxIncl   = document.querySelector('input[name="priceTaxMode"]:checked')?.value === 'incl';
     let   listPrice = yenDigits(document.getElementById('formListPrice').value);
     let   costPrice = yenDigits(document.getElementById('formCostPrice').value);
-    const caseQty   = document.getElementById('formCaseQuantity').value;
+    const caseQty   = zenkakuNum(document.getElementById('formCaseQuantity').value);
     const janRaw    = janDigits(document.getElementById('formJanCode').value);
 
     if (!name)            { alert('商品名は必須です'); document.getElementById('formProductName').focus(); return; }
