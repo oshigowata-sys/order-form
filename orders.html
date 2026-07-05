@@ -41,6 +41,19 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 .tab{padding:6px 14px;border-radius:100px;font-size:14px;font-weight:500;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;color:var(--text-muted)}
 .tab.active{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
 .tab:hover:not(.active){border-color:var(--orange);color:var(--orange)}
+.filter-bar{display:flex;flex-wrap:wrap;gap:20px 24px;padding:12px 20px;border-bottom:1px solid var(--border);align-items:center}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-label{font-size:13px;font-weight:600;color:var(--text-muted)}
+.filter-select{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text);cursor:pointer;outline:none}
+.filter-select:focus{border-color:var(--orange)}
+.period-btn{padding:5px 12px;border-radius:100px;font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif;color:var(--text-muted)}
+.period-btn.active{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
+.period-btn:hover:not(.active){border-color:var(--orange);color:var(--orange)}
+.period-input{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--text);outline:none}
+.period-input:focus{border-color:var(--orange)}
+.period-sep{color:var(--text-muted);font-size:13px}
+.period-clear{padding:5px 10px;border-radius:8px;font-size:13px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif}
+.period-clear:hover{border-color:var(--orange);color:var(--orange)}
 .table-wrapper{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg);border-bottom:1px solid var(--border)}
@@ -221,9 +234,27 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     </div>
     <div class="card">
       <div class="filter-tabs">
-        <button class="tab active" data-sort="default">すべて</button>
-        <button class="tab" data-sort="date">日付別</button>
-        <button class="tab" data-sort="customer">得意先別</button>
+        <button class="tab active" data-filter="all">すべて</button>
+        <button class="tab" data-filter="新規受注">新規受注</button>
+        <button class="tab" data-filter="処理中">処理中</button>
+        <button class="tab" data-filter="出荷済み">出荷済み</button>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">取引先</span>
+          <select id="customerFilter" class="filter-select" onchange="onCustomerFilter(this.value)">
+            <option value="all">すべて</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">期間</span>
+          <button class="period-btn" onclick="setPeriodPreset('thisMonth', this)">今月</button>
+          <button class="period-btn" onclick="setPeriodPreset('lastMonth', this)">先月</button>
+          <input type="date" id="periodFrom" class="period-input" onchange="onPeriodInput()">
+          <span class="period-sep">〜</span>
+          <input type="date" id="periodTo" class="period-input" onchange="onPeriodInput()">
+          <button class="period-clear" id="periodClearBtn" onclick="clearPeriod()" style="display:none">クリア</button>
+        </div>
       </div>
       <div class="table-wrapper">
         <table>
@@ -511,6 +542,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   let allOrders = [];
   let currentSearch = '';
+  let currentFilter = 'all';                 // 状態タブ（すべて／新規受注／処理中／出荷済み）
+  let currentCustomer = 'all';               // 取引先プルダウン
+  let currentPeriod = { from: '', to: '' };  // 受注日の範囲（YYYY-MM-DD・空なら絞らない）
   // 一覧の並び替え（見出しクリック）。既定は受注日の新しい順。
   let currentSort = { key: 'date', dir: 'desc' };
   // 文字として比較する列（それ以外は数値比較）
@@ -684,6 +718,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           cost,
         };
       });
+      buildCustomerFilterOptions();
       renderOrders();
       updateKPIs();
     } catch(e) {
@@ -716,10 +751,69 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     renderOrders();
   }
 
+  // 取引先プルダウンの選択肢を作る（一覧に出ている取引先のみ・五十音順）
+  function buildCustomerFilterOptions() {
+    const sel = document.getElementById('customerFilter');
+    if (!sel) return;
+    const names = [...new Set(allOrders.map(o => o.customer).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'ja'));
+    const prev = sel.value;
+    sel.innerHTML = '<option value="all">すべて</option>' +
+      names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    // 以前の選択が残っていれば保持、無ければ「すべて」に戻す
+    sel.value = (prev && names.includes(prev)) ? prev : 'all';
+    currentCustomer = sel.value;
+  }
+  function onCustomerFilter(v) { currentCustomer = v; renderOrders(); }
+
+  // 期間プリセット（今月／先月）。受注日ベースで from〜to を埋める。
+  function setPeriodPreset(preset, btn) {
+    const now = new Date();
+    let from, to;
+    if (preset === 'lastMonth') {
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      to   = new Date(now.getFullYear(), now.getMonth(), 0);       // 前月の末日
+    } else { // thisMonth
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to   = new Date(now.getFullYear(), now.getMonth() + 1, 0);   // 今月の末日
+    }
+    currentPeriod = { from: ymdLocal(from), to: ymdLocal(to) };
+    document.getElementById('periodFrom').value = currentPeriod.from;
+    document.getElementById('periodTo').value = currentPeriod.to;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.getElementById('periodClearBtn').style.display = '';
+    renderOrders();
+  }
+  // 任意の期間指定（日付欄を直接いじった時）。プリセットの選択表示は外す。
+  function onPeriodInput() {
+    currentPeriod = {
+      from: document.getElementById('periodFrom').value,
+      to:   document.getElementById('periodTo').value,
+    };
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    const has = currentPeriod.from || currentPeriod.to;
+    document.getElementById('periodClearBtn').style.display = has ? '' : 'none';
+    renderOrders();
+  }
+  // 期間の絞り込みを解除
+  function clearPeriod() {
+    currentPeriod = { from: '', to: '' };
+    document.getElementById('periodFrom').value = '';
+    document.getElementById('periodTo').value = '';
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('periodClearBtn').style.display = 'none';
+    renderOrders();
+  }
+
   function renderOrders() {
     const tbody = document.getElementById('ordersTbody');
-    // タブは状態での絞り込みではなく並び替え（すべて／日付別／得意先別）に統一。一覧は常に全件表示。
+    // 絞り込みは「状態タブ × 取引先 × 期間」の組み合わせ（すべてANDで重ねる）。
     let list = allOrders.slice();
+    if (currentFilter !== 'all')   list = list.filter(o => o.status === currentFilter);
+    if (currentCustomer !== 'all') list = list.filter(o => o.customer === currentCustomer);
+    if (currentPeriod.from)        list = list.filter(o => o.date && o.date >= currentPeriod.from);
+    if (currentPeriod.to)          list = list.filter(o => o.date && o.date <= currentPeriod.to);
     if (currentSearch) {
       const q = currentSearch.toLowerCase();
       list = list.filter(o => (o.customerSearch || o.customer).toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
@@ -1465,16 +1559,14 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
   }
 
-  // タブ＝並び替えの切り替え（すべて／日付別／得意先別）。
-  //   すべて・日付別＝受注日の新しい順／得意先別＝取引先名の五十音順。
-  //   見出しクリックの並び替え（setSort）と同じ currentSort を動かすので、▲▼表示も連動する。
+  // 状態タブ（すべて／新規受注／処理中／出荷済み）で絞り込み。
+  //   取引先プルダウン・期間絞り込みと組み合わせて重ねられる。
+  //   受注日順・取引先順に「並べたい」ときは各見出しクリック（setSort）で対応。
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
-      currentSort = (t.dataset.sort === 'customer')
-        ? { key: 'customer', dir: 'asc' }
-        : { key: 'date', dir: 'desc' };
+      currentFilter = t.dataset.filter;
       renderOrders();
     });
   });
