@@ -508,6 +508,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 <script src="config.js"></script>
 <script src="auth.js?v=20260510-idletimer"></script>
 <script src="sidebar-icons.js?v=20260625"></script>
+<script src="notification-bell.js?v=20260706"></script>
 <script src="preview-renderer.js?v=20260704-center-headers2"></script>
 <script>
   // ===== ページガード =====
@@ -1570,6 +1571,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       renderOrders();
     });
   });
+
+  // URL指定でタブを初期選択（通知ベル・ダッシュボードから ?status=new 等で遷移）
+  (function () {
+    const p = new URLSearchParams(location.search).get('status');
+    const map = { new: '新規受注', processing: '処理中', shipped: '出荷済み' };
+    if (p && map[p]) {
+      const t = document.querySelector(`.tab[data-filter="${map[p]}"]`);
+      if (t) t.click();
+    }
+  })();
 
   // ===== 新規受注入力 =====
   let newOrderItems = [];
