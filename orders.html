@@ -2120,7 +2120,11 @@ const errEl      = document.getElementById('orderError');
     }
   }
 
-  loadOrders();
+  loadOrders().then(() => {
+    // 通知ベルの新着一覧から ?open=<受注ID> で来た時、その注文の詳細を直接開く
+    const openId = new URLSearchParams(location.search).get('open');
+    if (openId && allOrders.some(o => o.id === openId)) openDetail(openId);
+  });
 </script>
 <script src="mobile.js"></script>
 </body>
