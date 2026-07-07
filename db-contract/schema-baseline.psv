@@ -1,5 +1,5 @@
 # MeguRee DB後方互換 基準ファイル（スキーマの凍結契約）
-# 生成: 2026-06-25 / 形式: kind|obj|member|sig
+# 生成: 2026-07-07 / 形式: kind|obj|member|sig
 #   kind=column のとき obj=テーブル名, member=カラム名, sig=型+NOT NULL のmd5
 #   kind=function のとき obj=関数名, member=引数, sig=(引数->戻り値) のmd5
 # このファイルは「父親画面を将来凍結したあとも壊さないために守るDBの形」。
@@ -153,6 +153,7 @@ column|order_items|cost_price|5d186f79bbf00bec75ab4481a3cce44d
 column|order_items|created_at|e102290fa00ffd0c15c0c0b38070c685
 column|order_items|display_order|cb32bafc12fc0cf6001f43b2fb38b476
 column|order_items|id|f6a115564c68d53b8655e822621a179b
+column|order_items|list_price|5d186f79bbf00bec75ab4481a3cce44d
 column|order_items|order_id|ff29d8c1771c826946d40eebe0b5cef1
 column|order_items|product_id|ff29d8c1771c826946d40eebe0b5cef1
 column|order_items|quantity|5d186f79bbf00bec75ab4481a3cce44d
@@ -171,6 +172,7 @@ column|orders|is_personal_trade|ca898ca64aa03c5158f378a60bb9ccbb
 column|orders|notes|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|order_code|3455eeece8a52003d49d40dbd2ac6f3a
 column|orders|order_date|559cfdfaaadba7a6e8d8bc5bd6e2a96d
+column|orders|seen_at|e102290fa00ffd0c15c0c0b38070c685
 column|orders|shipping_fee_charge|ca898ca64aa03c5158f378a60bb9ccbb
 column|orders|shipping_fee_qty|cea40e767d9d784073b41d7b117abd52
 column|orders|shipping_fee|cea40e767d9d784073b41d7b117abd52
@@ -286,7 +288,6 @@ function|create_retail_invitation|p_customer_id uuid|02045358e9d919178fb120e9fb2
 function|create_staff_invitation||e86767f7d54ebe22973219d3734d3fd6
 function|delete_staff_account|p_login_id text|ef3ca9a9864e6a154f45cdb3adcf8261
 function|delete_tenant_cascade|p_tenant_id uuid|bfe1df57bdd84d3be2ae219d01301ca3
-function|diagnose_invited_account_registration|p_token text, p_company_name text, p_login_id text, p_password text|67f70dc9a11ce8205f8680be30e25303
 function|generate_product_code||164a1b60c8e567bc11cfe6768a46598a
 function|generate_quotation_number|p_tenant_id uuid|b79b6af4cf7d6f0998d3fbe9078639ed
 function|get_customer_id_by_name|p_company_name text, p_tenant_id uuid|e406028b1e8ac5c4d16268c86d3f66dd

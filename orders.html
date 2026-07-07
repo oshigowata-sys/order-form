@@ -937,6 +937,19 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       updateEditOrderPreview();
     });
     loadOrderDetail(orderId);
+    markOrderSeen(orderId);
+  }
+
+  // 通知ベル用の既読記録：詳細を開いた注文に seen_at を入れる（未読のものだけ）。
+  // 失敗しても詳細表示には影響させない（次に開いた時にまた試みる）
+  function markOrderSeen(orderId) {
+    sbFetch(`/rest/v1/orders?id=eq.${orderId}&seen_at=is.null`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ seen_at: new Date().toISOString() })
+    }).then(() => {
+      if (typeof window.__notifBellRefresh === 'function') window.__notifBellRefresh();
+    }).catch(() => {});
   }
 
   async function updateOrderStatus() {

@@ -1,10 +1,10 @@
 /*
  * 画面内通知ベル（管理画面の全ページで読み込む）
- * 上部バー右側にベルを差し込み、未対応（状態＝新規受注）の件数を赤バッジで表示する。
+ * 上部バー右側にベルを差し込み、未読（状態＝新規受注 かつ seen_at なし）の件数を赤バッジで表示する。
  * 1分ごとに自動更新し、開いている間に件数が増えたら小さなお知らせを出す。
  * ベルを押すとその場に新着一覧パネルが開き、1件押すとその注文の詳細へ直行する
- * （orders.html?open=<受注ID>）。「すべて見る」で受注一覧の「新規受注」タブへ。
- * ★DBには一切触らない（既存の orders を読むだけ）。
+ * （orders.html?open=<受注ID>）。詳細を開くと orders.html 側が seen_at を記録＝既読になり数が減る。
+ * パネルは未読＝薄いオレンジ／既読＝白で色分け。「すべて見る」で受注一覧の「新規受注」タブへ。
  */
 (function () {
   if (window.__notifBellInit) return;
@@ -39,6 +39,8 @@
       '.notif-panel-list{max-height:320px;overflow-y:auto}' +
       '.notif-item{display:block;width:100%;text-align:left;padding:11px 16px;border:0;border-bottom:1px solid var(--border,#e5e7eb);background:none;cursor:pointer;font-family:inherit;text-decoration:none}' +
       '.notif-item:hover{background:var(--bg,#f9fafb)}' +
+      '.notif-item.unread{background:#fff7ed}' +
+      '.notif-item.unread:hover{background:#ffedd5}' +
       '.notif-item:last-child{border-bottom:0}' +
       '.notif-item-title{font-size:14px;font-weight:600;color:var(--text,#111827)}' +
       '.notif-item-sub{margin-top:2px;font-size:12px;color:var(--text-muted,#6b7280)}' +
@@ -127,11 +129,12 @@
       list.innerHTML = '<div class="notif-panel-empty">読み込めませんでした</div>';
       return;
     }
-    // 新着＝状態が「新規受注」の注文を新しい順に。金額は画面ごとの計算ルールに任せ、ここでは出さない
+    // 新着＝状態が「新規受注」の注文を、未読（seen_atなし）優先＋新しい順に。
+    // 金額は画面ごとの計算ルールに任せ、ここでは出さない
     fetch(SB_URL + '/rest/v1/orders?tenant_id=eq.' + user.tenantId +
           '&status=eq.' + encodeURIComponent('新規受注') +
-          '&select=id,order_code,order_date,input_company_name,customers(company_name),order_items(quantity)' +
-          '&order=order_date.desc,created_at.desc&limit=' + PANEL_LIMIT, {
+          '&select=id,order_code,order_date,seen_at,input_company_name,customers(company_name),order_items(quantity)' +
+          '&order=seen_at.desc.nullsfirst,order_date.desc,created_at.desc&limit=' + PANEL_LIMIT, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token }
     }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -144,7 +147,8 @@
       list.innerHTML = rows.map(function (o) {
         var name = (o.customers && o.customers.company_name) || o.input_company_name || '（取引先不明）';
         var qty = (o.order_items || []).reduce(function (s, it) { return s + (Number(it.quantity) || 0); }, 0);
-        return '<a class="notif-item" href="orders.html?open=' + encodeURIComponent(o.id) + '">' +
+        var unread = o.seen_at == null;
+        return '<a class="notif-item' + (unread ? ' unread' : '') + '" href="orders.html?open=' + encodeURIComponent(o.id) + '">' +
                '<div class="notif-item-title">' + esc(name) + ' から新規注文</div>' +
                '<div class="notif-item-sub">' + fmtDate(o.order_date) + '・商品' + qty + '点・' + esc(o.order_code || '') + '</div>' +
                '</a>';
@@ -182,8 +186,9 @@
     if (typeof getAccessToken !== 'function' || typeof SB_URL === 'undefined') return;
     var token = getAccessToken();
     if (!token) return;
+    // 未読＝状態が「新規受注」かつ既読記録（seen_at）なし
     fetch(SB_URL + '/rest/v1/orders?tenant_id=eq.' + user.tenantId +
-          '&status=eq.' + encodeURIComponent('新規受注') + '&select=id', {
+          '&status=eq.' + encodeURIComponent('新規受注') + '&seen_at=is.null&select=id', {
       headers: {
         'apikey': SB_KEY,
         'Authorization': 'Bearer ' + token,
@@ -204,6 +209,8 @@
   function start() {
     injectStyle();
     if (!injectBell()) return;
+    // 詳細を開いて既読にした直後、orders.html からバッジを即時更新できるように公開
+    window.__notifBellRefresh = refresh;
     refresh();
     setInterval(refresh, POLL_MS);
     document.addEventListener('visibilitychange', function () {
