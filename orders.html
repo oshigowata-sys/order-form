@@ -448,7 +448,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             <div id="searchResults" class="search-results-wrap" style="display:none"></div>
             <div class="entry-error" id="itemError">商品と数量を選択してください</div>
             <table class="entry-items-table" id="newItemsTable" style="display:none">
-              <thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
+              <thead><tr><th style="text-align:right">上代</th><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
               <tbody id="newItemsTbody"></tbody>
             </table>
             <div class="totals" id="newOrderTotal" style="display:none;justify-content:flex-end;padding:12px 0 4px"></div>
@@ -987,7 +987,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     currentEditIsPersonalTrade = !!o.isPersonalTrade;
     try {
       const res = await sbFetch(
-        `/rest/v1/order_items?select=quantity,unit_price,remarks,products(product_code,product_name,is_food,list_price)&order_id=eq.${orderId}&order=display_order.asc`
+        `/rest/v1/order_items?select=quantity,unit_price,remarks,list_price,products(product_code,product_name,is_food,list_price)&order_id=eq.${orderId}&order=display_order.asc`
       );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const items = await res.json();
@@ -1039,7 +1039,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       // ビューモード用にプレビュー描画
       window._viewModeItems = items.map(it => ({
         product_code: it.products?.product_code || '',
-        list_price: it.products?.list_price != null ? Number(it.products.list_price) : null,
+        // 上代：この納品書で保存した値を優先。無ければ商品マスタの現在値（旧データ互換）
+        list_price: it.list_price != null ? Number(it.list_price) : (it.products?.list_price != null ? Number(it.products.list_price) : null),
         product_name: it.products?.product_name || '',
         quantity: it.quantity || 0,
         unit_price: it.unit_price || 0,
@@ -1093,7 +1094,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
     // 既存 order_items を編集用配列にロード
     try {
-      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,remarks,products(product_code,product_name,is_food,price)&order=display_order.asc`);
+      const res = await sbFetch(`/rest/v1/order_items?order_id=eq.${currentDetailId}&select=id,product_id,quantity,unit_price,cost_price,remarks,list_price,products(product_code,product_name,is_food,price,list_price)&order=display_order.asc`);
       if (!res.ok) throw new Error('order_items取得失敗');
       const items = await res.json();
       editItems = items.map(it => ({
@@ -1103,6 +1104,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         qty: it.quantity || 0,
         unitPrice: it.unit_price || 0,
         costPrice: it.cost_price || 0,
+        // 上代：この納品書で保存した値を優先。無ければ商品マスタの現在値（旧データ互換）
+        listPrice: it.list_price != null ? Number(it.list_price) : (it.products?.list_price != null ? Number(it.products.list_price) : null),
         isFood: it.products?.is_food || false,
         remarks: it.remarks || '',
       }));
@@ -1263,6 +1266,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       qty,
       unitPrice,
       costPrice: 0,
+      listPrice: product.list_price != null ? Number(product.list_price) : null,
       isFood: product.is_food || false,
       remarks: '',
     });
@@ -1285,8 +1289,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         ? `<input type="text" data-num="dec" value="${priceDisp}" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`
         : `<input type="text" data-num="dec" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateEditItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(it.isFood, currentEditIsPersonalTrade)}</span>`;
       const remarksVal = (it.remarks || '').replace(/"/g, '&quot;');
-      // 列構成は新規納品書入力の商品表と同一（商品名・数量・単価・備考・小計・削除）
+      // 列構成は新規納品書入力の商品表と同一（上代・商品名・数量・単価・備考・小計・削除）
       return `<tr>
+        <td style="text-align:right"><input type="text" data-num="int" value="${it.listPrice != null ? Number(it.listPrice) : ''}" oninput="onNumInput(this, event, el=>updateEditItemListPrice(${i}, el.value))" style="width:70px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="white-space:normal">${esc(it.name)}</td>
         <td style="text-align:right"><input type="text" data-num="int" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
@@ -1299,8 +1304,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const modalItemsEl = document.getElementById('modalItems');
     modalItemsEl.className = 'entry-items-table';
     modalItemsEl.innerHTML =
-      `<thead><tr><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
+      `<thead><tr><th style="text-align:right">上代</th><th>商品名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>備考</th><th style="text-align:right">小計</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">商品を1つ以上追加してください</td></tr>'}</tbody>`;
 
     renderEditTotals();
   }
@@ -1357,6 +1362,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   function updateEditItemRemarks(idx, value) {
     if (!editItems[idx]) return;
     editItems[idx].remarks = value;
+    updateEditOrderPreview();
+  }
+
+  // 上代のインライン編集（この納品書だけの値。商品マスタは変えない）。
+  // 空欄＝この納品書での指定なし(null)として保存し、表示は商品マスタの上代（未設定なら「—」）に戻る。
+  function updateEditItemListPrice(idx, value) {
+    if (!editItems[idx]) return;
+    const parsed = parseInt(zenkakuNum(value), 10);
+    editItems[idx].listPrice = isNaN(parsed) ? null : parsed;
     updateEditOrderPreview();
   }
 
@@ -1430,6 +1444,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       qty: 1,
       unitPrice,
       costPrice: 0,
+      listPrice: product.list_price != null ? Number(product.list_price) : null,
       isFood: product.is_food || false,
       remarks: '',
     });
@@ -1488,6 +1503,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           quantity: item.qty,
           unit_price: item.unitPrice,
           cost_price: item.costPrice,
+          list_price: item.listPrice != null ? item.listPrice : null,
           remarks: (item.remarks || '').trim() || null,
           tenant_id: tenantId,
           display_order: i
@@ -1635,8 +1651,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       const isFood = (it.isFood != null) ? !!it.isFood : !!product.is_food;
       return {
         product_code: it.productCode || product.product_code || '',
-        // 上代（納品書プレビューの先頭列用）。商品マスタ未設定は null → 「—」表示
-        list_price: product.list_price != null ? Number(product.list_price) : null,
+        // 上代（納品書プレビューの先頭列用）。行で編集した値を優先し、未編集は商品マスタの値。null → 「—」表示
+        list_price: it.listPrice != null ? Number(it.listPrice) : (product.list_price != null ? Number(product.list_price) : null),
         product_name: it.name || product.product_name || '',
         quantity: Number(it.qty || 0),
         unit_price: Number(it.unitPrice || 0),
@@ -1892,7 +1908,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     if (!product) return;
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
-    newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, remarks: '', isFood: !!product.is_food });
+    newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, listPrice: product.list_price != null ? Number(product.list_price) : null, remarks: '', isFood: !!product.is_food });
     // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
     // 追加後は検索窓へフォーカスを戻す＝一度ひらがなにすれば以降もひらがなのまま連続入力できる（IME手切替ゼロ）
     const search = document.getElementById('newItemSearch');
@@ -1952,7 +1968,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const product = allProducts.find(p => p.id === productId);
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル＝分配先別に行を分ける運用）
-    newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, remarks: '', isFood: !!product.is_food });
+    newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, listPrice: product.list_price != null ? Number(product.list_price) : null, remarks: '', isFood: !!product.is_food });
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
     const search = document.getElementById('newItemSearch');
@@ -2035,6 +2051,15 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     updateNewOrderPreview();
   }
 
+  // 上代のインライン編集（この納品書だけの値。商品マスタは変えない）。
+  // 空欄＝この納品書での指定なし(null)として保存し、表示は商品マスタの上代（未設定なら「—」）に戻る。
+  function updateNewItemListPrice(idx, value) {
+    if (!newOrderItems[idx]) return;
+    const parsed = parseInt(zenkakuNum(value), 10);
+    newOrderItems[idx].listPrice = isNaN(parsed) ? null : parsed;
+    updateNewOrderPreview();
+  }
+
   function renderNewItems() {
     const tbody = document.getElementById('newItemsTbody');
     const table = document.getElementById('newItemsTable');
@@ -2052,6 +2077,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         : `<input type="text" data-num="dec" value="" placeholder="要相談" oninput="onNumInput(this, event, el=>updateNewItemPrice(${i}, el.value))" style="width:90px;padding:4px 6px;text-align:right;border:1px solid #fca5a5;border-radius:6px;font-size:14px;font-family:inherit;background:#fff7ed;color:#dc2626"><span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(item.isFood, currentNewIsPersonalTrade)}</span>`;
       const remarksVal = (item.remarks || '').replace(/"/g, '&quot;');
       return `<tr>
+        <td style="text-align:right"><input type="text" data-num="int" value="${item.listPrice != null ? Number(item.listPrice) : ''}" oninput="onNumInput(this, event, el=>updateNewItemListPrice(${i}, el.value))" style="width:70px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="white-space:normal">${esc(item.name)}</td>
         <td style="text-align:right"><input type="text" data-num="int" value="${item.qty}" oninput="onNumInput(this, event, el=>updateNewItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
@@ -2111,7 +2137,7 @@ const errEl      = document.getElementById('orderError');
       const itemsRes = await sbFetch('/rest/v1/order_items', {
         method: 'POST',
         headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify(newOrderItems.map((item, i) => ({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId, display_order: i })))
+        body: JSON.stringify(newOrderItems.map((item, i) => ({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, list_price: item.listPrice != null ? item.listPrice : null, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId, display_order: i })))
       });
       if (!itemsRes.ok) throw new Error('order_items POST failed');
 

@@ -778,7 +778,7 @@ function renderItems() {
             const priceMark = taxMarkText(!!it.is_food, _isPersonalTrade);
             return `
             <tr>
-              <td class="snapshot num">${it.list_price != null ? fmt(it.list_price) : '—'}</td>
+              <td class="num"><input type="text" data-num="int" class="price" value="${it.list_price != null ? Number(it.list_price) : ''}" placeholder="—" oninput="onNumInput(this, event, el=>updateItemListPrice(${i}, el.value))"></td>
               <td>
                 <div style="font-weight:600">${esc(it.product_name)}</div>
                 ${it.product_code ? `<div style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${esc(it.product_code)}</div>` : ''}
@@ -795,6 +795,15 @@ function renderItems() {
       </table>
     </div>
   `;
+}
+
+// 上代のインライン編集（この見積書だけの値。商品マスタは変えない）。
+// 空欄＝未設定(null)として保存し、表・プレビューとも「—」表示になる。
+function updateItemListPrice(idx, value) {
+  if (!_items[idx]) return;
+  const parsed = parseInt(zenkakuNum(value), 10);
+  _items[idx].list_price = isNaN(parsed) ? null : parsed;
+  renderPreview();
 }
 
 // 行ごと備考の更新（フォーカスを奪わないよう配列書き戻し＋プレビュー再描画）
