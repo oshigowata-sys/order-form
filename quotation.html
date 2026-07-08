@@ -39,7 +39,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
 /* ===== メインコンテンツ ===== */
 .main{max-width:1600px;margin:0 auto;padding:40px 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:flex-start}
 .main > #quotation-wrap{position:sticky;top:80px;max-height:calc(100vh - 120px);overflow-y:auto}
-@media (max-width:1279px){.main{grid-template-columns:1fr}.main > #quotation-wrap{position:static;max-height:none}}
+/* 2カラムでは編集パネルの明細（商品名）が潰れる幅（ノートPC100%表示など）は縦積みに切り替える */
+@media (max-width:1580px){.main{grid-template-columns:1fr}.main > #quotation-wrap{position:static;max-height:none}}
 
 /* ===== 編集パネル ===== */
 .settings-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:32px}
