@@ -173,6 +173,27 @@
       </div>
       <div class="settings-card">
         <div class="settings-card-header">
+          <span class="settings-card-icon">🔔</span>
+          <div class="settings-card-title">新規注文のメール通知</div>
+        </div>
+        <div class="settings-card-body">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:600">
+            <input type="checkbox" id="notifyEmailEnabled" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer" />
+            メール通知を使う
+          </label>
+          <p style="font-size:14px;color:var(--text-muted);line-height:1.7;margin:0">ONにすると、新しい注文が入るたびに下のアドレスへお知らせメールを送ります。メールには取引先名と「注文を開く」リンクだけを載せ、明細や金額は載せません。</p>
+          <div class="form-group">
+            <label class="form-label">通知先メールアドレス（1行に1つ・複数登録可）</label>
+            <textarea class="form-input" id="notifyEmails" rows="3" placeholder="例：&#10;chumon@example.com&#10;keiri@example.com" style="max-width:420px;resize:vertical;font-family:inherit"></textarea>
+          </div>
+        </div>
+        <div class="settings-card-footer">
+          <div class="save-msg" id="saveMsgNotify">✓ 保存しました</div>
+          <button class="btn-primary" onclick="saveNotify()">保存する</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-header">
           <span class="settings-card-icon">🏦</span>
           <div class="settings-card-title">振込先情報</div>
         </div>
@@ -365,6 +386,8 @@
       document.getElementById('companyInvoiceNo').value = s.company_invoice_no || '';
       document.getElementById('companyPerson').value    = s.company_person     || '';
       document.getElementById('paymentDays').value      = s.payment_days       || 30;
+      document.getElementById('notifyEmailEnabled').checked = !!s.notify_email_enabled;
+      document.getElementById('notifyEmails').value = Array.isArray(s.notify_emails) ? s.notify_emails.join('\n') : '';
       await loadBankAccounts(s);
     } catch(e) {
       console.error('設定読込エラー', e);
@@ -581,6 +604,20 @@
       renderBankAccounts();
       flashSave('saveMsgBank');
       updatePreview();
+    } catch(e) {
+      alert('保存に失敗しました: ' + e.message);
+    }
+  }
+
+  async function saveNotify() {
+    const enabled = document.getElementById('notifyEmailEnabled').checked;
+    const list = document.getElementById('notifyEmails').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const bad = list.filter(a => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
+    if (bad.length) { alert('メールアドレスの形式が正しくありません：\n' + bad.join('\n')); return; }
+    if (enabled && list.length === 0) { alert('メール通知を使うには、通知先メールアドレスを1つ以上登録してください'); return; }
+    try {
+      await saveSettings({ notify_email_enabled: enabled, notify_emails: list });
+      flashSave('saveMsgNotify');
     } catch(e) {
       alert('保存に失敗しました: ' + e.message);
     }

@@ -1179,6 +1179,19 @@
         throw new Error('注文の登録に失敗しました: ' + errText);
       }
 
+      // 卸側へのメール通知（投げっぱなし）：失敗しても注文完了には一切影響させない
+      try {
+        const createdOrderId = await rpcRes.json();
+        if (createdOrderId) {
+          fetch(SB_URL + '/functions/v1/notify-new-order', {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: createdOrderId }),
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch (_) {}
+
       document.getElementById('modalOrderNum').textContent = orderCode;
       document.getElementById('successModal').style.display = 'flex';
 

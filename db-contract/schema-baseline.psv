@@ -1,10 +1,10 @@
-# MeguRee DB後方互換 基準ファイル（スキーマの凍結契約）
-# 生成: 2026-07-07 / 形式: kind|obj|member|sig
-#   kind=column のとき obj=テーブル名, member=カラム名, sig=型+NOT NULL のmd5
-#   kind=function のとき obj=関数名, member=引数, sig=(引数->戻り値) のmd5
-# このファイルは「父親画面を将来凍結したあとも壊さないために守るDBの形」。
-# 既存行の削除・sig変化（=削除/改名/型変更/引数変更）は破壊的変更=禁止。行の追加だけOK。
-# 再生成・チェック方法は同フォルダ README.md / snapshot-query.sql / check-compat.py を参照。
+# MeguRee DB蠕梧婿莠呈鋤 蝓ｺ貅悶ヵ繧｡繧､繝ｫ・医せ繧ｭ繝ｼ繝槭・蜃咲ｵ仙･醍ｴ・ｼ・
+# 逕滓・: 2026-07-07 / 蠖｢蠑・ kind|obj|member|sig
+#   kind=column 縺ｮ縺ｨ縺・obj=繝・・繝悶Ν蜷・ member=繧ｫ繝ｩ繝蜷・ sig=蝙・NOT NULL 縺ｮmd5
+#   kind=function 縺ｮ縺ｨ縺・obj=髢｢謨ｰ蜷・ member=蠑墓焚, sig=(蠑墓焚->謌ｻ繧雁､) 縺ｮmd5
+# 縺薙・繝輔ぃ繧､繝ｫ縺ｯ縲檎宛隕ｪ逕ｻ髱｢繧貞ｰ・擂蜃咲ｵ舌＠縺溘≠縺ｨ繧ょ｣翫＆縺ｪ縺・◆繧√↓螳医ｋDB縺ｮ蠖｢縲阪・
+# 譌｢蟄倩｡後・蜑企勁繝ｻsig螟牙喧・・蜑企勁/謾ｹ蜷・蝙句､画峩/蠑墓焚螟画峩・峨・遐ｴ螢顔噪螟画峩=遖∵ｭ｢縲り｡後・霑ｽ蜉縺縺前K縲・
+# 蜀咲函謌舌・繝√ぉ繝・け譁ｹ豕輔・蜷後ヵ繧ｩ繝ｫ繝 README.md / snapshot-query.sql / check-compat.py 繧貞盾辣ｧ縲・
 column|accounts|consented_at|e102290fa00ffd0c15c0c0b38070c685
 column|accounts|consented_privacy_version|3455eeece8a52003d49d40dbd2ac6f3a
 column|accounts|consented_terms_version|3455eeece8a52003d49d40dbd2ac6f3a
@@ -254,6 +254,8 @@ column|settings|company_person|016afdd8b2d57598e01e516cffb1f80c
 column|settings|company_tel|016afdd8b2d57598e01e516cffb1f80c
 column|settings|company_zip|016afdd8b2d57598e01e516cffb1f80c
 column|settings|id|cb32bafc12fc0cf6001f43b2fb38b476
+column|settings|notify_email_enabled|1cefef3d2917480c48abcaf88ba0a977
+column|settings|notify_emails|205cb2097379e710dac14ddbbc78d056
 column|settings|payment_days|cb32bafc12fc0cf6001f43b2fb38b476
 column|settings|tenant_id|ff29d8c1771c826946d40eebe0b5cef1
 column|tenant_bank_accounts|bank_branch|016afdd8b2d57598e01e516cffb1f80c

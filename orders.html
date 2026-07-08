@@ -550,6 +550,19 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     });
   }
 
+  // 新規注文のメール通知（投げっぱなし）：失敗しても注文登録には一切影響させない
+  function notifyNewOrderByEmail(orderId) {
+    try {
+      if (!orderId) return;
+      fetch(SB_URL + '/functions/v1/notify-new-order', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + getAccessToken(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId }),
+        keepalive: true
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
   let allOrders = [];
   let currentSearch = '';
   let currentFilter = 'all';                 // 状態タブ（すべて／新規受注／処理中／出荷済み）
@@ -2149,6 +2162,8 @@ const errEl      = document.getElementById('orderError');
         body: JSON.stringify(newOrderItems.map((item, i) => ({ order_id: orderId, product_id: item.productId, quantity: item.qty, unit_price: item.unitPrice, cost_price: item.costPrice, list_price: item.listPrice != null ? item.listPrice : null, remarks: (item.remarks || '').trim() || null, tenant_id: tenantId, display_order: i })))
       });
       if (!itemsRes.ok) throw new Error('order_items POST failed');
+
+      notifyNewOrderByEmail(orderId);
 
       if (issueAfter) {
         // 保存成功後、そのまま納品書発行画面へ直行（一覧には戻らない）
