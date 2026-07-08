@@ -60,6 +60,11 @@
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--bg); }
   td { padding: 13px 16px; font-size: 14px; vertical-align: middle; }
+  /* 画面幅が狭い時（ノートPC100%表示など）は表の左右余白を詰め、収まらない分はカード内スクロールに逃がす（ページ全体の横スクロールを出さない） */
+  @media (max-width:1599px){
+    th,td{padding-left:8px;padding-right:8px}
+    .table-card{overflow-x:auto}
+  }
 
   /* BADGES */
   .action-badge { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 14px; font-weight: 700; white-space: nowrap; }
