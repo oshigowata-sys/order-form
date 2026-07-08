@@ -47,6 +47,8 @@ td{padding:14px 16px;font-size:14px;vertical-align:middle}
 /* 画面幅が狭い時（ノートPC100%表示など）は表の左右余白を詰め、収まらない分はカード内スクロールに逃がす（ページ全体の横スクロールを出さない） */
 @media (max-width:1599px){
   th,td{padding-left:8px;padding-right:8px}
+  .main,.content{min-width:0} /* flex縦割りのmainが中身の最小幅より縮めずページ全体がはみ出すのを防ぐ */
+  .layout>*{min-width:0} /* グリッド子も同様 */
   .card{overflow-x:auto}
 }
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;font-family:'Noto Sans JP',sans-serif}

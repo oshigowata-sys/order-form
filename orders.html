@@ -162,6 +162,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 @media (max-width:1599px){
   th{padding:10px 8px}
   td{padding:13px 8px}
+  .main,.content{min-width:0} /* flex縦割りのmainが中身の最小幅より縮めずページ全体がはみ出すのを防ぐ */
+  .kpi-grid>*{min-width:0} /* グリッド子も同様 */
   .card{overflow-x:auto}
 }
 
