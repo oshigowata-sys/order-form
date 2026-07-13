@@ -259,7 +259,8 @@
       const rows = [];
       if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmtYen(t.excl8)}</td></tr>`);
       if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmtYen(t.excl10)}</td></tr>`);
-      rows.push(`<tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`);
+      // 個人取引は税の概念なしなので「合計」のみ（grandLabel の "(税込)" を無視）
+      rows.push(`<tr class="grand-row"><td>合計</td><td>${fmtYen(t.total)}</td></tr>`);
       return rows.join('');
     }
     return `
