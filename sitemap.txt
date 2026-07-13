@@ -6,3 +6,6 @@ https://oshigowata-sys.github.io/order-form/kanko-oroshi-juchu-kanri.html
 https://oshigowata-sys.github.io/order-form/miyagemono-oroshi-fax-dakkyaku.html
 https://oshigowata-sys.github.io/order-form/excel-juchu-kanri-genkai.html
 https://oshigowata-sys.github.io/order-form/oroshikakaku-kakeritsu-kanri.html
+https://oshigowata-sys.github.io/order-form/juhatchu-getsugaku-kotei.html
+https://oshigowata-sys.github.io/order-form/shokibo-juchu-system-erabikata.html
+https://oshigowata-sys.github.io/order-form/nouhinsho-seikyusho-matomete.html
