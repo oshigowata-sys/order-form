@@ -289,6 +289,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">受注詳細</div>
       <div style="display:flex;align-items:center;gap:10px" id="detailHeaderActions">
+        <div id="viewModeBtns" style="display:flex;align-items:center;gap:10px">
+          <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:14px" onclick="deleteOrder()">受注を削除</button>
+        </div>
+        <div id="editModeBtns" style="display:none;align-items:center;gap:10px">
+          <button class="btn btn-outline" onclick="cancelEditMode()">キャンセル</button>
+          <button class="btn btn-primary" id="saveEditBtn" onclick="saveEditMode()">💾 保存</button>
+        </div>
         <button id="detailEditBtn" onclick="enterEditMode()"
           style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;color:var(--orange);border:1.5px solid var(--orange);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">
           ✏️ 編集
@@ -316,7 +323,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               </div>
               <div class="form-group2">
                 <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
-                <input type="date" class="form-input2" id="editOrderDate" oninput="updateEditOrderPreview()" />
+                <input type="date" class="form-input2" id="editOrderDate" oninput="updateEditOrderPreview()" style="width:180px;max-width:100%" />
               </div>
             </div>
             <div class="form-row2">
@@ -398,17 +405,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         </div>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="detailFooter">
       <div class="totals" id="modalTotals"></div>
-      <div class="modal-btns" style="display:flex;align-items:center;gap:10px">
-        <div id="viewModeBtns" style="display:flex;align-items:center;gap:10px">
-          <button class="btn" style="background:#fff0f0;border:1px solid #fca5a5;color:#dc2626;font-size:14px" onclick="deleteOrder()">受注を削除</button>
-        </div>
-        <div id="editModeBtns" style="display:none;align-items:center;gap:10px">
-          <button class="btn btn-outline" onclick="cancelEditMode()">キャンセル</button>
-          <button class="btn btn-primary" id="saveEditBtn" onclick="saveEditMode()">💾 保存</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -417,7 +415,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   <div class="modal modal-wide">
     <div class="modal-header">
       <div class="modal-title">新規納品書入力</div>
-      <button class="modal-close" onclick="closeNewOrder()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-outline" onclick="closeNewOrder()">キャンセル</button>
+        <button class="btn btn-outline" id="saveOrderBtn" onclick="saveNewOrder()">受注を登録する</button>
+        <button class="btn btn-primary" id="saveIssueOrderBtn" onclick="saveNewOrder(true)">登録して納品書を発行</button>
+        <button class="modal-close" onclick="closeNewOrder()">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="modal-split">
@@ -431,7 +434,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             </div>
             <div class="form-group2">
               <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
-              <input type="date" class="form-input2" id="newOrderDate" oninput="updateNewOrderPreview()" />
+              <input type="date" class="form-input2" id="newOrderDate" oninput="updateNewOrderPreview()" style="width:180px;max-width:100%" />
             </div>
           </div>
           <div class="form-row2">
@@ -501,14 +504,6 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <div class="preview-pane-title">納品書 + 請求書プレビュー</div>
           <div id="newOrderPreviewWrap"></div>
         </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <div></div>
-      <div class="modal-btns">
-        <button class="btn btn-outline" onclick="closeNewOrder()">キャンセル</button>
-        <button class="btn btn-outline" id="saveOrderBtn" onclick="saveNewOrder()">受注を登録する</button>
-        <button class="btn btn-primary" id="saveIssueOrderBtn" onclick="saveNewOrder(true)">登録して納品書を発行</button>
       </div>
     </div>
   </div>
@@ -1203,6 +1198,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     document.getElementById('detailPrintBtn').style.display = isEdit ? 'none' : 'flex';
     document.getElementById('viewModeBtns').style.display = isEdit ? 'none' : 'flex';
     document.getElementById('editModeBtns').style.display = isEdit ? 'flex' : 'none';
+    // 合計フッターは閲覧時のみ表示（編集中は商品表直下の editTotalsInline に出す）
+    document.getElementById('detailFooter').style.display = isEdit ? 'none' : 'flex';
     // 新規納品書入力と同じ構成：編集中は上部フォーム表示・情報グリッド非表示・合計は商品表の直下
     document.getElementById('editHeadForm').style.display = isEdit ? 'block' : 'none';
     document.getElementById('modalInfo').style.display = isEdit ? 'none' : 'grid';
