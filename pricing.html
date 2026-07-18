@@ -784,7 +784,8 @@ async function savePricing() {
   if (!prod) { alert('商品が見つかりません'); return; }
   // 掛け率は上代から逆算するのが業務的に正しい。
   // 上代未設定の場合は rate カラム（NOT NULL）の保存のため基本単価でフォールバック。
-  let rate;
+  // 上代も基本単価も無いオープンプライス商品は、卸価格を直接登録（掛け率は 0 保存＝下流は wholesale_price を優先参照）。
+  let rate = 0;
   if (prod.listPrice > 0) {
     rate = wholesale / prod.listPrice;
     if (rate > 1) {
@@ -792,9 +793,6 @@ async function savePricing() {
     }
   } else if (prod.basePrice > 0) {
     rate = wholesale / prod.basePrice;
-  } else {
-    alert('選択した商品は基本単価も上代も設定されていません。商品マスタを先に設定してください。');
-    return;
   }
 
   const btn = document.querySelector('.btn-primary');
