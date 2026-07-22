@@ -828,6 +828,11 @@
   /* 伝票ごとの小計行の見た目（画面・印刷共通）：薄い地色で明細と区別し、伝票合計の下に区切り線 */
   .invoice-table tbody tr.denpyo-sub td { background: #faf7f2; }
   .invoice-table tbody tr.denpyo-total td { border-bottom: 2px solid var(--text); }
+  /* 請求明細書（非delivery）の合計欄：税率別内訳の項目名を折り返さず、枠を少し広げる。
+     内訳行は小さめにして縦の間延びを抑える。納品書兼請求書（delivery）は対象外で従来どおり。 */
+  body:not(.delivery-mode) .totals-summary-table { width: 300px; }
+  body:not(.delivery-mode) .totals-summary-table td:first-child { width: 138px; white-space: nowrap; letter-spacing: 0; }
+  body:not(.delivery-mode) .totals-summary-table tr.tax-breakdown td { padding: 3px 10px; font-size: 10.5px; }
 </style>
 </head>
 <body>
@@ -1048,12 +1053,12 @@
     rows.push(`<tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`);
     rows.push(`<tr><td>消費税合計</td><td>${fmt(t.tax)}</td></tr>`);
     if (t.excl10 !== 0) {
-      rows.push(`<tr><td>10%対象（税抜）</td><td>${fmt(t.excl10)}</td></tr>`);
-      rows.push(`<tr><td>　消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>`);
+      rows.push(`<tr class="tax-breakdown"><td>10%対象（税抜）</td><td>${fmt(t.excl10)}</td></tr>`);
+      rows.push(`<tr class="tax-breakdown"><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>`);
     }
     if (t.excl8 !== 0) {
-      rows.push(`<tr><td>8%対象（税抜）</td><td>${fmt(t.excl8)}</td></tr>`);
-      rows.push(`<tr><td>　消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>`);
+      rows.push(`<tr class="tax-breakdown"><td>8%対象（税抜）</td><td>${fmt(t.excl8)}</td></tr>`);
+      rows.push(`<tr class="tax-breakdown"><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>`);
     }
     return rows.join('');
   }
