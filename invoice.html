@@ -817,12 +817,17 @@
        若干の余白を残してA4をほどよく埋める（10行枠で約270mm）。
        品目が約10を超えると自然に次ページへ改ページ（長い明細書として正常） */
     body:not(.delivery-mode) .invoice-table tbody td { height: 12mm; vertical-align: middle; }
+    /* 伝票ごとの小計行（伝票消費税・伝票合計）は明細行より低くし、区切り線で受注を区切る */
+    body:not(.delivery-mode) .invoice-table tbody tr.denpyo-sub td { height: 7mm; }
 
     /* 備考欄（下半分の最後）を縮める */
     body.delivery-mode .invoice-footer { margin-top: 2px; padding-top: 2px; gap: 6px; }
     body.delivery-mode .invoice-footer .footer-section-title { font-size: 8px; }
     body.delivery-mode .invoice-footer > div > div:last-child { font-size: 9px !important; line-height: 1.4 !important; }
   }
+  /* 伝票ごとの小計行の見た目（画面・印刷共通）：薄い地色で明細と区別し、伝票合計の下に区切り線 */
+  .invoice-table tbody tr.denpyo-sub td { background: #faf7f2; }
+  .invoice-table tbody tr.denpyo-total td { border-bottom: 2px solid var(--text); }
 </style>
 </head>
 <body>
@@ -1028,6 +1033,29 @@
       ${t.tax8  !== 0 ? `<tr><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>` : ''}
       ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
       <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
+  }
+  // 請求明細書の最下部：合計（税込）→ 消費税合計 → 税率別（対象額・消費税）の内訳
+  function buildPeriodTotalsRows(t, isPersonalTrade) {
+    const rows = [];
+    if (isPersonalTrade) {
+      // 個人取引：消費税計算なし。税率別の込み小計＋合計のみ。
+      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
+      rows.push(`<tr class="total-row"><td>合計</td><td>${fmt(t.total)}</td></tr>`);
+      return rows.join('');
+    }
+    // 卸取引（外税）：合計（税込）→ 消費税合計 → 税率別（税抜対象額・消費税）
+    rows.push(`<tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`);
+    rows.push(`<tr><td>消費税合計</td><td>${fmt(t.tax)}</td></tr>`);
+    if (t.excl10 !== 0) {
+      rows.push(`<tr><td>10%対象（税抜）</td><td>${fmt(t.excl10)}</td></tr>`);
+      rows.push(`<tr><td>　消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>`);
+    }
+    if (t.excl8 !== 0) {
+      rows.push(`<tr><td>8%対象（税抜）</td><td>${fmt(t.excl8)}</td></tr>`);
+      rows.push(`<tr><td>　消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>`);
+    }
+    return rows.join('');
   }
   // 手数料・送料の明細行HTML（あれば返す）
   function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, handlingQty, shippingQty) {
@@ -1447,8 +1475,20 @@
         const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd)).join('');
         const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty);
         const feeCount = ((Number(g.handlingFee)||0) > 0 ? 1 : 0) + ((Number(g.shippingFee)||0) > 0 ? 1 : 0);
-        renderedRowCount += (g.items || []).length + feeCount;
-        return itemHtml + feeHtml;
+        // その伝票（受注）ごとの消費税・合計（税込）を出して区切る
+        const gt = calcInvoiceTotals(
+          g.items || [],
+          (Number(g.handlingFee)||0) * (Number(g.handlingQty)||1),
+          (Number(g.shippingFee)||0) * (Number(g.shippingQty)||1),
+          isPersonal, g.handlingCharge, g.shippingCharge
+        );
+        const subLabel = '<td colspan="3" style="text-align:right;font-size:11px;color:var(--text-muted);font-weight:600">';
+        const denpyoTaxRow = isPersonal ? '' :
+          `<tr class="denpyo-sub"><td></td>${subLabel}（伝票消費税）</td><td style="text-align:right;font-size:12px">${fmt(gt.tax)}</td><td></td><td></td></tr>`;
+        const denpyoTotalRow =
+          `<tr class="denpyo-sub denpyo-total"><td></td>${subLabel}（伝票合計）</td><td style="text-align:right;font-weight:700;font-size:12px">${fmt(gt.total)}</td><td></td><td></td></tr>`;
+        renderedRowCount += (g.items || []).length + feeCount + (isPersonal ? 1 : 2);
+        return itemHtml + feeHtml + denpyoTaxRow + denpyoTotalRow;
       }).join('');
       dataRows = renderedRowCount > 0
         ? blocks
@@ -1592,7 +1632,7 @@
           </div>
           <div class="delivery-sign-box"></div>
           <table class="totals-summary-table">
-            ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
+            ${isPeriod ? buildPeriodTotalsRows(totals, isPersonal) : buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
           </table>
         </div>
       </div>
