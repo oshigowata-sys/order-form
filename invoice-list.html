@@ -844,9 +844,18 @@ async function confirmIssue() {
 
     // 請求書番号の年月は発行日（画面で選んだ日付）基準にする
     const ym    = issuedDate.slice(0, 4) + issuedDate.slice(5, 7);
-    const cntRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=id`);
-    const cnt    = (await cntRes.json()).length + 1;
-    const num    = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
+    // 請求書番号は「その月の既存番号のうち最大の連番＋1」で採番する。
+    // （旧実装は「件数＋1」だったが、途中で請求書を1枚でも削除して連番が飛ぶと、
+    //  作った番号が既存番号と衝突し unique 制約違反で発行できなくなる不具合があった）
+    const numRes = await sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&invoice_number=like.INV-${ym}-%25&select=invoice_number`);
+    const existingNums = numRes.ok ? await numRes.json() : [];
+    let maxSeq = 0;
+    for (const row of existingNums) {
+      const m = /^INV-\d{6}-(\d+)$/.exec(row.invoice_number || '');
+      if (m) { const n = parseInt(m[1], 10); if (n > maxSeq) maxSeq = n; }
+    }
+    let cnt      = maxSeq + 1;
+    let num      = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
     const incl   = r.excl + r.tax;
 
     const notesValue = (document.getElementById('issueNotes')?.value || '').trim();
@@ -865,11 +874,21 @@ async function confirmIssue() {
     };
     if (manualPrevAmount !== null) invoicePayloadBody.manual_prev_amount = manualPrevAmount;
 
-    const res = await sbFetch('/rest/v1/invoices', {
-      method: 'POST',
-      body: JSON.stringify(invoicePayloadBody)
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    // 採番が万一それでも既存番号と衝突（unique制約違反=409）した場合は、次の番号で数回だけ再試行する。
+    let res, issueAttempt = 0;
+    while (true) {
+      invoicePayloadBody.invoice_number = num;
+      res = await sbFetch('/rest/v1/invoices', {
+        method: 'POST',
+        body: JSON.stringify(invoicePayloadBody)
+      });
+      if (res.ok) break;
+      if (res.status === 409 && issueAttempt < 20) {
+        issueAttempt++; cnt++; num = `INV-${ym}-${String(cnt).padStart(3,'0')}`;
+        continue;
+      }
+      throw new Error('HTTP ' + res.status);
+    }
 
     // ── 明細スナップショット保存（請求書発行時点の商品名・単価・税率を固定） ──
     const invoicePayload = await res.json();
