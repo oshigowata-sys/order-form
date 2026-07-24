@@ -1732,6 +1732,15 @@
     // 伝票が多いとき用紙をはみ出し、数行だけ次ページにあふれて残りが空白になる。
     // period-mode のときは行を自然高さに詰め、表がページをまたげるようにする（下部CSS参照）。
     document.body.classList.toggle('period-mode', isPeriod);
+    if (isPeriod) {
+      // 印刷の実組版では 12mm 固定行高がCSSの上書きより優先される環境があるため、
+      // 明細行の高さ・上下余白を各セルへ直接指定して確実に詰める（1件あたりの縦幅を圧縮し空白ページを防ぐ）。
+      document.querySelectorAll('#invoiceBody .invoice-table tbody td').forEach(td => {
+        td.style.height = 'auto';
+        td.style.paddingTop = '2px';
+        td.style.paddingBottom = '2px';
+      });
+    }
     // 取引先名が長い場合に2行にならないよう、収まるまで縮小
     fitPartyName(document.getElementById('invoiceBody'));
   }
