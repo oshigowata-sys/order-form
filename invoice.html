@@ -813,12 +813,19 @@
     body.delivery-mode .totals-summary-table { font-size: 10px; }
     body.delivery-mode .totals-summary-table td { padding: 2px 8px; }
     body.delivery-mode .totals-summary-table tr.total-row td { font-size: 12px; }
-    /* 期間請求書（請求明細書・非delivery）の明細行は固定12mm。
-       若干の余白を残してA4をほどよく埋める（10行枠で約270mm）。
-       品目が約10を超えると自然に次ページへ改ページ（長い明細書として正常） */
-    body:not(.delivery-mode) .invoice-table tbody td { height: 12mm; vertical-align: middle; }
+    /* 単一受注の請求書の明細行は固定12mm（10行枠でA4をほどよく埋める）。
+       請求明細書（period-mode）は行数可変のため対象外＝下で自然高さに詰める。 */
+    body:not(.delivery-mode):not(.period-mode) .invoice-table tbody td { height: 12mm; vertical-align: middle; }
     /* 伝票ごとの小計行（伝票消費税・伝票合計）は明細行より低くし、区切り線で受注を区切る */
     body:not(.delivery-mode) .invoice-table tbody tr.denpyo-sub td { height: 7mm; }
+
+    /* 請求明細書（期間まとめ・period-mode）：明細は伝票数に応じて可変。行を12mm固定にすると
+       伝票が多いとき用紙をはみ出し、数行だけ次ページにあふれて残り大半が空白になる。
+       行を自然高さに詰め、表はページをまたげるように（行単位では分割しない）。 */
+    body.period-mode .invoice-table tbody td { height: auto; vertical-align: middle; padding: 3px 5px; }
+    body.period-mode .invoice-table tbody tr.denpyo-sub td { height: auto; }
+    body.period-mode .invoice-table { page-break-inside: auto; }
+    body.period-mode .invoice-table tbody tr { page-break-inside: avoid; }
 
     /* 備考欄（下半分の最後）を縮める */
     body.delivery-mode .invoice-footer { margin-top: 2px; padding-top: 2px; gap: 6px; }
@@ -1721,6 +1728,10 @@
       document.title = `請求書 - ${f['取引先名'] || '取引先'} - ${invoiceNo}`;
       updateBillingSummary();
     }
+    // 期間まとめの請求明細書は明細行数が可変。単一受注請求書用の12mm固定行高だと
+    // 伝票が多いとき用紙をはみ出し、数行だけ次ページにあふれて残りが空白になる。
+    // period-mode のときは行を自然高さに詰め、表がページをまたげるようにする（下部CSS参照）。
+    document.body.classList.toggle('period-mode', isPeriod);
     // 取引先名が長い場合に2行にならないよう、収まるまで縮小
     fitPartyName(document.getElementById('invoiceBody'));
   }
