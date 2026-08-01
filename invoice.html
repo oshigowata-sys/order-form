@@ -1437,7 +1437,9 @@
   //   の配列。指定時は先頭列を「日付」にし、各受注の商品行の直後にその受注の送料・手数料行を出す。
   function renderInvoice(order, items, showDelivery = true, prevInvoice = null, currentInvoice = null, periodGroups = null) {
     window._orderData = { order, items };
-    const isPeriod = Array.isArray(periodGroups) && periodGroups.length > 0;
+    // 期間請求書（請求明細書）かどうかは「期間モードで呼ばれたか」で決める。
+    // 受注ゼロの期間でも請求明細書として出す（＝件数で判定すると単一受注用の体裁に落ちる）。
+    const isPeriod = Array.isArray(periodGroups);
     const s = _settings;
     const f = order.fields || order;
     const isPersonal = !!f.isPersonalTrade;
@@ -1528,7 +1530,8 @@
       }).join('');
       dataRows = renderedRowCount > 0
         ? blocks
-        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+        // 受注ゼロの期間（前回請求額・御入金の確認用に発行するケース）
+        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">この期間のご注文はありませんでした</td></tr>`;
     } else {
       // 先頭列＝上代（納品書と同じ書式・products.list_priceの現在値・未設定は「—」）
       const listPriceTd = it => `<td style="text-align:right;font-size:11px;font-family:'Space Grotesk',sans-serif">${it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>'}</td>`;
@@ -2002,17 +2005,14 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         orders = await res.json();
 
-        if (!orders || orders.length === 0) {
-          document.getElementById('loadingState').innerHTML = '<div style="padding:80px;text-align:center;color:#999;">対象期間に受注データがありませんでした</div>';
-          return;
-        }
-
-        // 全受注の明細を結合
-        const firstOrder = orders[0];
+        // 受注ゼロでも請求書は出せるようにする（前の期間の請求額と御入金の確認用に発行する運用）。
+        // 取引先名などは受注からではなく取引先マスタ側から取る。
+        const firstOrder = orders && orders.length ? orders[0] : null;
+        if (!orders) orders = [];
 
         // 取引先詳細・前回請求書・現在の請求書（明細スナップショット込み）を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
-          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=postal_code,address,closing_day,payment_month_offset,payment_day&limit=1'),
+          sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=company_name,contact_name,is_personal_trade,postal_code,address,closing_day,payment_month_offset,payment_day&limit=1'),
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
@@ -2029,6 +2029,12 @@
 
         let prevInvoice = null;
         if (prevRes.ok) { const d = await prevRes.json(); prevInvoice = d[0] || null; }
+
+        // 受注も無い・発行済みでもない・前回請求も無い＝本当に出すものが無いときだけ止める
+        if (orders.length === 0 && !targetInvoiceNum && !prevInvoice) {
+          document.getElementById('loadingState').innerHTML = '<div style="padding:80px;text-align:center;color:#999;">対象期間に受注データがありませんでした</div>';
+          return;
+        }
 
         let currentInvoicePaidAmount = null;
         let currentInvoiceManualPrev = null;
@@ -2069,12 +2075,14 @@
         const periodHandlingCharge = currentHandlingFee != null ? currentHandlingCharge : (netHandling > 0);
         const periodShippingCharge = currentShippingFee != null ? currentShippingCharge : (netShipping > 0);
         const periodIsPersonal = currentIsPersonal != null ? currentIsPersonal
-          : !!((orders[0] && (orders[0].is_personal_trade ?? orders[0].customers?.is_personal_trade)));
+          : (orders[0] ? !!(orders[0].is_personal_trade ?? orders[0].customers?.is_personal_trade)
+                       : !!customerExtra.is_personal_trade);
 
         const f = {
           '受注ID':   targetInvoiceNum || '',
-          '取引先名': firstOrder.customers?.company_name || '',
-          '担当者名': firstOrder.customers?.contact_name || '',
+          // 受注ゼロの期間は受注から取れないので取引先マスタの値を使う
+          '取引先名': firstOrder?.customers?.company_name || customerExtra.company_name || '',
+          '担当者名': firstOrder?.customers?.contact_name || customerExtra.contact_name || '',
           '受注日':   targetPeriodEnd || '',
           '住所':     formatAddressWithZip(customerExtra.postal_code, customerExtra.address),
           '締め日':   customerExtra.closing_day != null ? customerExtra.closing_day : null,
