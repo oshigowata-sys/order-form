@@ -1995,7 +1995,9 @@
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
           '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))' +
-          '&order=order_date.asc&order_items.order=display_order.asc'
+          // 並び順は必ず一意に決まるようにする（受注日だけだと同じ日の受注の順番が保証されず、
+          // 発行時に凍結した明細と印刷時の伝票ブロックがズレて別の受注の内容が混ざる）
+          '&order=order_date.asc,id.asc&order_items.order=display_order.asc,id.asc'
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
         orders = await res.json();
@@ -2018,7 +2020,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -2091,6 +2093,7 @@
         // 各グループ＝その受注日の商品行＋その受注の送料・手数料（符号・数量込み）。
         // orders は order_date.asc で取得済みなので、グループ自体が受注順（日付昇順）に並ぶ。
         const groups = orders.map(o => ({
+          orderId: o.id,
           date: o.order_date || '',
           items: (o.order_items || []).map(it => ({
             '商品コード': it.products?.product_code || '',
@@ -2109,30 +2112,73 @@
           shippingQty:    Number(o.shipping_fee_qty) || 1,
         }));
 
-        // 既発行（スナップショットあり）は発行時点の凍結値を優先。スナップショットは
-        // 発行時に orders を order_date.asc → display_order.asc でフラット化して採番しているため、
-        // ここで再構築したグループの商品行と同順。件数一致時のみ位置対応で上書きする
-        // （件数が違う＝発行後に受注を編集した等の場合は、ズレ防止のため上書きしない）。
+        // 既発行（スナップショットあり）は発行時点の凍結値を優先。
+        // 対応づけは invoice_items.order_id（どの受注の行か）で行う。以前は「並び順の位置」で
+        // 当て込んでいたため、同じ受注日が複数あると発行時と印刷時で順番が入れ替わり、
+        // 別の受注の内容が混ざって印刷されていた（migration 060 で order_id を追加して解消）。
+        const snapToRow = (snap, fallback) => ({
+          '商品コード': snap.product_code || (fallback && fallback['商品コード']) || '',
+          '商品名':     snap.product_name || '',
+          '数量':       snap.quantity || 0,
+          '単価':       snap.unit_price || 0,
+          '小計':       snap.subtotal != null ? snap.subtotal : (snap.quantity || 0) * (snap.unit_price || 0),
+          isFood:       !!snap.is_food,
+          '備考':       snap.remarks || '',
+        });
         let flatCount = 0;
         groups.forEach(g => { flatCount += g.items.length; });
-        if (snapshotItems.length > 0 && snapshotItems.length === flatCount) {
-          let idx = 0;
+        const hasOrderLink = snapshotItems.length > 0 && snapshotItems.every(s => s.order_id);
+
+        if (hasOrderLink) {
+          // ── 受注IDで対応づけ（確実。発行後に受注を編集しても発行時点の内容のまま出す）──
+          const byOrder = {};
+          snapshotItems.forEach(s => { (byOrder[s.order_id] = byOrder[s.order_id] || []).push(s); });
           groups.forEach(g => {
-            g.items = g.items.map(it => {
-              const snap = snapshotItems[idx++];
-              return {
-                '商品コード': snap.product_code || it['商品コード'] || '',
-                '商品名':     snap.product_name || '',
-                '数量':       snap.quantity || 0,
-                '単価':       snap.unit_price || 0,
-                '小計':       snap.subtotal != null ? snap.subtotal : (snap.quantity || 0) * (snap.unit_price || 0),
-                isFood:       !!snap.is_food,
-                '備考':       snap.remarks || '',
-              };
+            const rows = byOrder[g.orderId];
+            if (rows && rows.length) g.items = rows.map(s => snapToRow(s));
+          });
+          // 発行後に受注が消された等でブロックが無い凍結行は、請求済み金額を落とさないよう末尾に残す
+          const known = {};
+          groups.forEach(g => { known[g.orderId] = true; });
+          Object.keys(byOrder).forEach(oid => {
+            if (known[oid]) return;
+            groups.push({
+              orderId: oid, date: '', items: byOrder[oid].map(s => snapToRow(s)),
+              handlingFee: 0, shippingFee: 0, handlingCharge: false, shippingCharge: false,
+              handlingQty: 1, shippingQty: 1,
             });
           });
         } else if (snapshotItems.length > 0) {
-          console.warn('請求明細書: スナップショット件数(' + snapshotItems.length + ')と受注明細件数(' + flatCount + ')が不一致のため凍結値の上書きをスキップしました');
+          // ── 旧データ（order_id を持たない発行済み請求書）──
+          // 凍結値と現在の受注内容が同じ中身なら、発行後に編集されていない＝受注から組み直した
+          // ブロックがそのまま正しい（位置合わせをすると逆に混ざるため上書きしない）。
+          const keyOfSnap = s => [s.product_code || '', s.quantity || 0, s.unit_price || 0,
+            (s.subtotal != null ? s.subtotal : (s.quantity || 0) * (s.unit_price || 0))].join('');
+          const keyOfLive = it => [it['商品コード'] || '', it['数量'] || 0, it['単価'] || 0, it['小計'] || 0].join('');
+          const snapKeys = snapshotItems.map(keyOfSnap).sort();
+          const liveKeys = groups.reduce((a, g) => a.concat(g.items.map(keyOfLive)), []).sort();
+          const sameContent = snapKeys.length === liveKeys.length && snapKeys.every((k, i) => k === liveKeys[i]);
+          if (sameContent) {
+            // 中身が同一＝発行後に受注は編集されていない。伝票の区切りは受注から組み直したものが
+            // 正しいので、その並びを保ったまま、同じ中身の凍結行（発行当時の商品名・備考）を当てる。
+            const pool = {};
+            snapshotItems.forEach(s => { (pool[keyOfSnap(s)] = pool[keyOfSnap(s)] || []).push(s); });
+            groups.forEach(g => {
+              g.items = g.items.map(it => {
+                const bucket = pool[keyOfLive(it)];
+                const snap = bucket && bucket.length ? bucket.shift() : null;
+                return snap ? snapToRow(snap, it) : it;
+              });
+            });
+          } else if (snapshotItems.length === flatCount) {
+            // 発行後に受注が編集された旧データ。どの行がどの受注かを復元できないため、
+            // 従来どおり並び順で当て込む（発行時点の金額を優先）
+            console.warn('請求明細書: 旧データ（受注IDなし）＋発行後に内容が変わっているため、並び順で凍結値を当てています');
+            let idx = 0;
+            groups.forEach(g => { g.items = g.items.map(it => snapToRow(snapshotItems[idx++], it)); });
+          } else {
+            console.warn('請求明細書: スナップショット件数(' + snapshotItems.length + ')と受注明細件数(' + flatCount + ')が不一致のため凍結値の上書きをスキップしました');
+          }
         }
 
         const allItems = groups.flatMap(g => g.items);

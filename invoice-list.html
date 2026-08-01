@@ -922,7 +922,8 @@ async function confirmIssue() {
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
         + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
-        + '&order=order_date.asc&order_items.order=display_order.asc'
+        // 並び順は必ず一意に決まるようにする（受注日だけだと同じ日の受注の順番が保証されない）
+        + '&order=order_date.asc,id.asc&order_items.order=display_order.asc,id.asc'
       );
       if (!ordersRes.ok) throw new Error('HTTP ' + ordersRes.status);
       const ordersData = await ordersRes.json();
@@ -942,6 +943,7 @@ async function confirmIssue() {
           const qty       = Number(it.quantity)   || 0;
           itemsPayload.push({
             invoice_id:    invoiceId,
+            order_id:      ord.id || null,   // どの受注（伝票）の行か。請求明細書の伝票ごとの区切りに使う
             product_id:    it.product_id || null,
             product_code:  it.products?.product_code || '',
             product_name:  it.products?.product_name || '',
