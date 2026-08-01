@@ -448,7 +448,7 @@ async function loadAll() {
     const today = new Date();
     const [ordersRes, invoicesRes] = await Promise.all([
       sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
-      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name)&order=issued_date.desc`)
+      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name,closing_day)&order=issued_date.desc`)
     ]);
     if (!ordersRes.ok || !invoicesRes.ok) throw new Error('データ取得失敗');
     const [orders, invoices] = await Promise.all([ordersRes.json(), invoicesRes.json()]);
@@ -524,7 +524,37 @@ async function loadAll() {
       });
     });
 
-    const pendingRows    = Object.values(map).filter(r => r.status === 'pending' && r.orders > 0);
+    // ── 受注ゼロの期間も「受注なし」行として出す ──
+    // 前の期間に請求書を出している取引先は、その次の期間に受注が無くても
+    // 「前回請求額の入金が確認できた」意味で請求書を出すことがある（卸の実務）。
+    // 発行しなければ次の期間には出ないので、取引が終わった相手が延々並ぶことはない。
+    const validInvoices = invoices.filter(i => !i.cancelled_at);
+    const noOrderSeen = {};
+    validInvoices.forEach(inv => {
+      const cid = inv.customer_id;
+      if (!cid || noOrderSeen[cid]) return;
+      noOrderSeen[cid] = true;
+      const cd = inv.customers?.closing_day || 31;
+      const completed = calcBillingPeriods(cd, today)[0];   // 締め切り済みの期間
+      const key = `${cid}:${completed.periodEnd}`;
+      if (map[key] || invoicedSet.has(key)) return;         // 受注がある or もう発行済み
+      // 直前の期間に請求書を出しているか（＝いま取引が続いている相手か）
+      const prevPeriod = calcBillingPeriods(cd, new Date(completed.periodStart + 'T00:00:00'))[0];
+      const hasPrev = validInvoices.some(v => v.customer_id === cid
+        && v.period_end >= prevPeriod.periodStart && v.period_end <= prevPeriod.periodEnd);
+      if (!hasPrev) return;
+      map[key] = {
+        status: 'pending',
+        customer: inv.customers?.company_name || '',
+        customerId: cid,
+        closingDay: cd,
+        periodStart: completed.periodStart, periodEnd: completed.periodEnd,
+        orders: 0, excl: 0, tax: 0, noOrders: true,
+        invoiceNumber: null, issuedDate: null,
+      };
+    });
+
+    const pendingRows    = Object.values(map).filter(r => r.status === 'pending' && (r.orders > 0 || r.noOrders));
     const inProgressRows = Object.values(map).filter(r => r.status === 'in_progress');
 
     // 並び順：未発行→進行中→発行済み（業務的に「これから請求書を出すもの」を優先表示）
@@ -596,7 +626,8 @@ function renderAll() {
     if (r.status === 'pending') {
       badge          = '<span class="badge badge-pending">未発行</span>';
       action         = `<button class="btn btn-primary btn-sm issue-btn" data-idx="${idx}">発行</button>`;
-      ordersCell     = `${r.orders}件`;
+      // 受注ゼロの期間＝前回請求額の入金確認用。件数の代わりに「受注なし」と出す
+      ordersCell     = r.noOrders ? '<span style="color:var(--text-muted);font-size:13px">受注なし</span>' : `${r.orders}件`;
       issuedDateCell = '未発行';
     } else if (r.status === 'issued') {
       if (r.cancelled) {
@@ -608,7 +639,8 @@ function renderAll() {
         badge        = `<span class="badge badge-issued">発行済み</span>${unpaidBadge}`;
         action       = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="openPdf(${idx})">PDF表示</button><button class="btn btn-outline btn-sm" onclick="openEditDateModal(${idx})">発行日変更</button><button class="btn btn-sm" style="background:#fff;color:#92400e;border:1.5px solid #fcd34d;font-weight:600" onclick="confirmCancelInvoice(${idx})">発行取り消し</button><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:600" onclick="confirmDeleteInvoice(${idx})">削除</button></div>`;
       }
-      ordersCell     = `${r.orders}件`;
+      // 受注ゼロで発行した期間（前回請求額の入金確認用）は件数でなく「受注なし」と出す
+      ordersCell     = r.orders === 0 ? '<span style="color:var(--text-muted);font-size:13px">受注なし</span>' : `${r.orders}件`;
       issuedDateCell = r.issuedDate ? r.issuedDate.replace(/-/g,'/') : '未発行';
     } else {
       badge          = '<span class="badge badge-inprogress">進行中</span>';
@@ -757,7 +789,7 @@ function updateIssuePreview() {
   const e    = document.getElementById('issuePeriodEnd').value;
   const incl = _issueTarget.excl + _issueTarget.tax;
   document.getElementById('issuePreview').innerHTML =
-    `対象期間：${s.replace(/-/g,'/')}〜${e.replace(/-/g,'/')}　受注${_issueTarget.orders}件　税込合計：<strong>¥${incl.toLocaleString()}</strong>`;
+    `対象期間：${s.replace(/-/g,'/')}〜${e.replace(/-/g,'/')}　${_issueTarget.noOrders ? '受注なし（前回請求額・御入金の確認用）' : '受注' + _issueTarget.orders + '件'}　税込合計：<strong>¥${incl.toLocaleString()}</strong>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
