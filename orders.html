@@ -1290,12 +1290,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       isFood: product.is_food || false,
       remarks: '',
     });
+    const addedIdx = editItems.length - 1;
     document.getElementById('editItemProduct').value = '';
     document.getElementById('editItemQty').value = '1';
     const search = document.getElementById('editItemSearch');
     if (search) { search.value = ''; renderEditSearchResults('', []); }
     renderEditItems();
     updateEditOrderPreview();
+    // 追加した行の数量欄へカーソルを移し「1」を選択状態にする（追加ボタン左の欄ではなく行の数量）。
+    const qtyInput = document.querySelector(`#modalItems .edit-item-qty[data-qty-idx="${addedIdx}"]`);
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
   }
 
   function renderEditItems() {
@@ -1313,7 +1317,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       return `<tr>
         <td style="text-align:right"><input type="text" data-num="int" value="${it.listPrice != null ? Number(it.listPrice) : ''}" oninput="onNumInput(this, event, el=>updateEditItemListPrice(${i}, el.value))" style="width:96px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="white-space:normal">${esc(it.name)}</td>
-        <td style="text-align:right"><input type="text" data-num="int" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td style="text-align:right"><input type="text" data-num="int" class="edit-item-qty" data-qty-idx="${i}" value="${it.qty}" oninput="onNumInput(this, event, el=>updateEditItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateEditItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right;font-weight:600" data-edititem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
@@ -1468,13 +1472,17 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       isFood: product.is_food || false,
       remarks: '',
     });
-    // 検索窓と候補リストはリセット。
-    // 追加後は検索窓へフォーカスを戻す＝一度ひらがなにすれば以降もひらがなのまま連続入力できる（IME手切替ゼロ）
+    const addedIdx = editItems.length - 1;
+    // 検索窓と候補リストはリセット（値だけ消す）
     const search = document.getElementById('editItemSearch');
-    if (search) { search.value = ''; search.focus(); }
+    if (search) { search.value = ''; }
     renderEditSearchResults('', []);
     renderEditItems();
     updateEditOrderPreview();
+    // 追加した行の数量欄へカーソルを移し「1」を選択状態にする＝消す手間なくそのまま数量を打てる。
+    // 別の商品を続けて足すときは検索窓をクリックで再開できる。
+    const qtyInput = document.querySelector(`#modalItems .edit-item-qty[data-qty-idx="${addedIdx}"]`);
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
   }
 
   async function saveEditMode() {
@@ -1929,14 +1937,18 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル）
     newOrderItems.push({ productId, name: product.product_name, qty: 1, unitPrice, costPrice: 0, listPrice: product.list_price != null ? Number(product.list_price) : null, remarks: '', isFood: !!product.is_food });
-    // 検索窓と候補リストはリセット（プルダウンは絞り込んでないので触らない）
-    // 追加後は検索窓へフォーカスを戻す＝一度ひらがなにすれば以降もひらがなのまま連続入力できる（IME手切替ゼロ）
+    const addedIdx = newOrderItems.length - 1;
+    // 検索窓と候補リストはリセット（値だけ消す・プルダウンは絞り込んでないので触らない）
     const search = document.getElementById('newItemSearch');
-    if (search) { search.value = ''; search.focus(); }
+    if (search) { search.value = ''; }
     renderSearchResults('', []);
     document.getElementById('itemError').classList.remove('show');
     renderNewItems();
     updateNewOrderPreview();
+    // 追加した行の数量欄へカーソルを移し「1」を選択状態にする＝消す手間なくそのまま数量を打てる。
+    // 別の商品を続けて足すときは検索窓をクリックで再開できる。
+    const qtyInput = document.querySelector(`#newItemsTbody .new-item-qty[data-qty-idx="${addedIdx}"]`);
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
   }
 
   async function onCustomerChange() {
@@ -1989,6 +2001,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const unitPrice = getUnitPrice(productId);
     // 同じ商品でも必ず別行として追加（父親の伝統的な納品書スタイル＝分配先別に行を分ける運用）
     newOrderItems.push({ productId, name: product.product_name, qty, unitPrice, costPrice: 0, listPrice: product.list_price != null ? Number(product.list_price) : null, remarks: '', isFood: !!product.is_food });
+    const addedIdx = newOrderItems.length - 1;
     document.getElementById('newItemProduct').value = '';
     document.getElementById('newItemQty').value = '1';
     const search = document.getElementById('newItemSearch');
@@ -1998,6 +2011,9 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     }
     renderNewItems();
     updateNewOrderPreview();
+    // 追加した行の数量欄へカーソルを移し「1」を選択状態にする（追加ボタン左の欄ではなく行の数量）。
+    const qtyInput = document.querySelector(`#newItemsTbody .new-item-qty[data-qty-idx="${addedIdx}"]`);
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
   }
 
   function getNewFees() {
@@ -2099,7 +2115,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       return `<tr>
         <td style="text-align:right"><input type="text" data-num="int" value="${item.listPrice != null ? Number(item.listPrice) : ''}" oninput="onNumInput(this, event, el=>updateNewItemListPrice(${i}, el.value))" style="width:96px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="white-space:normal">${esc(item.name)}</td>
-        <td style="text-align:right"><input type="text" data-num="int" value="${item.qty}" oninput="onNumInput(this, event, el=>updateNewItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
+        <td style="text-align:right"><input type="text" data-num="int" class="new-item-qty" data-qty-idx="${i}" value="${item.qty}" oninput="onNumInput(this, event, el=>updateNewItemQty(${i}, el.value))" style="width:64px;padding:4px 6px;text-align:right;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right">${priceCell}</td>
         <td><input type="text" value="${remarksVal}" placeholder="（任意）" oninput="updateNewItemRemarks(${i}, this.value)" maxlength="40" style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--surface)"></td>
         <td style="text-align:right;font-weight:600" data-newitem-sub="${i}">${subDisp < 0 ? '-¥' + Math.abs(subDisp).toLocaleString() : '¥' + subDisp.toLocaleString()}</td>
