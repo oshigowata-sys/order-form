@@ -119,6 +119,38 @@ function startAutoRefresh() {
 
 if (sessionStorage.getItem('_sb_jwt')) { startAutoRefresh(); startIdleWatch(); }
 
+// PCスリープ・長時間離席から戻った時にログインを先回りで復帰させる（父親版 PR #45 の共通版展開）。
+// startAutoRefresh の setTimeout はスリープ中・バックグラウンドタブでは動かないため、
+// 戻ってきた瞬間にトークンが期限切れだと次の画面移動で checkAuth に弾かれて
+// 「勝手にログアウトされた」状態になる。画面が再表示された時に、期限切れ or 5分以内に
+// 切れるトークンを更新トークンで先に更新しておく。
+// ※60分放置の自動ログアウト（startIdleWatch）は共通版では維持する。signOut 済みなら
+//   user キーが消えているため下のガードで何もしない＝この復帰処理では延命しない。
+let _reviving = false;
+async function reviveSession() {
+  if (_reviving) return;
+  if (!sessionStorage.getItem('user')) return;
+  if (!sessionStorage.getItem('_sb_refresh')) return;
+  const expiry = _getTokenExpiry();
+  // まだ5分以上余裕があるなら何もしない（通常の自動更新に任せる）
+  if (expiry && expiry - Date.now() > 5 * 60 * 1000) return;
+  _reviving = true;
+  try {
+    const data = await sbRefreshSession();
+    // 更新の最中に自動ログアウトが走っていたら、書き戻したトークンを取り消す
+    if (!sessionStorage.getItem('user')) {
+      sessionStorage.removeItem('_sb_jwt');
+      sessionStorage.removeItem('_sb_refresh');
+    } else if (data?.access_token) {
+      startAutoRefresh();
+    }
+  } catch (e) { /* 復帰失敗は握りつぶす（次の操作時の checkAuth に委ねる） */ }
+  finally { _reviving = false; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reviveSession(); });
+window.addEventListener('focus', reviveSession);
+window.addEventListener('pageshow', reviveSession);
+
 async function signOut(redirectUrl) {
   const token = sessionStorage.getItem('_sb_jwt');
   if (token) {
