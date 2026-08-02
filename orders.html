@@ -513,7 +513,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 <script src="auth.js?v=20260802-revive"></script>
 <script src="sidebar-icons.js?v=20260625"></script>
 <script src="notification-bell.js?v=20260706"></script>
-<script src="preview-renderer.js?v=20260704-center-headers2"></script>
+<script src="preview-renderer.js?v=20260802-fee-signed-qty"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -1034,15 +1034,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       }).join('');
       // 手数料・送料を明細末尾に表示（あれば）
       const feeRows = [];
+      // 差し引き（−）は「数量をマイナス・単価はプラス」で表示（商品の返品行・帳票と同じ見せ方）。
       if ((o.handlingFee || 0) > 0) {
-        const qtyH = o.handlingQty || 1;
-        const unitDisp = toDisplayPrice((o.handlingCharge ? 1 : -1) * o.handlingFee, false, currentEditIsPersonalTrade);
+        const qtyH = (o.handlingCharge ? 1 : -1) * (o.handlingQty || 1);
+        const unitDisp = toDisplayPrice(o.handlingFee, false, currentEditIsPersonalTrade);
         const lineDisp = unitDisp * qtyH;
         feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>手数料</td><td class="num-right">${qtyH}</td><td class="num-right">${fmtYen(unitDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(lineDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
       }
       if ((o.shippingFee || 0) > 0) {
-        const qtyS = o.shippingQty || 1;
-        const unitDisp = toDisplayPrice((o.shippingCharge ? 1 : -1) * o.shippingFee, false, currentEditIsPersonalTrade);
+        const qtyS = (o.shippingCharge ? 1 : -1) * (o.shippingQty || 1);
+        const unitDisp = toDisplayPrice(o.shippingFee, false, currentEditIsPersonalTrade);
         const lineDisp = unitDisp * qtyS;
         feeRows.push(`<tr><td style="color:var(--text-muted)">—</td><td>送料</td><td class="num-right">${qtyS}</td><td class="num-right">${fmtYen(unitDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">コ</span></td><td></td><td class="num-right" style="font-weight:600">${fmtYen(lineDisp)}</td><td><span class="badge-regular">税込</span></td></tr>`);
       }

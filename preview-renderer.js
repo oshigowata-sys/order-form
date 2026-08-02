@@ -273,12 +273,15 @@
     const rows = [];
     const fmtFee = (label, fee, charge, qty) => {
       const q = Number(qty) || 1;
-      const unit = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
-      const line = unit * q;
+      // 差し引き（−）は「数量をマイナス・単価はプラス」で表示（商品の返品行・帳票と同じ見せ方）。
+      // 小計＝単価×符号付き数量で従来の金額と一致（合計計算には影響しない）。
+      const qDisp = (charge ? 1 : -1) * q;
+      const unit = Math.abs(Number(fee) || 0);
+      const line = unit * qDisp;
       return `<tr>
         <td class="code">—</td>
         <td>${label}</td>
-        <td class="num">${q}</td>
+        <td class="num">${qDisp}</td>
         <td class="num">${fmtYen(unit)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false, isPersonal)}</span></td>
         <td class="num">${fmtYen(line)}</td>
         <td class="muted" style="text-align:center">税込</td>
@@ -506,13 +509,15 @@
     };
     const buildQFeeRow = (label, fee, charge, qty) => {
       const q = Number(qty) || 1;
-      const unit = toDispPrice((charge ? 1 : -1) * Math.abs(Number(fee) || 0), false, isPersonal);
-      const line = unit * q;
+      // 差し引き（−）は「数量をマイナス・単価はプラス」で表示（商品の返品行・帳票と同じ見せ方）。
+      const qDisp = (charge ? 1 : -1) * q;
+      const unit = toDispPrice(Math.abs(Number(fee) || 0), false, isPersonal);
+      const line = unit * qDisp;
       return `<tr>
         <td class="num" style="width:60px">—</td>
         <td>${label}</td>
         <td class="num" style="width:45px">—</td>
-        <td class="num" style="width:40px">${q}</td>
+        <td class="num" style="width:40px">${qDisp}</td>
         <td class="num" style="width:65px">${fmtYen(unit)}<span style="margin-left:3px;color:#7a6a55">${taxMark(false, isPersonal)}</span></td>
         <td class="num" style="width:75px">${fmtYen(line)}</td>
         <td class="code" style="width:90px">—</td>

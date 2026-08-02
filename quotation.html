@@ -959,13 +959,15 @@ function renderPreview() {
 
   const buildFeeRow = (label, fee, charge, qty) => {
     const q = Number(qty) || 1;
-    const unit = toDisplayPrice((charge ? 1 : -1) * Math.abs(Number(fee) || 0), false, _isPersonalTrade);
-    const line = unit * q;
+    // 差し引き（−）は「数量をマイナス・単価はプラス」で表示（商品の返品行・帳票と同じ見せ方）。
+    const qDisp = (charge ? 1 : -1) * q;
+    const unit = toDisplayPrice(Math.abs(Number(fee) || 0), false, _isPersonalTrade);
+    const line = unit * qDisp;
     return `
       <tr>
         <td style="text-align:right;width:80px">—</td>
         <td>${label}</td>
-        <td style="text-align:right;width:60px">${q}</td>
+        <td style="text-align:right;width:60px">${qDisp}</td>
         <td style="text-align:right;width:85px">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, _isPersonalTrade)}</span></td>
         <td style="text-align:right;width:100px">${fmt(line)}<span style="display:block;font-size:9px;color:var(--text-muted);margin-top:2px">税込</span></td>
         <td style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;width:90px"></td>
