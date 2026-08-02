@@ -1080,12 +1080,15 @@
     const rows = [];
     const buildOne = (label, fee, charge, qty) => {
       const q = Number(qty) || 1;
-      const unit = (charge ? 1 : -1) * Math.abs(Number(fee) || 0);
-      const line = unit * q;
+      // 差し引き（−）は「数量をマイナス・単価はプラス」で表示（商品の返品行と同じ見せ方）。
+      // 小計＝単価×符号付き数量＝(charge?1:-1)×|fee|×q で従来の金額と一致（合計計算には影響しない）。
+      const qDisp = (charge ? 1 : -1) * q;
+      const unit = Math.abs(Number(fee) || 0);
+      const line = unit * qDisp;
       return `<tr>
         <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
         <td>${label}</td>
-        <td style="text-align:right">${q}</td>
+        <td style="text-align:right">${qDisp}</td>
         <td style="text-align:right">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
         <td style="text-align:right">${fmt(line)}</td>
         <td style="text-align:center;font-size:11px;color:var(--text-muted)">税込</td>
