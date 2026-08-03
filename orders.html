@@ -697,14 +697,13 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         const isPersonalTrade = r.is_personal_trade ?? r.customers?.is_personal_trade ?? false;
         // 手数料・送料は税込・税計算しない。税抜と消費税は商品のみ、合計（税込）に送料を加減算。
         const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
-        const tax8  = isPersonalTrade ? 0 : items.reduce((s, i) => {
-          if (!i.products?.is_food) return s;
-          return s + MeguReeTax.tax(i.quantity * i.unit_price, r.order_date, true);
-        }, 0);
-        const tax10 = isPersonalTrade ? 0 : MeguReeTax.tax(items.reduce((s, i) => {
-          if (i.products?.is_food) return s;
-          return s + (i.quantity * i.unit_price);
-        }, 0), r.order_date, false);
+        // 税額は「軽減対象の合計」「標準対象の合計」をそれぞれ1回だけ丸める。
+        // 以前は軽減だけ明細1行ごとに丸めていたため、受注詳細・納品書・請求書（合計してから丸める）
+        // と1円ずれることがあった（端数の出る単価・税率で表面化）。帳票側の丸め方に統一する。
+        const exclReduced  = items.reduce((s, i) => s + (i.products?.is_food ? i.quantity * i.unit_price : 0), 0);
+        const exclStandard = items.reduce((s, i) => s + (i.products?.is_food ? 0 : i.quantity * i.unit_price), 0);
+        const tax8  = isPersonalTrade ? 0 : MeguReeTax.tax(exclReduced,  r.order_date, true);
+        const tax10 = isPersonalTrade ? 0 : MeguReeTax.tax(exclStandard, r.order_date, false);
         const tax  = tax8 + tax10;
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
