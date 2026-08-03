@@ -883,6 +883,15 @@
     }
   }
 
+  // 合計欄の「消費税（○%）」の見出しを今日の税率に合わせる。
+  // 商品を1つも選んでいない初期表示でも正しい率が出るよう、税率を読んだ直後にも呼ぶ。
+  function applyTaxLabels() {
+    const t8  = document.getElementById('summaryTax8Label');
+    const t10 = document.getElementById('summaryTax10Label');
+    if (t8)  t8.textContent  = `消費税（${MeguReeTax.label(null, true)}）`;
+    if (t10) t10.textContent = `消費税（${MeguReeTax.label(null, false)}）`;
+  }
+
   // 卸業者が設定した消費税率（いつから何%）。取れなければ既定（標準10%・食品8%）で動く。
   async function loadMyTaxRates() {
     try {
@@ -928,6 +937,7 @@
       }
 
       await taxPromise;
+      applyTaxLabels();
       // 税率は「今日」の率（注文はこれから出すもの）。設定を読んだ後に組み立てる。
       products = rawProducts.map(p => ({
         id: p.id, name: p.product_name || '', price: p.price || 0,
@@ -1128,10 +1138,7 @@
 
     document.getElementById('summaryCount').textContent = totalQty;
     document.getElementById('summarySubtotal').textContent = '¥' + subtotal.toLocaleString();
-    const tax8LabelEl  = document.getElementById('summaryTax8Label');
-    const tax10LabelEl = document.getElementById('summaryTax10Label');
-    if (tax8LabelEl)  tax8LabelEl.textContent  = `消費税（${MeguReeTax.label(null, true)}）`;
-    if (tax10LabelEl) tax10LabelEl.textContent = `消費税（${MeguReeTax.label(null, false)}）`;
+    applyTaxLabels();
     document.getElementById('summaryTax8').textContent = '¥' + tax8.toLocaleString();
     document.getElementById('summaryTax10').textContent = '¥' + tax10.toLocaleString();
     document.getElementById('summaryTotal').textContent = '¥' + total.toLocaleString();
