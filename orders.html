@@ -323,7 +323,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
               </div>
               <div class="form-group2">
                 <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
-                <input type="date" class="form-input2" id="editOrderDate" oninput="updateEditOrderPreview()" style="width:180px;max-width:100%" />
+                <input type="date" class="form-input2" id="editOrderDate" oninput="onEditOrderDateChange()" style="width:180px;max-width:100%" />
               </div>
             </div>
             <div class="form-row2">
@@ -434,7 +434,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
             </div>
             <div class="form-group2">
               <label class="form-label2">受注日 <span style="color:#dc2626">*</span></label>
-              <input type="date" class="form-input2" id="newOrderDate" oninput="updateNewOrderPreview()" style="width:180px;max-width:100%" />
+              <input type="date" class="form-input2" id="newOrderDate" oninput="onNewOrderDateChange()" style="width:180px;max-width:100%" />
             </div>
           </div>
           <div class="form-row2">
@@ -513,7 +513,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 <script src="auth.js?v=20260802-revive"></script>
 <script src="sidebar-icons.js?v=20260625"></script>
 <script src="notification-bell.js?v=20260706"></script>
-<script src="preview-renderer.js?v=20260802-fee-signed-qty"></script>
+<script src="preview-renderer.js?v=20260803-tax-rate"></script>
+<script src="tax-rates.js?v=20260803"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -614,7 +615,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   // 集計（卸取引：外税方式で消費税計算 / 個人取引：単価＝税込み金額として単純合計）
-  function calcOrderTotals(items, handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge) {
+  // orderDate＝税率を決める基準日（受注日）。税率改定をまたいでも当時の税率で計算される（tax-rates.js）。
+  function calcOrderTotals(items, handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, orderDate) {
     let sum8 = 0, sum10 = 0;
     items.forEach(it => {
       const sub = (Number(it.qty) || 0) * (Number(it.unitPrice) || 0);
@@ -636,8 +638,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       };
     }
     // 卸取引（外税）：商品にのみ課税。送料・手数料は税込なので税計算せず合計に加減算（消費税の行に出さない）。
-    const tax8  = Math.round(sum8  * 0.08);
-    const tax10 = Math.round(sum10 * 0.10);
+    const tax8  = MeguReeTax.tax(sum8,  orderDate, true);
+    const tax10 = MeguReeTax.tax(sum10, orderDate, false);
     const exclTotal = sum8 + sum10;
     const taxTotal  = tax8 + tax10;
     return {
@@ -651,12 +653,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
   }
 
   // 集計HTML（個人取引：税率別小計＋合計のみ・税計算なし／卸取引：外税方式）
-  function renderTotalsHtml(t, isPersonalTrade) {
+  function renderTotalsHtml(t, isPersonalTrade, orderDate) {
     const fmt = n => (n < 0 ? '-¥' + Math.abs(n).toLocaleString() : '¥' + n.toLocaleString());
     if (isPersonalTrade) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<div class="totals-item"><label>8%軽減込ケコ</label><span>${fmt(t.excl8)}</span></div>`);
-      if (t.excl10 !== 0) rows.push(`<div class="totals-item"><label>10%対象込コ</label><span>${fmt(t.excl10)}</span></div>`);
+      if (t.excl8 !== 0)  rows.push(`<div class="totals-item"><label>${MeguReeTax.label(orderDate, true)}軽減込ケコ</label><span>${fmt(t.excl8)}</span></div>`);
+      if (t.excl10 !== 0) rows.push(`<div class="totals-item"><label>${MeguReeTax.label(orderDate, false)}対象込コ</label><span>${fmt(t.excl10)}</span></div>`);
       rows.push(`<div class="totals-item"><label>合計</label><span class="highlight">${fmt(t.inclTotal)}</span></div>`);
       return rows.join('');
     }
@@ -697,12 +699,12 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         const excl  = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
         const tax8  = isPersonalTrade ? 0 : items.reduce((s, i) => {
           if (!i.products?.is_food) return s;
-          return s + Math.round(i.quantity * i.unit_price * 0.08);
+          return s + MeguReeTax.tax(i.quantity * i.unit_price, r.order_date, true);
         }, 0);
-        const tax10 = isPersonalTrade ? 0 : Math.round(items.reduce((s, i) => {
+        const tax10 = isPersonalTrade ? 0 : MeguReeTax.tax(items.reduce((s, i) => {
           if (i.products?.is_food) return s;
           return s + (i.quantity * i.unit_price);
-        }, 0) * 0.10);
+        }, 0), r.order_date, false);
         const tax  = tax8 + tax10;
         const cost  = items.reduce((s, i) => s + (i.quantity * (i.cost_price || 0)), 0);
         // 取引先マスタ紐付きありなら通常表示、無ければ入力時会社名＋「（マスタ未登録）」
@@ -1015,7 +1017,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         unitPrice: it.unit_price || 0,
         isFood: it.products?.is_food || false,
       }));
-      const totals = calcOrderTotals(calcItems, (o.handlingFee || 0) * (o.handlingQty || 1), (o.shippingFee || 0) * (o.shippingQty || 1), currentEditIsPersonalTrade, o.handlingCharge, o.shippingCharge);
+      const totals = calcOrderTotals(calcItems, (o.handlingFee || 0) * (o.handlingQty || 1), (o.shippingFee || 0) * (o.shippingQty || 1), currentEditIsPersonalTrade, o.handlingCharge, o.shippingCharge, o.order_date);
       const rows = items.map(it => {
         const qty     = it.quantity || 0;
         const priceStored = it.unit_price || 0;
@@ -1029,7 +1031,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
           <td class="num-right">${fmtYen(priceDisp)}<span style="margin-left:4px;font-size:11px;color:var(--text-muted);font-weight:600">${taxMark(isFood, currentEditIsPersonalTrade)}</span></td>
           <td style="color:var(--text-muted)">${esc(it.remarks || '')}</td>
           <td class="num-right" style="font-weight:600">${fmtYen(subDisp)}</td>
-          <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減8%':'標準10%'}</span></td>
+          <td><span class="${isFood?'badge-food':'badge-regular'}">${isFood?'軽減':'標準'}${MeguReeTax.label(o.order_date, isFood)}</span></td>
         </tr>`;
       }).join('');
       // 手数料・送料を明細末尾に表示（あれば）
@@ -1053,7 +1055,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       modalItemsView.innerHTML =
         `<thead><tr><th>商品コード</th><th>商品名</th><th class="num-right">数量</th><th class="num-right">単価</th><th>備考</th><th class="num-right">小計</th><th>税率</th></tr></thead>
         <tbody>${rows + feeRows.join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">明細データなし</td></tr>'}</tbody>`;
-      document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
+      document.getElementById('modalTotals').innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade, o.order_date);
       // ビューモード用にプレビュー描画
       window._viewModeItems = items.map(it => ({
         product_code: it.products?.product_code || '',
@@ -1346,7 +1348,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
 
   function renderEditTotals() {
     const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getEditFees();
-    const totals = calcOrderTotals(editItems, handlingFee * handlingQty, shippingFee * shippingQty, currentEditIsPersonalTrade, handlingCharge, shippingCharge);
+    const totals = calcOrderTotals(editItems, handlingFee * handlingQty, shippingFee * shippingQty, currentEditIsPersonalTrade, handlingCharge, shippingCharge, document.getElementById('editOrderDate')?.value || '');
     // 新規納品書入力と同じく、合計は商品表の直下に表示（フッターではなく）
     const inlineEl = document.getElementById('editTotalsInline');
     if (editItems.length === 0) {
@@ -1354,7 +1356,7 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
       inlineEl.innerHTML = '';
     } else {
       inlineEl.style.display = 'flex';
-      inlineEl.innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade);
+      inlineEl.innerHTML = renderTotalsHtml(totals, currentEditIsPersonalTrade, document.getElementById('editOrderDate')?.value || '');
     }
     document.getElementById('modalTotals').innerHTML = '';
   }
@@ -1688,6 +1690,16 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
         remarks: it.remarks || ''
       };
     });
+  }
+
+  // 受注日を変えたときは合計も引き直す（税率改定日をまたぐと税額が変わるため）
+  function onNewOrderDateChange() {
+    renderNewTotals();
+    updateNewOrderPreview();
+  }
+  function onEditOrderDateChange() {
+    if (editMode) renderEditTotals();
+    updateEditOrderPreview();
   }
 
   function updateNewOrderPreview() {
@@ -2035,8 +2047,8 @@ td{padding:13px 14px;font-size:14px;vertical-align:middle;white-space:nowrap}
     const totalEl = document.getElementById('newOrderTotal');
     if (!totalEl) return;
     const { handlingFee, shippingFee, handlingQty, shippingQty, handlingCharge, shippingCharge } = getNewFees();
-    const totals = calcOrderTotals(newOrderItems, handlingFee * handlingQty, shippingFee * shippingQty, currentNewIsPersonalTrade, handlingCharge, shippingCharge);
-    totalEl.innerHTML = renderTotalsHtml(totals, currentNewIsPersonalTrade);
+    const totals = calcOrderTotals(newOrderItems, handlingFee * handlingQty, shippingFee * shippingQty, currentNewIsPersonalTrade, handlingCharge, shippingCharge, document.getElementById('newOrderDate')?.value || '');
+    totalEl.innerHTML = renderTotalsHtml(totals, currentNewIsPersonalTrade, document.getElementById('newOrderDate')?.value || '');
   }
 
   // 数量のインライン編集（返品伝票用に負の値も許容）
@@ -2197,7 +2209,19 @@ const errEl      = document.getElementById('orderError');
     }
   }
 
-  loadOrders().then(() => {
+  // 消費税率の設定（設定画面で登録した「いつから何%」）。
+  // 取れなくても既定（標準10%・食品8%）で動くので、一覧の表示は止めない。
+  async function loadTaxSettings() {
+    try {
+      const r = await sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&select=tax_rate_changes&limit=1`);
+      if (r.ok) {
+        const arr = await r.json();
+        MeguReeTax.loadFrom(arr[0] || {});
+      }
+    } catch(e) { console.error('税率設定の取得に失敗:', e); }
+  }
+
+  loadTaxSettings().then(loadOrders).then(() => {
     // 通知ベルの新着一覧から ?open=<受注ID> で来た時、その注文の詳細を直接開く
     const openId = new URLSearchParams(location.search).get('open');
     if (openId && allOrders.some(o => o.id === openId)) openDetail(openId);

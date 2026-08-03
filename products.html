@@ -314,12 +314,12 @@
         <div class="kpi-sub">登録済み</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-label">食品（軽減8%）</div>
+        <div class="kpi-label" id="kpiFoodLabel">食品（軽減8%）</div>
         <div class="kpi-value green" id="kpiFood">—</div>
         <div class="kpi-sub">件</div>
       </div>
       <div class="kpi-card yellow">
-        <div class="kpi-label">標準税率（10%）</div>
+        <div class="kpi-label" id="kpiStandardLabel">標準税率（10%）</div>
         <div class="kpi-value" id="kpiStandard">—</div>
         <div class="kpi-sub">件</div>
       </div>
@@ -390,7 +390,7 @@
             <span class="form-label" style="margin:0;cursor:pointer">税込</span>
           </label>
         </div>
-        <div class="form-hint">「税込」を選ぶと、入力した上代・仕入価格を税率（食品フラグ＝8%／それ以外＝10%）で税別に自動換算して保存します。保存後は税別の金額で表示されます。</div>
+        <div class="form-hint" id="taxModeHint">「税込」を選ぶと、入力した上代・仕入価格を税率（食品フラグ＝8%／それ以外＝10%）で税別に自動換算して保存します。保存後は税別の金額で表示されます。</div>
       </div>
       <div class="form-grid">
         <div class="form-group">
@@ -413,7 +413,7 @@
       <div class="form-section-title">その他</div>
       <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <input type="checkbox" id="formIsFood" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer" />
-        <label for="formIsFood" class="form-label" style="margin:0;cursor:pointer">食品フラグ（軽減税率8%対象）</label>
+        <label for="formIsFood" class="form-label" style="margin:0;cursor:pointer" id="isFoodLabel">食品フラグ（軽減税率8%対象）</label>
       </div>
       <div class="form-group">
         <label class="form-label">商品画像URL（任意）</label>
@@ -436,6 +436,7 @@
 <script src="auth.js?v=20260802-revive"></script>
 <script src="sidebar-icons.js?v=20260625"></script>
 <script src="notification-bell.js?v=20260706"></script>
+<script src="tax-rates.js?v=20260803"></script>
 <script>
   // ===== ページガード =====
   checkAuth();
@@ -582,8 +583,8 @@
           <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);text-align:right">${p.costPrice != null ? '¥' + Number(p.costPrice).toLocaleString() : '-'}</td>
           <td style="font-family:'Space Grotesk',sans-serif;color:var(--text-muted);text-align:right">${p.caseQuantity ?? 1}</td>
           <td>${p.isFood
-            ? '<span style="background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);padding:2px 8px;border-radius:4px;font-size:14px;font-weight:500">軽減8%</span>'
-            : '<span style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:14px;font-weight:500">標準10%</span>'
+            ? `<span style="background:var(--green-pale);color:var(--green);border:1px solid rgba(30,102,65,0.3);padding:2px 8px;border-radius:4px;font-size:14px;font-weight:500">軽減${MeguReeTax.label(null, true)}</span>`
+            : `<span style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:14px;font-weight:500">標準${MeguReeTax.label(null, false)}</span>`
           }</td>
           <td style="white-space:nowrap">
             <button class="btn-secondary" style="padding:5px 12px" onclick="openEditModal('${esc(p.id)}')">編集</button>
@@ -756,13 +757,12 @@
     } catch(e) { console.warn('監査ログ書き込み失敗:', e); }
   }
 
-  // 税込で入力された金額を税別（税抜）に換算する。税率は食品フラグ＝軽減8%／それ以外＝標準10%。
+  // 税込で入力された金額を税別（税抜）に換算する。税率は食品フラグ＝軽減／それ以外＝標準。
+  // 商品マスタは特定の取引の書類ではないため、換算は「今日の税率」で行う（tax-rates.js）。
   // 端数は税抜＝round(税込 ÷ (1+税率)) の四捨五入（円未満）。保存値は従来どおり税別のまま。
   function toExclTax(yenDigitStr, isFood) {
     if (yenDigitStr === '') return '';
-    const incl = Number(yenDigitStr);
-    const rate = isFood ? 0.08 : 0.10;
-    return String(Math.round(incl / (1 + rate)));
+    return String(MeguReeTax.toExcl(Number(yenDigitStr), null, isFood));
   }
 
   async function saveProduct() {
@@ -892,7 +892,26 @@
     else { prev.style.display = 'none'; img.src = ''; }
   });
 
-  loadProducts();
+  // 消費税率の設定（設定画面の「いつから何%」）を読み、画面の税率表記を今日の率に合わせる。
+  // 取れなくても既定（標準10%・食品8%）で動くので、一覧の表示は止めない。
+  async function loadTaxSettings() {
+    try {
+      const r = await sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&select=tax_rate_changes&limit=1`);
+      if (r.ok) {
+        const arr = await r.json();
+        MeguReeTax.loadFrom(arr[0] || {});
+      }
+    } catch(e) { console.error('税率設定の取得に失敗:', e); }
+    const red = MeguReeTax.label(null, true);
+    const std = MeguReeTax.label(null, false);
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    set('kpiFoodLabel', `食品（軽減${red}）`);
+    set('kpiStandardLabel', `標準税率（${std}）`);
+    set('isFoodLabel', `食品フラグ（軽減税率${red}対象）`);
+    set('taxModeHint', `「税込」を選ぶと、入力した上代・仕入価格を税率（食品フラグ＝${red}／それ以外＝${std}）で税別に自動換算して保存します。保存後は税別の金額で表示されます。`);
+  }
+
+  loadTaxSettings().then(loadProducts);
 </script>
 <script src="mobile.js"></script>
 </body>

@@ -884,6 +884,7 @@
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260802-revive"></script>
+<script src="tax-rates.js?v=20260803"></script>
 <script>
   checkAuth();
   function yenDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
@@ -970,7 +971,8 @@
     return isFood ? 'ケ' : '';
   }
   // 集計（卸取引：外税方式／個人取引：単価＝税込み金額として単純合計・消費税計算なし）
-  function calcInvoiceTotals(items, handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge) {
+  // taxDate＝税率を決める基準日（受注日）。税率改定をまたいでも当時の税率で計算される（tax-rates.js）。
+  function calcInvoiceTotals(items, handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, taxDate) {
     let sum8 = 0, sum10 = 0;
     items.forEach(it => {
       const sub = Number(it['小計'] || it['subtotal'] || (Number(it['数量']||0) * Number(it['単価']||0)) || 0);
@@ -992,8 +994,8 @@
       };
     }
     // 卸取引（外税）：商品にのみ課税。送料・手数料は税込なので税計算せず合計に加減算（消費税の行に出さない）。
-    const tax8  = Math.round(sum8 * 0.08);
-    const tax10 = Math.round(sum10 * 0.10);
+    const tax8  = MeguReeTax.tax(sum8,  taxDate, true);
+    const tax10 = MeguReeTax.tax(sum10, taxDate, false);
     const subtotal = sum8 + sum10;
     return {
       excl8: sum8, excl10: sum10,
@@ -1006,12 +1008,26 @@
   // 期間請求書（請求明細書）用の集計：受注ごとのグループから合算。
   // 各受注の送料・手数料は符号（charge）×数量（qty）込みで合算する。
   // 数学的には calcInvoiceTotals に「全受注の符号付き正味（netHandling+netShipping）」を渡したものと一致する。
+  //
+  // 税率は「受注日ごと」に引く。締め期間の途中で税率が改定された場合でも、
+  // 改定前の受注は旧税率・改定後は新税率で計算され、1枚の請求明細書に両方が並ぶ。
+  // 丸めは（軽減/標準 × 税率）ごと＝税率が1種類しかない通常時は従来と同じ金額になる。
   function calcPeriodTotals(groups, isPersonalTrade) {
     let sum8 = 0, sum10 = 0, feeIncl = 0;
+    const buckets = new Map();   // キー：'R|8' のような（軽減/標準 × 税率）
     (groups || []).forEach(g => {
+      const gDate = g.date || null;
       (g.items || []).forEach(it => {
         const sub = Number(it['小計'] || it['subtotal'] || (Number(it['数量']||0) * Number(it['単価']||0)) || 0);
-        if (it.isFood) sum8 += sub; else sum10 += sub;
+        const isFood = !!it.isFood;
+        if (isFood) sum8 += sub; else sum10 += sub;
+        if (!isPersonalTrade) {
+          const pct = MeguReeTax.percent(gDate, isFood);
+          const key = (isFood ? 'R' : 'S') + '|' + pct;
+          const b = buckets.get(key) || { pct: pct, isFood: isFood, excl: 0, tax: 0 };
+          b.excl += sub;
+          buckets.set(key, b);
+        }
       });
       feeIncl += (g.handlingCharge ? 1 : -1) * (Number(g.handlingFee) || 0) * (Number(g.handlingQty) || 1);
       feeIncl += (g.shippingCharge ? 1 : -1) * (Number(g.shippingFee) || 0) * (Number(g.shippingQty) || 1);
@@ -1025,8 +1041,16 @@
         incl8: sum8, incl10: sum10,
       };
     }
-    const tax8  = Math.round(sum8 * 0.08);
-    const tax10 = Math.round(sum10 * 0.10);
+    let tax8 = 0, tax10 = 0;
+    const byRate = [];
+    buckets.forEach(b => {
+      b.tax = Math.round(b.excl * b.pct / 100);
+      if (b.isFood) tax8 += b.tax; else tax10 += b.tax;
+      const found = byRate.find(x => x.pct === b.pct);
+      if (found) { found.excl += b.excl; found.tax += b.tax; }
+      else byRate.push({ pct: b.pct, excl: b.excl, tax: b.tax });
+    });
+    byRate.sort((a, b) => b.pct - a.pct);   // 税率の高い順（従来の 10% → 8% と同じ並び）
     const subtotal = sum8 + sum10;
     return {
       excl8: sum8, excl10: sum10,
@@ -1034,45 +1058,53 @@
       tax8, tax10, tax: tax8 + tax10,
       total: subtotal + tax8 + tax10 + feeIncl,
       incl8: sum8 + tax8, incl10: sum10 + tax10,
+      byRate,
     };
   }
   // 集計表の中身（個人取引：税率別小計＋合計のみ／卸取引：外税方式）
-  function buildInvoiceTotalsRows(t, isPersonalTrade, grandLabel) {
+  function buildInvoiceTotalsRows(t, isPersonalTrade, grandLabel, taxDate) {
     const label = grandLabel || '合計（税込）';
     if (isPersonalTrade) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
-      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
+      if (t.excl8 !== 0)  rows.push(`<tr><td>${MeguReeTax.label(taxDate, true)}軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>${MeguReeTax.label(taxDate, false)}対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
       rows.push(`<tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`);
       return rows.join('');
     }
     return `
       <tr><td>${label === '小計' || label === '合計（税込）' ? '小計' : '税抜合計'}</td><td>${fmt(t.subtotal)}</td></tr>
-      ${t.tax8  !== 0 ? `<tr><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>` : ''}
-      ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
+      ${t.tax8  !== 0 ? `<tr><td>消費税（${MeguReeTax.label(taxDate, true)}）</td><td>${fmt(t.tax8)}</td></tr>` : ''}
+      ${t.tax10 !== 0 ? `<tr><td>消費税（${MeguReeTax.label(taxDate, false)}）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
       <tr class="total-row"><td>${label}</td><td>${fmt(t.total)}</td></tr>`;
   }
   // 請求明細書の最下部：合計（税込）→ 消費税合計 → 税率別（対象額・消費税）の内訳
-  function buildPeriodTotalsRows(t, isPersonalTrade) {
+  // 税率別の内訳は calcPeriodTotals が受注日ごとに割った byRate を使う。
+  // 締め期間が税率改定をまたいだ場合は、その期間に実際に使われた税率がすべて並ぶ。
+  function buildPeriodTotalsRows(t, isPersonalTrade, taxDate) {
     const rows = [];
     if (isPersonalTrade) {
       // 個人取引：消費税計算なし。税率別の込み小計＋合計のみ。
-      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
-      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
+      if (t.excl8 !== 0)  rows.push(`<tr><td>${MeguReeTax.label(taxDate, true)}軽減込ケコ</td><td>${fmt(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>${MeguReeTax.label(taxDate, false)}対象込コ</td><td>${fmt(t.excl10)}</td></tr>`);
       rows.push(`<tr class="total-row"><td>合計</td><td>${fmt(t.total)}</td></tr>`);
       return rows.join('');
     }
     // 卸取引（外税）：合計（税込）→ 消費税合計 → 税率別（税抜対象額・消費税）
     rows.push(`<tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`);
     rows.push(`<tr><td>消費税合計</td><td>${fmt(t.tax)}</td></tr>`);
-    if (t.excl10 !== 0) {
-      rows.push(`<tr class="tax-breakdown"><td>10%対象（税抜）</td><td>${fmt(t.excl10)}</td></tr>`);
-      rows.push(`<tr class="tax-breakdown"><td>消費税（10%）</td><td>${fmt(t.tax10)}</td></tr>`);
-    }
-    if (t.excl8 !== 0) {
-      rows.push(`<tr class="tax-breakdown"><td>8%対象（税抜）</td><td>${fmt(t.excl8)}</td></tr>`);
-      rows.push(`<tr class="tax-breakdown"><td>消費税（8%）</td><td>${fmt(t.tax8)}</td></tr>`);
-    }
+    const byRate = (Array.isArray(t.byRate) && t.byRate.length > 0) ? t.byRate : (() => {
+      // byRate を持たないデータ用（従来どおり標準→軽減の2本）。同じ率なら1行にまとめる。
+      const std = { pct: MeguReeTax.percent(taxDate, false), excl: t.excl10, tax: t.tax10 };
+      const red = { pct: MeguReeTax.percent(taxDate, true),  excl: t.excl8,  tax: t.tax8  };
+      return std.pct === red.pct
+        ? [{ pct: std.pct, excl: std.excl + red.excl, tax: std.tax + red.tax }]
+        : [std, red];
+    })();
+    byRate.forEach(r => {
+      if (r.excl === 0 && r.tax === 0) return;
+      rows.push(`<tr class="tax-breakdown"><td>${r.pct}%対象（税抜）</td><td>${fmt(r.excl)}</td></tr>`);
+      rows.push(`<tr class="tax-breakdown"><td>消費税（${r.pct}%）</td><td>${fmt(r.tax)}</td></tr>`);
+    });
     return rows.join('');
   }
   // 手数料・送料の明細行HTML（あれば返す）
@@ -1141,6 +1173,7 @@
       const data = settingsRes.ok ? await settingsRes.json() : [];
       const banksData = banksRes.ok ? await banksRes.json() : [];
       const s = (data && data[0]) || {};
+      MeguReeTax.loadFrom(s);   // 消費税率の設定（いつから何%）。未登録なら標準10%・食品8%。
       const legacyBank = (s.bank_name || s.bank_number || s.bank_holder)
         ? [{ bank_name: s.bank_name || '', bank_branch: s.bank_branch || '', bank_type: s.bank_type || '普通', bank_number: s.bank_number || '', bank_holder: s.bank_holder || '', bank_note: s.bank_note || '' }]
         : [];
@@ -1298,7 +1331,8 @@
     const shippingCharge = !!f.shippingCharge;
     const handlingQty = Number(f.handlingQty) || 1;
     const shippingQty = Number(f.shippingQty) || 1;
-    const totals = calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+    const taxDate = f['受注日'] || null;   // 税率の基準＝受注日
+    const totals = calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge, taxDate);
 
     const dataRows = items.length > 0
       ? items.map(it => {
@@ -1306,7 +1340,7 @@
           const priceStored = Number(it['単価'] || 0);
           const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
           const subDisp   = qty * priceDisp;
-          const taxLabel = it.isFood ? '8%' : '10%';
+          const taxLabel = MeguReeTax.label(taxDate, !!it.isFood);
           const remarks = it['備考'] || '';
           // 上代（商品マスタの現在値）。未設定・スナップショット無しは「—」。書式は単価列と同じ（¥・カンマ区切り）。
           const listPriceCell = it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>';
@@ -1414,7 +1448,7 @@
           </div>
           <div class="delivery-sign-box"></div>
           <table class="totals-summary-table">
-            ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
+            ${buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）', taxDate)}
           </table>
         </div>
       </div>
@@ -1470,11 +1504,13 @@
       payment_day:          f['支払日']
     }).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // 明細から合計を再計算（8%/10% 自動判定・手数料/送料の加算/控除込み・数量込み）
+    // 税率の基準日。単一受注はその受注日。請求明細書は受注ごとに引くのでここは表示ラベル用の代表値。
+    const taxDate = f['受注日'] || null;
+    // 明細から合計を再計算（軽減/標準の自動判定・手数料/送料の加算/控除込み・数量込み）
     // 期間請求書（請求明細書）は受注ごとのグループから合算。それ以外は従来どおり items から。
     const totals = isPeriod
       ? calcPeriodTotals(periodGroups, isPersonal)
-      : calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+      : calcInvoiceTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge, taxDate);
     const subtotal = totals.subtotal;
     const tax = totals.tax;
     const total = totals.total;
@@ -1486,12 +1522,13 @@
       return p.length >= 3 ? `${Number(p[1])}/${Number(p[2])}` : esc(String(d));
     };
     // 1商品行のHTML（先頭列 firstTd に<td>丸ごとを渡す：通常=上代（納品書と同じ）／請求明細書=日付）
-    const buildItemRow = (it, firstTd) => {
+    // rowTaxDate＝その行の税率を決める日（請求明細書はその受注の日・単一受注はその受注日）
+    const buildItemRow = (it, firstTd, rowTaxDate) => {
       const qty = Number(it['数量'] || 0);
       const priceStored = Number(it['単価'] || 0);
       const priceDisp = toDisplayPrice(priceStored, !!it.isFood, isPersonal);
       const subDisp = qty * priceDisp;
-      const rate = it.isFood ? '8%' : '10%';
+      const rate = MeguReeTax.label(rowTaxDate || taxDate, !!it.isFood);
       const remarks = it['備考'] || '';
       return `
             <tr>
@@ -1513,7 +1550,7 @@
       const blocks = periodGroups.map(g => {
         const ds = fmtItemDate(g.date);
         const dateTd = `<td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${ds}</td>`;
-        const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd)).join('');
+        const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd, g.date)).join('');
         const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty);
         const feeCount = ((Number(g.handlingFee)||0) > 0 ? 1 : 0) + ((Number(g.shippingFee)||0) > 0 ? 1 : 0);
         // その伝票（受注）ごとの消費税・合計（税込）を出して区切る
@@ -1521,7 +1558,7 @@
           g.items || [],
           (Number(g.handlingFee)||0) * (Number(g.handlingQty)||1),
           (Number(g.shippingFee)||0) * (Number(g.shippingQty)||1),
-          isPersonal, g.handlingCharge, g.shippingCharge
+          isPersonal, g.handlingCharge, g.shippingCharge, g.date
         );
         const subLabel = '<td colspan="3" style="text-align:right;font-size:11px;color:var(--text-muted);font-weight:600">';
         const denpyoTaxRow = isPersonal ? '' :
@@ -1677,7 +1714,7 @@
           </div>
           <div class="delivery-sign-box"></div>
           <table class="totals-summary-table">
-            ${isPeriod ? buildPeriodTotalsRows(totals, isPersonal) : buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）')}
+            ${isPeriod ? buildPeriodTotalsRows(totals, isPersonal, taxDate) : buildInvoiceTotalsRows(totals, isPersonal, '合計（税込）', taxDate)}
           </table>
         </div>
       </div>
@@ -1703,6 +1740,7 @@
       tax8:   totals.tax8,   tax10:  totals.tax10,
       incl8:  totals.incl8,  incl10: totals.incl10,
       isPersonal,
+      taxDate,
       currentPaidAmount: currentInvoice != null ? currentInvoice.paid_amount : undefined,
       prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined,
       manualPrevAmount: manualPrev,
@@ -1787,15 +1825,15 @@
     }
     document.getElementById('sumCarry').textContent     = fmt(carryOver);
     document.getElementById('sumThisTotal').textContent = fmt(t.total);
-    // 個人取引：「税抜御買上額」「消費税」を「8%軽減込ケコ」「10%対象込コ」表示に置換（消費税計算なし）
+    // 個人取引：「税抜御買上額」「消費税」を「（軽減）込ケコ」「（標準）対象込コ」表示に置換（消費税計算なし）
     const sumExclEl = document.getElementById('sumExcl');
     const sumTaxEl  = document.getElementById('sumTax');
     if (sumExclEl && sumTaxEl) {
       const exclLabelEl = sumExclEl.parentElement?.querySelector('.summary-cell-label');
       const taxLabelEl  = sumTaxEl.parentElement?.querySelector('.summary-cell-label');
       if (t.isPersonal) {
-        if (exclLabelEl) exclLabelEl.textContent = '8%軽減込ケコ';
-        if (taxLabelEl)  taxLabelEl.textContent  = '10%対象込コ';
+        if (exclLabelEl) exclLabelEl.textContent = MeguReeTax.label(t.taxDate, true) + '軽減込ケコ';
+        if (taxLabelEl)  taxLabelEl.textContent  = MeguReeTax.label(t.taxDate, false) + '対象込コ';
         sumExclEl.textContent = fmt(t.excl8 || 0);
         sumTaxEl.textContent  = fmt(t.excl10 || 0);
       } else {

@@ -218,7 +218,19 @@
     return isFood ? 'ケ' : '';
   }
 
-  function calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge) {
+  // 消費税率は tax-rates.js（設定画面で登録した「いつから何%」）から取る。
+  // 読み込まれていない画面でも従来どおり動くよう、既定の 8% / 10% にフォールバックする。
+  function taxOf(amount, taxDate, isFood) {
+    if (global.MeguReeTax) return global.MeguReeTax.tax(amount, taxDate, isFood);
+    return Math.round(Number(amount || 0) * (isFood ? 0.08 : 0.10));
+  }
+  function taxLabel(taxDate, isFood) {
+    if (global.MeguReeTax) return global.MeguReeTax.label(taxDate, isFood);
+    return isFood ? '8%' : '10%';
+  }
+
+  // taxDate＝税率を決める基準日（納品書・請求書は受注日、見積書は発行日）
+  function calcTotals(items, handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, taxDate) {
     let sum8 = 0, sum10 = 0;
     for (const it of items) {
       const qty = Number(it.quantity || 0);
@@ -242,8 +254,8 @@
       };
     }
     // 卸取引（外税）：商品にのみ課税。送料・手数料は税込なので税計算せず合計に加減算（消費税の行に出さない）。
-    const tax8 = Math.round(sum8 * 0.08);
-    const tax10 = Math.round(sum10 * 0.10);
+    const tax8 = taxOf(sum8, taxDate, true);
+    const tax10 = taxOf(sum10, taxDate, false);
     const subtotal = sum8 + sum10;
     return {
       excl8: sum8, excl10: sum10, subtotal,
@@ -253,19 +265,19 @@
     };
   }
 
-  function buildTotalsRows(t, isPersonal, grandLabel) {
+  function buildTotalsRows(t, isPersonal, grandLabel, taxDate) {
     const grand = grandLabel || '合計（税込）';
     if (isPersonal) {
       const rows = [];
-      if (t.excl8 !== 0)  rows.push(`<tr><td>8%軽減込ケコ</td><td>${fmtYen(t.excl8)}</td></tr>`);
-      if (t.excl10 !== 0) rows.push(`<tr><td>10%対象込コ</td><td>${fmtYen(t.excl10)}</td></tr>`);
+      if (t.excl8 !== 0)  rows.push(`<tr><td>${taxLabel(taxDate, true)}軽減込ケコ</td><td>${fmtYen(t.excl8)}</td></tr>`);
+      if (t.excl10 !== 0) rows.push(`<tr><td>${taxLabel(taxDate, false)}対象込コ</td><td>${fmtYen(t.excl10)}</td></tr>`);
       rows.push(`<tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`);
       return rows.join('');
     }
     return `
       <tr><td>税抜合計</td><td>${fmtYen(t.subtotal)}</td></tr>
-      ${t.tax8 !== 0 ? `<tr><td>消費税（8%）</td><td>${fmtYen(t.tax8)}</td></tr>` : ''}
-      ${t.tax10 !== 0 ? `<tr><td>消費税（10%）</td><td>${fmtYen(t.tax10)}</td></tr>` : ''}
+      ${t.tax8 !== 0 ? `<tr><td>消費税（${taxLabel(taxDate, true)}）</td><td>${fmtYen(t.tax8)}</td></tr>` : ''}
+      ${t.tax10 !== 0 ? `<tr><td>消費税（${taxLabel(taxDate, false)}）</td><td>${fmtYen(t.tax10)}</td></tr>` : ''}
       <tr class="grand-row"><td>${grand}</td><td>${fmtYen(t.total)}</td></tr>`;
   }
 
@@ -294,7 +306,7 @@
   }
 
   // firstCellHtml: 先頭列の<td>を差し替えたい時に指定（納品書・請求書とも上代）
-  function buildOrderItemRow(it, isPersonal, firstCellHtml) {
+  function buildOrderItemRow(it, isPersonal, firstCellHtml, taxDate) {
     const qty = Number(it.quantity || 0);
     const price = Number(it.unit_price || 0);
     const sub = qty * price;
@@ -307,7 +319,7 @@
       <td class="num">${qty.toLocaleString()}</td>
       <td class="num">${priceCell}</td>
       <td class="num">${subCell}</td>
-      <td class="muted" style="text-align:center">${it.is_food ? '8%' : '10%'}</td>
+      <td class="muted" style="text-align:center">${taxLabel(taxDate, !!it.is_food)}</td>
       <td class="muted" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.remarks || '')}</td>
     </tr>`;
   }
@@ -323,7 +335,8 @@
     const shippingCharge = !!data.shippingCharge;
     const handlingQty = Number(data.handlingQty) || 1;
     const shippingQty = Number(data.shippingQty) || 1;
-    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+    const taxDate = data.deliveryDate || null;   // 税率の基準＝受注日
+    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge, taxDate);
 
     const deliveryLabel = data.deliveryDate ? fmtJa(data.deliveryDate) : fmtJa(new Date());
     const orderIdLabel = data.orderId ? esc(data.orderId) : '<span class="mini-preview-undecided">（未確定）</span>';
@@ -331,7 +344,7 @@
     // 納品書プレビューの先頭列は上代（実物 invoice.html の納品書と同じ）。未設定は「—」。
     const listPriceCell = it => `<td class="num">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>`;
     const itemRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it))).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it), taxDate)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
     const dataRows = itemRows;
 
@@ -376,7 +389,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            ${buildTotalsRows(totals, isPersonal, '合計（税込）')}
+            ${buildTotalsRows(totals, isPersonal, '合計（税込）', taxDate)}
           </table>
         </div>
       </div>
@@ -395,7 +408,9 @@
     const shippingCharge = !!data.shippingCharge;
     const handlingQty = Number(data.handlingQty) || 1;
     const shippingQty = Number(data.shippingQty) || 1;
-    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+    // 税率の基準は取引日（受注日）。無ければ発行日で代用。
+    const taxDate = data.deliveryDate || data.issuedDate || null;
+    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge, taxDate);
 
     const invoiceNumLabel = data.invoiceNumber || '<span class="mini-preview-undecided">（未確定）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date());
@@ -404,7 +419,7 @@
     // 請求書プレビューの先頭列も上代（実物 invoice.html の請求書と同じ）。未設定は「—」。
     const listPriceCell = it => `<td class="num">${it.list_price != null ? fmtYen(it.list_price) : '—'}</td>`;
     const dataRows = items.length > 0
-      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it))).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
+      ? items.map(it => buildOrderItemRow(it, isPersonal, listPriceCell(it), taxDate)).join('') + buildFeeRows(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
       : '<tr><td colspan="7" class="mini-preview-empty">明細データがありません</td></tr>';
 
     const bankBlock = banks.length > 0
@@ -465,7 +480,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            ${buildTotalsRows(totals, isPersonal, '今回御請求額（税込）')}
+            ${buildTotalsRows(totals, isPersonal, '今回御請求額（税込）', taxDate)}
           </table>
         </div>
       </div>
@@ -483,7 +498,8 @@
     const shippingCharge = !!data.shippingCharge;
     const handlingQty = Number(data.handlingQty) || 1;
     const shippingQty = Number(data.shippingQty) || 1;
-    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge);
+    const taxDate = data.issuedDate || null;   // 見積書は発行日の税率で見せる
+    const totals = calcTotals(items, handlingFee * handlingQty, shippingFee * shippingQty, isPersonal, handlingCharge, shippingCharge, taxDate);
 
     const numberLabel = data.quotationNumber || '<span class="mini-preview-undecided">（保存時に自動採番）</span>';
     const issuedLabel = data.issuedDate ? fmtJa(data.issuedDate) : fmtJa(new Date());
@@ -578,7 +594,7 @@
             ${data.notes ? esc(data.notes).replace(/\n/g,'<br>') : ''}
           </div>
           <table class="mini-preview-totals-table">
-            ${buildTotalsRows(totals, isPersonal, '合計（税込）')}
+            ${buildTotalsRows(totals, isPersonal, '合計（税込）', taxDate)}
           </table>
         </div>
       </div>
