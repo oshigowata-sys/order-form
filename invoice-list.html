@@ -279,6 +279,7 @@ tr.row-inprogress td{color:var(--text-muted)}
 <script src="auth.js?v=20260802-revive"></script>
 <script src="sidebar-icons.js?v=20260625"></script>
 <script src="notification-bell.js?v=20260706"></script>
+<script src="tax-rates.js?v=20260803"></script>
 <script>
 checkAuth();
 
@@ -446,12 +447,15 @@ async function loadAll() {
     '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">読み込み中...</td></tr>';
   try {
     const today = new Date();
-    const [ordersRes, invoicesRes] = await Promise.all([
+    const [ordersRes, invoicesRes, settingsRes] = await Promise.all([
       sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
-      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name,closing_day)&order=issued_date.desc`)
+      sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name,closing_day)&order=issued_date.desc`),
+      sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&select=tax_rate_changes&limit=1`)
     ]);
     if (!ordersRes.ok || !invoicesRes.ok) throw new Error('データ取得失敗');
     const [orders, invoices] = await Promise.all([ordersRes.json(), invoicesRes.json()]);
+    // 消費税率の設定（いつから何%）。取れなくても既定（標準10%・食品8%）で計算する。
+    if (settingsRes.ok) { const sArr = await settingsRes.json(); MeguReeTax.loadFrom(sArr[0] || {}); }
 
     // 発行済みセット（customer_id:period_end）— 取消済は除外して再発行可能にする
     const invoicedSet = new Set(invoices.filter(i => !i.cancelled_at).map(i => `${i.customer_id}:${i.period_end}`));
@@ -516,9 +520,9 @@ async function loadAll() {
         }
         (o.order_items || []).forEach(it => {
           const sub  = (it.quantity || 0) * (it.unit_price || 0);
-          const rate = it.products?.is_food ? 0.08 : 0.10;
           map[key].excl += sub;
-          map[key].tax  += Math.round(sub * rate);
+          // 税率は受注日で引く（期間の途中で税率が改定されても受注ごとに正しい率になる）
+          map[key].tax  += MeguReeTax.tax(sub, o.order_date, !!it.products?.is_food);
         });
         map[key].orders++;
       });

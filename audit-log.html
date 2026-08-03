@@ -307,8 +307,9 @@
       if (labelMap[k] === null) return;
       if (ov[k] === nv[k]) return;
       const lbl = labelMap[k] || k;
-      const oldStr = k === 'price' ? `¥${Number(ov[k]).toLocaleString()}` : k === 'rate' ? `${(ov[k]*100).toFixed(0)}%` : k === 'is_food' ? (ov[k] ? '食品(8%)' : '標準(10%)') : esc(String(ov[k] ?? '—'));
-      const newStr = k === 'price' ? `¥${Number(nv[k]).toLocaleString()}` : k === 'rate' ? `${(nv[k]*100).toFixed(0)}%` : k === 'is_food' ? (nv[k] ? '食品(8%)' : '標準(10%)') : esc(String(nv[k] ?? '—'));
+      // 食品フラグは「当時の税率が何%だったか」を持っていないので、数字ではなく区分名で出す
+      const oldStr = k === 'price' ? `¥${Number(ov[k]).toLocaleString()}` : k === 'rate' ? `${(ov[k]*100).toFixed(0)}%` : k === 'is_food' ? (ov[k] ? '食品(軽減税率)' : '標準税率') : esc(String(ov[k] ?? '—'));
+      const newStr = k === 'price' ? `¥${Number(nv[k]).toLocaleString()}` : k === 'rate' ? `${(nv[k]*100).toFixed(0)}%` : k === 'is_food' ? (nv[k] ? '食品(軽減税率)' : '標準税率') : esc(String(nv[k] ?? '—'));
       parts.push(`${lbl}: <span class="diff-old">${oldStr}</span><span class="diff-arrow">→</span><span class="diff-new">${newStr}</span>`);
     });
     return parts.join('　') || '変更なし';
@@ -352,7 +353,7 @@
     const lines = [];
     if (ov.product_name) lines.push(`商品名: ${ov.product_name}`);
     if (ov.price != null) lines.push(`単価: ¥${Number(ov.price).toLocaleString()}`);
-    if (ov.is_food != null) lines.push(`食品フラグ: ${ov.is_food ? '食品(8%)' : '標準(10%)'}`);
+    if (ov.is_food != null) lines.push(`食品フラグ: ${ov.is_food ? '食品(軽減税率)' : '標準税率'}`);
     if (ov.category != null) lines.push(`カテゴリ: ${ov.category || '（なし）'}`);
     if (ov.rate != null) lines.push(`掛け率: ${(ov.rate*100).toFixed(0)}%`);
     document.getElementById('rollbackDetail').textContent = lines.join('\n') || JSON.stringify(ov, null, 2);

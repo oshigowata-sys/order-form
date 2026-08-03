@@ -641,8 +641,8 @@
         </div>
         <div class="summary-lines">
           <div class="summary-line"><span>小計（税抜）</span><span id="summarySubtotal">¥0</span></div>
-          <div class="summary-line"><span>消費税（8%）</span><span id="summaryTax8">¥0</span></div>
-          <div class="summary-line"><span>消費税（10%）</span><span id="summaryTax10">¥0</span></div>
+          <div class="summary-line"><span id="summaryTax8Label">消費税（8%）</span><span id="summaryTax8">¥0</span></div>
+          <div class="summary-line"><span id="summaryTax10Label">消費税（10%）</span><span id="summaryTax10">¥0</span></div>
           <div class="summary-line summary-total"><span>合計（税込）</span><span class="price" id="summaryTotal">¥0</span></div>
         </div>
         <div class="summary-actions">
@@ -709,6 +709,7 @@
 
 <script src="config.js"></script>
 <script src="auth.js?v=20260802-revive"></script>
+<script src="tax-rates.js?v=20260803"></script>
 <script>
   // ===== 認証ガード：ログイン必須かつ小売店ロールのみ =====
   // （checkAuth は retail を shop.html に送り返す挙動のため、ここでは自前でチェックしてループを避ける）
@@ -882,6 +883,18 @@
     }
   }
 
+  // 卸業者が設定した消費税率（いつから何%）。取れなければ既定（標準10%・食品8%）で動く。
+  async function loadMyTaxRates() {
+    try {
+      const res = await sbFetch('/rest/v1/rpc/get_my_tax_rates', { method: 'POST', body: _withTenant() });
+      if (!res.ok) { MeguReeTax.setChanges([]); return; }
+      MeguReeTax.setChanges(await res.json());
+    } catch(e) {
+      console.warn('消費税率の設定の取得に失敗しました:', e);
+      MeguReeTax.setChanges([]);
+    }
+  }
+
   function rateOf(productId) {
     const r = _customerRates[productId];
     return r && r.rate != null ? r.rate : 1.0;
@@ -901,23 +914,29 @@
     try {
       // 取引先・卸価格はログインユーザー＋選択中卸業者から導出（自分の分だけ返る）
       const ratesPromise = loadMyRates();
+      // その卸業者の消費税率設定（いつから何%）。取れなければ既定（標準10%・食品8%）。
+      const taxPromise = loadMyTaxRates();
 
       // 商品キャッシュは卸業者(tenant)ごとに分ける
       const cacheKey = 'products_' + (_activeTenantId || 'default');
-      if (sessionCache[cacheKey]) {
-        products = sessionCache[cacheKey];
-      } else {
+      let rawProducts = sessionCache[cacheKey + '_raw'];
+      if (!rawProducts) {
         const res = await sbFetch('/rest/v1/rpc/get_my_products', { method: 'POST', body: _withTenant() });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        products = data.map(p => ({
-          id: p.id, name: p.product_name || '', price: p.price || 0,
-          list_price: p.list_price || 0,
-          category: p.category || 'その他', taxRate: p.is_food ? 8 : 10,
-          imageUrl: normalizeImageUrl(p.image_url),
-        }));
-        sessionCache[cacheKey] = products;
+        rawProducts = await res.json();
+        sessionCache[cacheKey + '_raw'] = rawProducts;
       }
+
+      await taxPromise;
+      // 税率は「今日」の率（注文はこれから出すもの）。設定を読んだ後に組み立てる。
+      products = rawProducts.map(p => ({
+        id: p.id, name: p.product_name || '', price: p.price || 0,
+        list_price: p.list_price || 0,
+        category: p.category || 'その他',
+        isFood: !!p.is_food,
+        taxRate: MeguReeTax.percent(null, !!p.is_food),
+        imageUrl: normalizeImageUrl(p.image_url),
+      }));
 
       await ratesPromise;
 
@@ -966,7 +985,7 @@
                       id="qty-${esc(p.id)}"
                       data-id="${esc(p.id)}" data-price="${Number(p.list_price || p.price)}" data-display-price="${dispPrice}"
                       data-ask-price="${isAskPrice ? '1' : '0'}"
-                      data-taxrate="${Number(p.taxRate)}" data-cat="${esc(cat)}"
+                      data-taxrate="${Number(p.taxRate)}" data-isfood="${p.isFood ? '1' : '0'}" data-cat="${esc(cat)}"
                       data-name="${esc(p.name)}"
                       oninput="onNumInput(this, event, syncQty)">
                     <button class="stepper-btn plus" onclick="stepQty('${esc(p.id)}',1)">+</button>
@@ -1064,7 +1083,9 @@
           price: basePrice,
           displayPrice: dispPrice,
           isAskPrice: el.dataset.askPrice === '1',
-          taxRate: Number(el.dataset.taxrate) || 10, cat: el.dataset.cat,
+          taxRate: Number(el.dataset.taxrate) || 10,
+          isFood: el.dataset.isfood === '1',
+          cat: el.dataset.cat,
           qty: parseInt(zenkakuNum(el.value)) || 0
         };
       })
@@ -1079,8 +1100,9 @@
       if (i.isAskPrice) { askCount += 1; return; }
       const amt = i.displayPrice * i.qty;
       subtotal += amt;
-      if (i.taxRate === 8) tax8 += Math.round(amt * 0.08);
-      else tax10 += Math.round(amt * 0.10);
+      // 軽減（食品）と標準を分けて集計。税率は卸業者の設定に従う（既定は 8% / 10%）。
+      if (i.isFood) tax8 += MeguReeTax.tax(amt, null, true);
+      else          tax10 += MeguReeTax.tax(amt, null, false);
     });
     const total = subtotal + tax8 + tax10;
 
@@ -1106,6 +1128,10 @@
 
     document.getElementById('summaryCount').textContent = totalQty;
     document.getElementById('summarySubtotal').textContent = '¥' + subtotal.toLocaleString();
+    const tax8LabelEl  = document.getElementById('summaryTax8Label');
+    const tax10LabelEl = document.getElementById('summaryTax10Label');
+    if (tax8LabelEl)  tax8LabelEl.textContent  = `消費税（${MeguReeTax.label(null, true)}）`;
+    if (tax10LabelEl) tax10LabelEl.textContent = `消費税（${MeguReeTax.label(null, false)}）`;
     document.getElementById('summaryTax8').textContent = '¥' + tax8.toLocaleString();
     document.getElementById('summaryTax10').textContent = '¥' + tax10.toLocaleString();
     document.getElementById('summaryTotal').textContent = '¥' + total.toLocaleString();
