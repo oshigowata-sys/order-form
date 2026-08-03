@@ -62,6 +62,14 @@
     .tax-change{border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:14px}
     .tax-change-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
     .tax-change-title{font-size:14px;font-weight:700;color:var(--text)}
+    .tax-section-title{font-size:13px;font-weight:700;color:var(--text-muted);margin:0 0 8px}
+    .tax-past{border:1px solid var(--border);border-radius:12px;background:var(--bg)}
+    .tax-past>summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:14px;font-weight:700;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+    .tax-past>summary::-webkit-details-marker{display:none}
+    .tax-past>summary::before{content:'▶';font-size:10px;color:var(--text-muted)}
+    .tax-past[open]>summary::before{content:'▼'}
+    .tax-past-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+    .tax-past .tax-change{background:var(--surface)}
     .btn-secondary{display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--text);padding:9px 14px;border-radius:9px;font-size:14px;font-weight:700;border:1px solid var(--border);cursor:pointer;font-family:'Noto Sans JP',sans-serif}
     .btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
     .btn-danger{background:#fff;color:#dc2626;border:1px solid #fecaca;padding:7px 10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
@@ -223,8 +231,9 @@
           <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
             <div style="font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:4px">今日の税率</div>
             <div style="font-size:15px;font-weight:700" id="taxCurrentLabel">標準 10% ／ 食品 8%</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:6px" id="taxNextLabel">変更の予定はありません</div>
           </div>
-          <p style="font-size:14px;color:var(--text-muted);line-height:1.7;margin:0">消費税率が変わるときに、<strong>いつから何%になるか</strong>を登録します。登録した日以降の受注から新しい税率で計算し、それより前の受注・すでに発行した納品書や請求書は<strong>当時の税率のまま</strong>変わりません。何も登録しなければ今のまま（標準10%・食品8%）です。</p>
+          <p style="font-size:14px;color:var(--text-muted);line-height:1.7;margin:0">消費税率が変わるときに、<strong>いつから何%になるか</strong>を登録します。その日が来たら上の「今日の税率」が自動で切り替わります。登録した日以降の受注から新しい税率で計算し、それより前の受注・すでに発行した納品書や請求書は<strong>当時の税率のまま</strong>変わりません。何も登録しなければ今のまま（標準10%・食品8%）です。</p>
           <div class="tax-change-list" id="taxChanges"></div>
           <button class="btn-secondary" type="button" onclick="addTaxChange()">+ 税率の変更を追加</button>
         </div>
@@ -643,17 +652,44 @@
   // ===== 消費税率（切替日つき）=====
   // 税率が変わったとき、コードを直さず「いつから何%」を登録して切り替える。
   // 判定は受注日ベース＝登録日より前の受注・発行済み帳票は当時の税率のまま（tax-rates.js）。
-  function renderTaxChanges() {
-    const wrap = document.getElementById('taxChanges');
-    if (!wrap) return;
-    if (taxChanges.length === 0) {
-      wrap.innerHTML = '<div style="font-size:14px;color:var(--text-muted)">変更の登録はありません（標準10%・食品8%で計算しています）</div>';
-      return;
-    }
-    wrap.innerHTML = taxChanges.map((t, index) => `
+  const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  /** 'YYYY-MM-DD' → '2027年4月1日'。日付として読めなければそのまま返す。 */
+  function ymdJa(ymd) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || '').trim());
+    return m ? `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日` : String(ymd || '');
+  }
+
+  /** 今日の 'YYYY-MM-DD'。tax-rates.js と同じく文字列で比べる（時差ずれを作らないため）。 */
+  function todayYmd() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  /** 税率の言い方。標準と軽減が同じなら「一律 ◯%」。 */
+  function taxRateText(standard, reduced) {
+    return Number(standard) === Number(reduced)
+      ? `一律 ${standard}%`
+      : `標準 ${standard}% ／ 食品 ${reduced}%`;
+  }
+
+  /** 行の見出し。連番（変更1・変更2…）ではなく適用日で呼ぶ。 */
+  function taxRowTitle(t) {
+    const from = String(t.from || '').trim();
+    return YMD_RE.test(from) ? `${ymdJa(from)}から` : '新しい変更';
+  }
+
+  /** 適用日が今日以前＝すでに効いている変更（履歴として畳む対象）。 */
+  function isPastTaxChange(t) {
+    const from = String(t.from || '').trim();
+    return YMD_RE.test(from) && from <= todayYmd();
+  }
+
+  function taxChangeCard(t, index) {
+    return `
       <div class="tax-change">
         <div class="tax-change-head">
-          <div class="tax-change-title">税率の変更 ${index + 1}</div>
+          <div class="tax-change-title">${escHtml(taxRowTitle(t))}</div>
           <button class="btn-danger" type="button" onclick="removeTaxChange(${index})">削除</button>
         </div>
         <div class="form-group">
@@ -672,7 +708,40 @@
         </div>
         <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0">軽減税率が無くなる場合は、両方に同じ数字を入れてください。</p>
       </div>
-    `).join('');
+    `;
+  }
+
+  // 適用日が過ぎた変更は「過去の変更」に畳み、これからの予定だけを開いて見せる。
+  // 過去の分を消さないのは、当時の受注・発行済み帳票を当時の税率で出すため（tax-rates.js の forDate）。
+  function renderTaxChanges() {
+    const wrap = document.getElementById('taxChanges');
+    if (!wrap) return;
+    if (taxChanges.length === 0) {
+      wrap.innerHTML = '<div style="font-size:14px;color:var(--text-muted)">変更の登録はありません（標準10%・食品8%で計算しています）</div>';
+      return;
+    }
+
+    const rows   = taxChanges.map((t, index) => ({ t, index }));
+    const past   = rows.filter(r => isPastTaxChange(r.t));
+    const future = rows.filter(r => !isPastTaxChange(r.t));
+
+    let html = '';
+    if (future.length > 0) {
+      html += `<div>
+        <div class="tax-section-title">これからの変更</div>
+        <div class="tax-change-list">${future.map(r => taxChangeCard(r.t, r.index)).join('')}</div>
+      </div>`;
+    }
+    if (past.length > 0) {
+      html += `<details class="tax-past">
+        <summary>過去の変更（${past.length}件）</summary>
+        <div class="tax-past-body">
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0">当時の受注や発行済みの納品書・請求書を、その時の税率のまま出すために残しています。消すと過去の書類が今の税率で計算し直されるのでご注意ください。</p>
+          ${past.map(r => taxChangeCard(r.t, r.index)).join('')}
+        </div>
+      </details>`;
+    }
+    wrap.innerHTML = html;
 
     wrap.querySelectorAll('[data-tax-field]').forEach(el => {
       el.addEventListener('input', onTaxInput);
@@ -685,6 +754,12 @@
     const field = e.target.dataset.taxField;
     if (!taxChanges[index]) return;
     taxChanges[index][field] = e.target.value;
+    if (field === 'from') {
+      // 見出しだけその場で追従させる（作り直すと入力中のカードが畳まれてしまうため）
+      const card  = e.target.closest('.tax-change');
+      const title = card && card.querySelector('.tax-change-title');
+      if (title) title.textContent = taxRowTitle(taxChanges[index]);
+    }
   }
 
   function addTaxChange() {
@@ -699,11 +774,19 @@
 
   function updateTaxCurrentLabel() {
     const el = document.getElementById('taxCurrentLabel');
-    if (!el) return;
-    const r = MeguReeTax.forDate();
-    el.textContent = r.standard === r.reduced
-      ? `一律 ${r.standard}%`
-      : `標準 ${r.standard}% ／ 食品 ${r.reduced}%`;
+    if (el) {
+      const r = MeguReeTax.forDate();
+      el.textContent = taxRateText(r.standard, r.reduced);
+    }
+    // 次の予定は「保存済みの内容」で出す（編集途中の入力で今日の税率欄が動かないように）
+    const next = document.getElementById('taxNextLabel');
+    if (next) {
+      const today = todayYmd();
+      const upcoming = MeguReeTax.getChanges().filter(c => c.from > today);
+      next.textContent = upcoming.length > 0
+        ? `次の変更：${ymdJa(upcoming[0].from)}から ${taxRateText(upcoming[0].standard, upcoming[0].reduced)}`
+        : '変更の予定はありません';
+    }
   }
 
   async function saveTax() {
@@ -714,22 +797,23 @@
       const std  = Number(zenkakuNum(String(t.standard ?? '')).trim());
       const red  = Number(zenkakuNum(String(t.reduced  ?? '')).trim());
       if (!from && !String(t.standard ?? '').trim() && !String(t.reduced ?? '').trim()) continue; // 空行は捨てる
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) { alert(`税率の変更 ${i + 1}：適用する日を入れてください`); return; }
-      if (!isFinite(std) || std < 0 || std > 100) { alert(`税率の変更 ${i + 1}：標準税率は0〜100の数字で入れてください`); return; }
-      if (!isFinite(red) || red < 0 || red > 100) { alert(`税率の変更 ${i + 1}：軽減税率は0〜100の数字で入れてください`); return; }
+      // 連番ではなく適用日で呼ぶ（画面の見出しと同じ言い方にそろえる）
+      const name = YMD_RE.test(from) ? `${ymdJa(from)}からの変更` : `${i + 1}件目の変更`;
+      if (!YMD_RE.test(from)) { alert(`${name}：適用する日を入れてください`); return; }
+      if (!isFinite(std) || std < 0 || std > 100) { alert(`${name}：標準税率は0〜100の数字で入れてください`); return; }
+      if (!isFinite(red) || red < 0 || red > 100) { alert(`${name}：軽減税率は0〜100の数字で入れてください`); return; }
       list.push({ from, standard: std, reduced: red });
     }
     const dates = list.map(r => r.from);
     if (new Set(dates).size !== dates.length) { alert('同じ日の変更が2つ以上あります。1つにまとめてください'); return; }
     list.sort((a, b) => a.from < b.from ? -1 : a.from > b.from ? 1 : 0);
 
-    const today = new Date();
-    const todayYmd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-    const past = list.filter(r => r.from <= todayYmd);
+    const today = todayYmd();
+    const past = list.filter(r => r.from <= today);
     if (past.length > 0) {
       const p = past[past.length - 1];
-      const msg = `適用日が今日以前の設定があります（${p.from} から 標準${p.standard}% ／ 食品${p.reduced}%）。\n`
-        + `${p.from} 以降の受注は、すでに登録済みのものも新しい税率で計算されます。\n`
+      const msg = `適用日が今日以前の設定があります（${ymdJa(p.from)}から ${taxRateText(p.standard, p.reduced)}）。\n`
+        + `${ymdJa(p.from)}以降の受注は、すでに登録済みのものも新しい税率で計算されます。\n`
         + `（発行済みの請求書は当時の金額のまま変わりません）\n\nこの内容で保存しますか？`;
       if (!confirm(msg)) return;
     }
