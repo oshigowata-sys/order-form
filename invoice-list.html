@@ -448,7 +448,7 @@ async function loadAll() {
   try {
     const today = new Date();
     const [ordersRes, invoicesRes, settingsRes] = await Promise.all([
-      sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,customers(id,company_name,closing_day),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
+      sbFetch(`/rest/v1/orders?tenant_id=eq.${tenantId}&select=id,order_date,is_personal_trade,customers(id,company_name,closing_day,is_personal_trade),order_items(quantity,unit_price,products(is_food))&order=order_date.asc`),
       sbFetch(`/rest/v1/invoices?tenant_id=eq.${tenantId}&superseded_at=is.null&select=id,invoice_number,customer_id,period_start,period_end,issued_date,total_excl_tax,tax_amount,total_incl_tax,paid_amount,is_interim,cancelled_at,customers(company_name,closing_day)&order=issued_date.desc`),
       sbFetch(`/rest/v1/settings?tenant_id=eq.${tenantId}&select=tax_rate_changes&limit=1`)
     ]);
@@ -514,15 +514,24 @@ async function loadAll() {
             customerId: cid,
             closingDay: cd,
             periodStart, periodEnd,
-            orders: 0, excl: 0, tax: 0,
+            orders: 0, excl: 0, tax: 0, taxBuckets: {},
             invoiceNumber: null, issuedDate: null,
           };
         }
+        // 税額は請求書本体（invoice.html）と同じ丸め方にする＝
+        // 期間内を「軽減/標準 × 税率」ごとに合計し、最後に1回だけ丸める。
+        // 明細1行ごとに丸めると、一覧の見込み額と実際に発行される請求書が1円ずれることがある。
+        // 税率は受注日で引く（期間の途中で改定されても受注ごとに正しい率になる）。
+        // 個人取引（メルカリ等）は単価が税込＝消費税を計算しない。請求書本体と同じ扱いにする。
+        const isPersonalTrade = o.is_personal_trade ?? o.customers?.is_personal_trade ?? false;
         (o.order_items || []).forEach(it => {
-          const sub  = (it.quantity || 0) * (it.unit_price || 0);
+          const sub    = (it.quantity || 0) * (it.unit_price || 0);
           map[key].excl += sub;
-          // 税率は受注日で引く（期間の途中で税率が改定されても受注ごとに正しい率になる）
-          map[key].tax  += MeguReeTax.tax(sub, o.order_date, !!it.products?.is_food);
+          if (isPersonalTrade) return;
+          const isFood = !!it.products?.is_food;
+          const pct    = MeguReeTax.percent(o.order_date, isFood);
+          const bk     = (isFood ? 'R' : 'S') + '|' + pct;
+          map[key].taxBuckets[bk] = (map[key].taxBuckets[bk] || 0) + sub;
         });
         map[key].orders++;
       });
@@ -556,6 +565,15 @@ async function loadAll() {
         orders: 0, excl: 0, tax: 0, noOrders: true,
         invoiceNumber: null, issuedDate: null,
       };
+    });
+
+    // 税率区分ごとに貯めた対象額を、ここで1回だけ丸めて税額にする（請求書本体と同じ丸め方）
+    Object.values(map).forEach(r => {
+      if (!r.taxBuckets) return;
+      r.tax = Object.entries(r.taxBuckets).reduce((s, [bk, excl]) => {
+        const pct = Number(bk.split('|')[1]) || 0;
+        return s + Math.round(excl * pct / 100);
+      }, 0);
     });
 
     const pendingRows    = Object.values(map).filter(r => r.status === 'pending' && (r.orders > 0 || r.noOrders));
