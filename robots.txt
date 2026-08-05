@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://oshigowata-sys.github.io/order-form/sitemap.xml
-Sitemap: https://oshigowata-sys.github.io/order-form/sitemap.txt
+Sitemap: https://meguree-order.com/sitemap.xml
+Sitemap: https://meguree-order.com/sitemap.txt
