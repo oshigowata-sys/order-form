@@ -352,13 +352,15 @@
       sessionStorage.setItem('user', JSON.stringify(user));
       _failCount = 0; _lockUntil = 0;
       // 小売店（取引先）はログイン式の注文画面へ。卸業者・管理者は管理画面へ。
+      // どちらも next 付きで来た場合は元の画面へ安全に戻す（相対の*.htmlのみ許可）。
+      // 小売店＝招待リンク経由／卸業者・管理者＝新規注文メールの「この注文を開く」等の直リンク経由。
+      const next = new URLSearchParams(location.search).get('next');
+      const safeNext = next && /^[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(next) && !next.includes('//')
+        ? next : null;
       if (account.role === 'retail') {
-        // 招待リンク経由（next）で来た場合は、追加画面へ安全に戻す（相対の*.htmlのみ許可）
-        const next = new URLSearchParams(location.search).get('next');
-        const safe = next && /^[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(next) && !next.includes('//');
-        window.location.href = safe ? next : 'shop.html';
+        window.location.href = safeNext || 'shop.html';
       } else {
-        window.location.href = 'dashboard.html';
+        window.location.href = safeNext || 'dashboard.html';
       }
     } catch(e) {
       _failCount++;

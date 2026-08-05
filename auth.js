@@ -168,14 +168,29 @@ async function signOut(redirectUrl) {
   location.replace(redirectUrl || 'login.html');
 }
 
+// 未ログインのまま直リンク（新規注文メールの「この注文を開く」等）で来た時、
+// ログイン後に元の画面へ戻せるよう行き先を login.html に渡す。
+// 渡すのは「同じ場所にある *.html（+クエリ）」だけ。login.html 側でも同じ条件で再検証する。
+// 呼び出し元が行き先を明示している場合（ログアウトボタン等）はそれを優先し、next は付けない。
+function _loginUrlWithNext(redirectUrl) {
+  if (redirectUrl) return redirectUrl;
+  try {
+    const here = location.pathname.split('/').pop() + location.search;
+    if (/^[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(here) && !here.includes('//') && !/^login\.html/i.test(here)) {
+      return 'login.html?next=' + encodeURIComponent(here);
+    }
+  } catch {}
+  return 'login.html';
+}
+
 function checkAuth(redirectUrl) {
-  if (!sessionStorage.getItem('user')) { location.replace(redirectUrl || 'login.html'); return false; }
+  if (!sessionStorage.getItem('user')) { location.replace(_loginUrlWithNext(redirectUrl)); return false; }
   const jwt = sessionStorage.getItem('_sb_jwt');
-  if (!jwt) { signOut(redirectUrl || 'login.html'); return false; }
+  if (!jwt) { signOut(_loginUrlWithNext(redirectUrl)); return false; }
   if (jwt) {
     try {
       const payload = getJwtPayload();
-      if (!payload || payload.exp * 1000 < Date.now()) { signOut(redirectUrl || 'login.html'); return false; }
+      if (!payload || payload.exp * 1000 < Date.now()) { signOut(_loginUrlWithNext(redirectUrl)); return false; }
     } catch { /* malformed JWT — ignore, user key still valid */ }
   }
   // 小売店(retail)は管理画面を使わせない。注文画面へ送り返す（shop.html 自身は checkAuth を呼ばない）
