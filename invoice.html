@@ -619,6 +619,10 @@
     font-weight: 700;
     font-family: 'Space Grotesk', sans-serif;
   }
+  /* 前回御請求額をユーザーが手で直したとき、画面上だけ色で分かるようにする。
+     印刷物は通常の色に戻す（お客様に渡す書類に編集の跡を出さない）。 */
+  #sumPrev.prev-overridden { color: var(--orange); }
+  @media print { #sumPrev.prev-overridden { color: inherit; } }
   .summary-total-box {
     border: 2px solid var(--orange);
     border-radius: 8px;
@@ -858,6 +862,7 @@
     <div id="prevAmountWrap" style="display:flex;align-items:center;gap:6px" class="no-print">
       <label style="color:rgba(232,213,188,0.7);font-size:14px;white-space:nowrap">前回御請求額</label>
       <input type="text" id="prevAmountInput" placeholder="0" readonly
+        title="金額を直すときは、請求書の中の「前回御請求額」欄をクリックしてください"
         style="width:110px;padding:5px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.7);font-size:14px;font-family:inherit;outline:none;cursor:default">
     </div>
     <a id="backBtn" href="orders.html" class="btn btn-ghost">← 戻る</a>
@@ -1660,10 +1665,11 @@
       <div class="billing-summary" id="billingSummary">
         <div class="summary-cells">
           <div class="summary-cell">
-            <div class="summary-cell-label">前回御請求額</div>
-            <div class="summary-cell-value" id="sumPrev">—</div>
-            <div class="no-print" id="editPrevWrap" style="display:none;margin-top:4px;text-align:right">
-              <button onclick="editManualPrevAmount()" title="MeguRee 導入時の手入力値を修正します" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;color:var(--text-muted);font-family:inherit">✏️ 修正</button>
+            <div class="summary-cell-label">前回御請求額<span class="no-print" id="prevManualBadge" style="display:none;margin-left:5px;font-size:10px;font-weight:700;color:var(--orange);border:1px solid var(--orange);border-radius:3px;padding:0 4px;vertical-align:1px">手入力</span></div>
+            <div class="summary-cell-value" id="sumPrev" onclick="startEditPrev()">—</div>
+            <div class="no-print" id="editPrevWrap" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;min-height:18px;">
+              <button id="prevResetBtn" onclick="resetPrevAmount()" title="手入力をやめて、自動で計算した金額に戻します" style="display:none;font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;color:var(--text-muted);font-family:inherit">自動に戻す</button>
+              <span id="prevSaveMsg" style="font-size:12px;font-weight:600;opacity:0;transition:opacity 0.3s;color:var(--green)"></span>
             </div>
           </div>
           <div class="summary-cell">
@@ -1724,20 +1730,27 @@
       </div>
     `;
 
-    // 前回請求額の決定:
-    //   - 前回請求書があればそれを使う（通常運用）
-    //   - 無く、かつ初回手入力 (manual_prev_amount) があればそれを使う（MeguRee 導入時）
+    // 前回請求額の決定（優先順位）:
+    //   1. ユーザーが手で直した値 (prev_amount_override) があればそれ ＝ 常に最優先
+    //   2. 前回請求書があればその税込合計（通常運用）
+    //   3. どちらも無く、初回手入力 (manual_prev_amount) があればそれ（MeguRee 導入時）
     const manualPrev = currentInvoice ? currentInvoice.manual_prev_amount : null;
-    const effectivePrev = (prevInvoice && prevInvoice.total_incl_tax != null)
+    const prevOverride = currentInvoice ? currentInvoice.prev_amount_override : null;
+    // 自動で求まる値（手入力を外したときに戻る先）
+    const autoPrev = (prevInvoice && prevInvoice.total_incl_tax != null)
       ? prevInvoice.total_incl_tax
       : (manualPrev != null ? manualPrev : null);
+    const effectivePrev = prevOverride != null ? prevOverride : autoPrev;
     const isFirstInvoice = !prevInvoice;
 
     // 合計をグローバルに保存（updateBillingSummary用）
     // currentPaidAmount = 今表示中の請求書への入金額（編集対象）
     // prevPaidAmount    = 前回請求書への入金額（繰越金計算に使用）
-    // manualPrevAmount  = 初回入力された前回請求額（編集ボタン表示判定）
-    // isFirstInvoice    = この取引先の初回請求書か（編集ボタン表示判定）
+    // manualPrevAmount  = 初回入力された前回請求額
+    // prevOverride      = ユーザーが手で直した前回御請求額（null＝自動のまま）
+    // autoPrevAmount    = 自動で求まる前回御請求額（「自動に戻す」で戻る先）
+    // canEditPrev       = 前回御請求額を編集できるか（保存先の請求書がある＝発行済みのみ）
+    // isFirstInvoice    = この取引先の初回請求書か
     window._invoiceTotals = {
       subtotal, tax, total,
       excl8:  totals.excl8,  excl10: totals.excl10,
@@ -1748,10 +1761,14 @@
       currentPaidAmount: currentInvoice != null ? currentInvoice.paid_amount : undefined,
       prevPaidAmount: prevInvoice != null ? prevInvoice.paid_amount : undefined,
       manualPrevAmount: manualPrev,
+      prevOverride,
+      autoPrevAmount: autoPrev,
+      canEditPrev: !!(currentInvoice && targetInvoiceNum),
       isFirstInvoice
     };
 
-    // 前回請求額を操作バーにセット（表示のみ・readonly）
+    // 前回請求額の現在値をセット（請求サマリの欄と操作バーの表示が同じ値を見る）
+    _prevAmountValue = effectivePrev != null ? effectivePrev : 0;
     const prevEl = document.getElementById('prevAmountInput');
     if (prevEl) prevEl.value = effectivePrev != null ? formatYen(effectivePrev) : '';
 
@@ -1795,11 +1812,22 @@
 
   // 御入金金額の現在値（メモリ保持・編集中はnull可）
   let _paidAmountValue = null;
+  // 前回御請求額の現在値（自動計算値 or ユーザーが手で直した値）
+  let _prevAmountValue = null;
 
   function updateBillingSummary() {
     const t = window._invoiceTotals;
     if (!t) return;
-    const prevAmount = Number(yenDigits(document.getElementById('prevAmountInput')?.value)) || 0;
+    // 前回御請求額 = 編集中ならその入力値、そうでなければ現在値（手入力＞自動の順で決まっている）
+    const sumPrevEl = document.getElementById('sumPrev');
+    const editingPrevInput = sumPrevEl ? sumPrevEl.querySelector('input') : null;
+    let prevAmount;
+    if (editingPrevInput) {
+      const v = Number(yenDigits(editingPrevInput.value));
+      prevAmount = !isNaN(v) ? v : 0;
+    } else {
+      prevAmount = _prevAmountValue != null ? _prevAmountValue : 0;
+    }
     // 御入金金額 = 今表示中の請求書への入金額（編集対象）
     const sumPaidEl = document.getElementById('sumPaid');
     const editingInput = sumPaidEl ? sumPaidEl.querySelector('input') : null;
@@ -1821,7 +1849,11 @@
     const carryOver = Math.max(0, prevAmount - subtractPaid);
     const grandTotal = carryOver + t.total;
 
-    document.getElementById('sumPrev').textContent      = fmt(prevAmount);
+    // 前回御請求額：編集中でなければ他セルと同じ表示に戻す
+    if (sumPrevEl && !editingPrevInput) sumPrevEl.textContent = fmt(prevAmount);
+    // 操作バーの表示（読み取り専用のミラー）も合わせる
+    const prevBarEl = document.getElementById('prevAmountInput');
+    if (prevBarEl) prevBarEl.value = formatYen(prevAmount);
     // 御入金金額：編集中でなければ他セルと同じ span 表示
     if (sumPaidEl && !editingInput) {
       sumPaidEl.textContent = (paidAmount != null && !isNaN(paidAmount)) ? fmt(paidAmount) : '—';
@@ -1849,41 +1881,123 @@
     }
     document.getElementById('sumGrandTotal').textContent = fmt(grandTotal);
 
-    // 初回請求書（前回請求書なし＋手入力された前回請求額あり）の時だけ「✏️ 修正」ボタン表示
-    const editPrevWrap = document.getElementById('editPrevWrap');
-    if (editPrevWrap) {
-      editPrevWrap.style.display = (t.isFirstInvoice && t.manualPrevAmount != null) ? 'block' : 'none';
+    // 前回御請求額まわりの操作UI
+    //   編集できるのは発行済みの請求書だけ（未発行のプレビューは保存先の請求書が無い）
+    const isOverridden = t.prevOverride != null;
+    if (sumPrevEl) {
+      sumPrevEl.style.cursor = t.canEditPrev ? 'pointer' : '';
+      sumPrevEl.title = t.canEditPrev
+        ? 'クリックで編集（自動計算と違う金額に直せます）'
+        : '発行するとここから金額を直せます';
+      // 手で直した値は自動計算と違うと分かるよう画面上だけ色を変える（印刷では通常色）
+      sumPrevEl.classList.toggle('prev-overridden', isOverridden && !editingPrevInput);
     }
+    const badge = document.getElementById('prevManualBadge');
+    if (badge) badge.style.display = isOverridden ? 'inline-block' : 'none';
+    const resetBtn = document.getElementById('prevResetBtn');
+    if (resetBtn) resetBtn.style.display = (isOverridden && t.canEditPrev) ? 'inline-block' : 'none';
   }
 
-  // ===== 初回前回請求額の修正（MeguRee 導入時の手入力値）=====
-  async function editManualPrevAmount() {
+  // ===== 前回御請求額の手入力（クリックで編集）=====
+  // 自動計算（前の請求書の税込合計）が実態と合わないとき、ユーザー自身が直せるようにする。
+  // 入れた値は invoices.prev_amount_override に保存し、印刷し直しても残る。
+  // 保存先が要るため、編集できるのは発行済みの請求書のみ（未発行のプレビューは表示だけ）。
+  function startEditPrev() {
     const t = window._invoiceTotals;
-    if (!t || !t.isFirstInvoice) return;
-    const current = t.manualPrevAmount != null ? t.manualPrevAmount : 0;
-    const ans = prompt(
-      'MeguRee 導入時の「前回請求額」を入力し直してください（円）：',
-      String(current)
-    );
-    if (ans === null) return;
-    const newVal = Number(zenkakuNum(String(ans)).replace(/[^0-9]/g, '')) || 0;
-    if (newVal === current) return;
+    if (!t || !t.canEditPrev) return;
+    const cell = document.getElementById('sumPrev');
+    if (!cell || cell.querySelector('input')) return;
+    const current = _prevAmountValue != null ? Number(_prevAmountValue).toLocaleString('en-US') : '';
+    cell.style.cursor = 'text';
+    cell.classList.remove('prev-overridden');
+    cell.innerHTML = `<span style="display:inline-flex;align-items:baseline;gap:0;">¥<input type="text" id="sumPrevInput" data-num="int" value="${current}" oninput="onNumInput(this, event, el=>{onYenInput(el);onPrevInputChange();})" onblur="endEditPrev()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font:inherit;color:inherit;outline:none;padding:0;margin:0;text-align:left;box-sizing:content-box;min-width:0;"></span>`;
+    const input = cell.querySelector('input');
+    const setWidth = () => { input.style.width = Math.max(input.value.length, 1) + 'ch'; };
+    setWidth();
+    input.focus();
+    input.select();
+  }
 
+  // 入力中：幅追従＋繰越金・今回御請求額の即時再計算
+  function onPrevInputChange() {
+    const el = document.getElementById('sumPrevInput');
+    if (!el) return;
+    el.style.width = Math.max((el.value || '').length, 1) + 'ch';
+    updateBillingSummary();
+  }
+
+  // 編集終了：保存して通常表示に戻す
+  async function endEditPrev() {
+    const input = document.getElementById('sumPrevInput');
+    if (!input) return;
+    const raw = yenDigits(input.value);
+    const numVal = raw === '' ? null : Number(raw);
+    const isValid = numVal != null && !isNaN(numVal) && numVal >= 0;
+    const t = window._invoiceTotals;
+    // 入力欄を閉じて文字表示に戻す。残したまま印刷すると請求書に入力枠が出てしまう
+    const cell = document.getElementById('sumPrev');
+    if (cell) cell.innerHTML = '';
+    if (isValid && numVal !== _prevAmountValue) {
+      await savePrevAmountOverride(numVal);
+    } else if (!isValid) {
+      // 不正値は元の値に戻す
+      _prevAmountValue = (t && t.prevOverride != null) ? t.prevOverride : (t ? t.autoPrevAmount : null);
+    }
+    updateBillingSummary();
+  }
+
+  // 前回御請求額の上書きを保存（今表示中の請求書へ）
+  async function savePrevAmountOverride(numVal) {
+    const t = window._invoiceTotals;
     const currentNum = window._currentInvoiceNum;
-    if (!currentNum) { alert('請求書が特定できません'); return; }
-
+    const msg = document.getElementById('prevSaveMsg');
+    const showMsg = (text, color) => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = color;
+      msg.style.opacity = '1';
+      setTimeout(() => { msg.style.opacity = '0'; }, 2500);
+    };
+    if (!currentNum) { showMsg('請求書が特定できません', '#dc2626'); return; }
+    const before = t ? (t.prevOverride != null ? t.prevOverride : t.autoPrevAmount) : null;
     const res = await sbFetch(
       '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(currentNum),
-      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ manual_prev_amount: newVal }) }
+      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ prev_amount_override: numVal }) }
     );
-    if (!res.ok) { alert('保存失敗'); return; }
+    if (!res.ok) { showMsg('❌ 保存失敗', '#dc2626'); return; }
+    if (t) t.prevOverride = numVal;
+    _prevAmountValue = numVal;
+    showMsg('✓ 保存しました', 'var(--green)');
+    await logPrevAmountChange(currentNum, '前回御請求額を手入力', before, numVal);
+  }
 
-    t.manualPrevAmount = newVal;
-    const prevEl = document.getElementById('prevAmountInput');
-    if (prevEl) prevEl.value = formatYen(newVal);
+  // 手入力をやめて自動計算に戻す
+  async function resetPrevAmount() {
+    const t = window._invoiceTotals;
+    if (!t || t.prevOverride == null) return;
+    const currentNum = window._currentInvoiceNum;
+    const msg = document.getElementById('prevSaveMsg');
+    const showMsg = (text, color) => {
+      if (!msg) return;
+      msg.textContent = text; msg.style.color = color; msg.style.opacity = '1';
+      setTimeout(() => { msg.style.opacity = '0'; }, 2500);
+    };
+    if (!currentNum) { showMsg('請求書が特定できません', '#dc2626'); return; }
+    const before = t.prevOverride;
+    const res = await sbFetch(
+      '/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(currentNum),
+      { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ prev_amount_override: null }) }
+    );
+    if (!res.ok) { showMsg('❌ 保存失敗', '#dc2626'); return; }
+    t.prevOverride = null;
+    _prevAmountValue = t.autoPrevAmount != null ? t.autoPrevAmount : 0;
+    showMsg('✓ 自動に戻しました', 'var(--green)');
     updateBillingSummary();
+    await logPrevAmountChange(currentNum, '前回御請求額を自動計算に戻す', before, t.autoPrevAmount);
+  }
 
-    // 操作履歴に記録
+  // 金額を触った記録は必ず操作履歴に残す（誰がいつ、いくらから いくらに変えたか）
+  async function logPrevAmountChange(currentNum, label, before, after) {
     try {
       await sbFetch('/rest/v1/audit_log', {
         method: 'POST',
@@ -1894,14 +2008,12 @@
           action: 'update',
           table_name: 'invoices',
           record_id: currentNum,
-          record_label: `${currentNum} 初回前回請求額を修正`,
-          old_values: { manual_prev_amount: current },
-          new_values: { manual_prev_amount: newVal }
+          record_label: `${currentNum} ${label}`,
+          old_values: { prev_amount: before },
+          new_values: { prev_amount: after }
         })
       });
     } catch(e) { console.warn('audit_log書き込み失敗:', e); }
-
-    alert('保存しました');
   }
 
   // ===== クリックで編集モードに切り替え =====
@@ -1933,6 +2045,9 @@
     const raw = yenDigits(input.value);
     const numVal = raw === '' ? null : Number(raw);
     const isValid = numVal != null && !isNaN(numVal) && numVal >= 0;
+    // 入力欄を閉じて文字表示に戻す。残したまま印刷すると請求書に入力枠が出てしまう
+    const paidCell = document.getElementById('sumPaid');
+    if (paidCell) paidCell.innerHTML = '';
     // 値が前回保存値と同じなら DB アクセス不要
     const prevSaved = window._invoiceTotals ? window._invoiceTotals.currentPaidAmount : null;
     if (isValid && numVal !== prevSaved) {
@@ -2072,7 +2187,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc,issued_date.desc,created_at.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,prev_amount_override,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -2092,6 +2207,7 @@
         let currentInvoiceManualPrev = null;
         let currentInvoiceNotes = '';
         let currentInvoiceIssuedDate = null;
+        let currentInvoicePrevOverride = null;   // ユーザーが手で直した前回御請求額（null＝自動のまま）
         let snapshotItems = [];
         let currentIsPersonal = null;
         let currentHandlingFee = null;
@@ -2105,6 +2221,7 @@
             currentInvoiceManualPrev = d[0].manual_prev_amount;
             currentInvoiceNotes = d[0].notes || '';
             currentInvoiceIssuedDate = d[0].issued_date || null;
+            currentInvoicePrevOverride = d[0].prev_amount_override;
             window._currentInvoiceId = d[0].id;
             snapshotItems = (d[0].invoice_items || []).slice().sort((a,b) => (a.display_order||0) - (b.display_order||0));
             currentIsPersonal = !!d[0].is_personal_trade;
@@ -2115,7 +2232,7 @@
           }
         }
 
-        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, notes: currentInvoiceNotes, issued_date: currentInvoiceIssuedDate } : null;
+        const currentInvoice = targetInvoiceNum ? { invoice_number: targetInvoiceNum, paid_amount: currentInvoicePaidAmount, manual_prev_amount: currentInvoiceManualPrev, prev_amount_override: currentInvoicePrevOverride, notes: currentInvoiceNotes, issued_date: currentInvoiceIssuedDate } : null;
 
         // 個人取引フラグ・手数料・送料：発行済 invoices のスナップショットを優先、
         // 無ければ期間内 orders を集計。向き（＋/−）が受注ごとに混在しうるため、
