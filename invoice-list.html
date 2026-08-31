@@ -445,6 +445,22 @@ function calcBillingPeriods(closingDay, today = new Date()) {
   ];
 }
 
+// 進行中の期間が実際に締まる日（月末は自動補正）。
+// calcBillingPeriods は進行中期間の periodEnd を「今日」にしているため、
+// 「もう締め日か」を判定するには本当の締め日を別に求める必要がある。
+function periodCloseDate(closingDay, startStr) {
+  const cd = closingDay || 31;
+  const s = new Date(startStr + 'T00:00:00');
+  let y = s.getFullYear(), m = s.getMonth();
+  let d = Math.min(cd, new Date(y, m + 1, 0).getDate());
+  if (s.getDate() > d) {                 // 開始日が締め日より後 ＝ 締まるのは翌月
+    m += 1;
+    if (m > 11) { m = 0; y += 1; }
+    d = Math.min(cd, new Date(y, m + 1, 0).getDate());
+  }
+  return ymdLocal(new Date(y, m, d));
+}
+
 // ── 全データ読み込み ──
 async function loadAll() {
   document.getElementById('unifiedTbody').innerHTML =
@@ -545,6 +561,9 @@ async function loadAll() {
     // 前の期間に請求書を出している取引先は、その次の期間に受注が無くても
     // 「前回請求額の入金が確認できた」意味で請求書を出すことがある（卸の実務）。
     // 発行しなければ次の期間には出ないので、取引が終わった相手が延々並ぶことはない。
+    // 受注のある取引先と同じく「締め切り済み」「進行中」の両方の期間を見る。
+    // 以前は締め切り済みの期間しか見ておらず、月末締めの取引先は締め日当日（例:8/31）に
+    // 8月分がまだ「進行中」扱いのため、受注ゼロの相手が一覧に1行も出てこなかった。
     const validInvoices = invoices.filter(i => !i.cancelled_at);
     const noOrderSeen = {};
     validInvoices.forEach(inv => {
@@ -552,23 +571,27 @@ async function loadAll() {
       if (!cid || noOrderSeen[cid]) return;
       noOrderSeen[cid] = true;
       const cd = inv.customers?.closing_day || 31;
-      const completed = calcBillingPeriods(cd, today)[0];   // 締め切り済みの期間
-      const key = `${cid}:${completed.periodEnd}`;
-      if (map[key] || invoicedSet.has(key)) return;         // 受注がある or もう発行済み
-      // 直前の期間に請求書を出しているか（＝いま取引が続いている相手か）
-      const prevPeriod = calcBillingPeriods(cd, new Date(completed.periodStart + 'T00:00:00'))[0];
-      const hasPrev = validInvoices.some(v => v.customer_id === cid
-        && v.period_end >= prevPeriod.periodStart && v.period_end <= prevPeriod.periodEnd);
-      if (!hasPrev) return;
-      map[key] = {
-        status: 'pending',
-        customer: inv.customers?.company_name || '',
-        customerId: cid,
-        closingDay: cd,
-        periodStart: completed.periodStart, periodEnd: completed.periodEnd,
-        orders: 0, excl: 0, tax: 0, noOrders: true,
-        invoiceNumber: null, issuedDate: null,
-      };
+      calcBillingPeriods(cd, today).forEach(p => {
+        // 進行中の期間は「締め日当日になってから」出す。期間の頭から出すと、
+        // まだ受注が入っていないだけの取引先が毎日ずらりと並んで邪魔になる。
+        if (p.isInProgress && ymdLocal(today) < periodCloseDate(cd, p.periodStart)) return;
+        const key = `${cid}:${p.periodEnd}`;
+        if (map[key] || invoicedSet.has(key)) return;       // 受注がある or もう発行済み
+        // 直前の期間に請求書を出しているか（＝いま取引が続いている相手か）
+        const prevPeriod = calcBillingPeriods(cd, new Date(p.periodStart + 'T00:00:00'))[0];
+        const hasPrev = validInvoices.some(v => v.customer_id === cid
+          && v.period_end >= prevPeriod.periodStart && v.period_end <= prevPeriod.periodEnd);
+        if (!hasPrev) return;
+        map[key] = {
+          status: p.isInProgress ? 'in_progress' : 'pending',
+          customer: inv.customers?.company_name || '',
+          customerId: cid,
+          closingDay: cd,
+          periodStart: p.periodStart, periodEnd: p.periodEnd,
+          orders: 0, excl: 0, tax: 0, taxBuckets: {}, noOrders: true,
+          invoiceNumber: null, issuedDate: null,
+        };
+      });
     });
 
     // 税率区分ごとに貯めた対象額を、ここで1回だけ丸めて税額にする（請求書本体と同じ丸め方）
@@ -671,7 +694,8 @@ function renderAll() {
     } else {
       badge          = '<span class="badge badge-inprogress">進行中</span>';
       action         = `<button class="btn btn-primary btn-sm interim-btn" data-idx="${idx}">途中発行</button>`;
-      ordersCell     = `${r.orders}件`;
+      // 受注ゼロの期間＝前回請求額の入金確認用。件数の代わりに「受注なし」と出す
+      ordersCell     = r.noOrders ? '<span style="color:var(--text-muted);font-size:13px">受注なし</span>' : `${r.orders}件`;
       issuedDateCell = '未発行';
     }
 
