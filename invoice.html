@@ -2058,11 +2058,18 @@
         // 取引先詳細・前回請求書・現在の請求書（明細スナップショット込み）を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
           sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=company_name,contact_name,is_personal_trade,postal_code,address,closing_day,payment_month_offset,payment_day&limit=1'),
+          // 前回請求書＝「今も有効な」1枚だけを拾う。
+          //   superseded_at … 発行し直して置き換えられた古い請求書（一覧にも出ない）
+          //   cancelled_at  … 取り消した請求書
+          // 置き換え済みを除外していないと、同じ締め期間に作り直した古い請求書が候補に残り、
+          // 期間が同点のため並び順が定まらず古い金額を拾うことがある（前回御請求額・繰越金・今回御請求額がズレる）。
+          // 期間が同点になった場合に必ず新しい方を取るよう、並び順も一意に決まるようにする。
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
+            '&superseded_at=is.null' +
             '&cancelled_at=is.null' +
-            '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc&limit=1'
+            '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc,issued_date.desc,created_at.desc&limit=1'
           ),
           targetInvoiceNum
             ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
