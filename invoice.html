@@ -1260,8 +1260,10 @@
   //   3. 支払日：31 を指定されたら月末扱い。月によって28/30も末日として正しく解決される
   // 取引先情報が不完全な場合は従来の「30日後」フォールバック
   function calcDueDate(orderDate, customerExtra) {
-    const od = orderDate ? new Date(orderDate) : new Date();
-    if (isNaN(od)) return new Date();
+    // 日付だけの文字列を new Date() に渡すと世界標準時の0時になる。日本時間で読むと
+    // 1日ずれる元になるため、必ず現地時間として読む（過去に発行日が1日ずれる不具合あり）
+    const od = orderDate ? parseYmdLocal(orderDate) : new Date();
+    if (!od) return new Date();
 
     const hasClosing = customerExtra && customerExtra.closing_day != null;
     const hasPayDay  = customerExtra && customerExtra.payment_day  != null;
@@ -1313,6 +1315,17 @@
     const digits = String(zip).replace(/[^0-9]/g, '');
     const formatted = digits.length === 7 ? digits.slice(0, 3) + '-' + digits.slice(3) : String(zip);
     return '〒' + formatted + (address ? '\n' + address : '');
+  }
+
+  // 「2026-08-31」のような日付だけの文字列は、new Date() に渡すと世界標準時の0時として
+  // 解釈される。そのまま日本時間で読み書きすると1日ずれる原因になる（過去に請求書の
+  // 発行日が1日ずれる不具合を起こしている）。日付だけの文字列は必ずこれで読む。
+  function parseYmdLocal(dateStr) {
+    if (!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr));
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(dateStr);        // 日時つきなど、それ以外の形式はそのまま
+    return isNaN(d) ? null : d;
   }
 
   // ===== 日付フォーマット =====

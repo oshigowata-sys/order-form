@@ -408,21 +408,34 @@ function buildQuotationTotalsRows(t, isPersonalTrade, taxDate) {
     ${t.tax10 !== 0 ? `<tr><td>消費税（${MeguReeTax.label(taxDate, false)}）</td><td>${fmt(t.tax10)}</td></tr>` : ''}
     <tr class="total-row"><td>合計（税込）</td><td>${fmt(t.total)}</td></tr>`;
 }
-function todayStr() {
-  // ローカル（日本時間）基準。toISOString はUTC変換で朝9時前に前日へずれるため使わない
-  const d = new Date(), p = n => String(n).padStart(2, '0');
+// 「2026-08-31」のような日付だけの文字列は、new Date() に渡すと世界標準時の0時として
+// 解釈される。そのまま日本時間で読み書きすると1日ずれる原因になる（過去に請求書の
+// 発行日が1日ずれる不具合を起こしている）。日付だけの文字列は必ずこれで読む。
+function parseYmdLocal(dateStr) {
+  if (!dateStr) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr));
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(dateStr);          // 日時つきなど、それ以外の形式はそのまま
+  return isNaN(d) ? null : d;
+}
+function ymdLocal(d) {
+  const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+function todayStr() {
+  // ローカル（日本時間）基準。toISOString はUTC変換で朝9時前に前日へずれるため使わない
+  return ymdLocal(new Date());
+}
 function addDaysStr(dateStr, days) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return '';
+  const d = parseYmdLocal(dateStr);
+  if (!d) return '';
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return ymdLocal(d);                   // toISOString はUTC変換で1日ずれるため使わない
 }
 function formatDateJa(dateStr) {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
+  const d = parseYmdLocal(dateStr);
+  if (!d) return dateStr;
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 function janDigits(s) { return String(s ?? '').replace(/[^0-9]/g, ''); }
@@ -720,9 +733,9 @@ function expiryLabel(type, dateStr) {
 
 function inferExpiryType(issuedDate, expiryDate) {
   if (!expiryDate) return 'next_quote';
-  const issued = new Date(issuedDate || todayStr());
-  const expiry = new Date(expiryDate);
-  if (isNaN(issued) || isNaN(expiry)) return 'next_quote';
+  const issued = parseYmdLocal(issuedDate || todayStr());
+  const expiry = parseYmdLocal(expiryDate);
+  if (!issued || !expiry) return 'next_quote';
   const days = Math.round((expiry - issued) / 86400000);
   return days >= 3650 ? 'next_quote' : 'date';
 }
