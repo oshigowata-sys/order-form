@@ -1117,7 +1117,8 @@
     return rows.join('');
   }
   // 手数料・送料の明細行HTML（あれば返す）
-  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, handlingQty, shippingQty) {
+  // isPeriodMode＝請求明細書（日付＋上代の2列が先頭）。上代は商品行だけなので空セルを1つ足す
+  function buildFeeRowsInvoice(handlingFee, shippingFee, isPersonalTrade, handlingCharge, shippingCharge, handlingQty, shippingQty, isPeriodMode) {
     const rows = [];
     const buildOne = (label, fee, charge, qty) => {
       const q = Number(qty) || 1;
@@ -1128,11 +1129,12 @@
       const line = unit * qDisp;
       return `<tr>
         <td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">—</td>
+        ${isPeriodMode ? '<td></td>' : ''}
         <td>${label}</td>
         <td style="text-align:right">${qDisp}</td>
-        <td style="text-align:right">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
-        <td style="text-align:right">${fmt(line)}</td>
-        <td style="text-align:center;font-size:11px;color:var(--text-muted)">税込</td>
+        <td style="text-align:right;white-space:nowrap">${fmt(unit)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(false, isPersonalTrade)}</span></td>
+        <td style="text-align:right;white-space:nowrap">${fmt(line)}</td>
+        <td style="text-align:center;font-size:11px;color:var(--text-muted);white-space:nowrap">税込</td>
         <td class="remarks-cell" style="font-size:11px;color:var(--text-muted)"></td>
       </tr>`;
     };
@@ -1544,13 +1546,17 @@
               ${firstTd}
               <td>${esc(it['商品名'] || '-')}</td>
               <td style="text-align:right">${qty.toLocaleString()}</td>
-              <td style="text-align:right">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
-              <td style="text-align:right">${fmt(subDisp)}</td>
-              <td style="text-align:center;font-size:11px;color:var(--text-muted)">${rate}</td>
+              <td style="text-align:right;white-space:nowrap">${fmt(priceDisp)}<span style="margin-left:3px;font-size:10px;color:var(--text-muted);font-weight:600">${taxMarkText(!!it.isFood, isPersonal)}</span></td>
+              <td style="text-align:right;white-space:nowrap">${fmt(subDisp)}</td>
+              <td style="text-align:center;font-size:11px;color:var(--text-muted);white-space:nowrap">${rate}</td>
               <td class="remarks-cell" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">${esc(remarks)}</td>
             </tr>`;
     };
 
+    // 上代のセル（納品書と同じ書式・未設定は「—」）。請求明細書・単一受注の両方で使う
+    const listPriceTd = it => `<td style="text-align:right;font-size:11px;font-family:'Space Grotesk',sans-serif">${it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>'}</td>`;
+    // 明細の列数（請求明細書は日付＋上代で8列・単一受注は上代のみで7列）
+    const colCount = isPeriod ? 8 : 7;
     // 明細行
     let dataRows, renderedRowCount;
     if (isPeriod) {
@@ -1559,8 +1565,9 @@
       const blocks = periodGroups.map(g => {
         const ds = fmtItemDate(g.date);
         const dateTd = `<td style="font-size:11px;color:var(--text-muted);font-family:'Space Grotesk',sans-serif">${ds}</td>`;
-        const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd, g.date)).join('');
-        const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty);
+        // 請求明細書の先頭は［日付］［上代］の2列（納品書と同じ上代の書式）
+        const itemHtml = (g.items || []).map(it => buildItemRow(it, dateTd + listPriceTd(it), g.date)).join('');
+        const feeHtml = buildFeeRowsInvoice(g.handlingFee, g.shippingFee, isPersonal, g.handlingCharge, g.shippingCharge, g.handlingQty, g.shippingQty, true);
         const feeCount = ((Number(g.handlingFee)||0) > 0 ? 1 : 0) + ((Number(g.shippingFee)||0) > 0 ? 1 : 0);
         // その伝票（受注）ごとの消費税・合計（税込）を出して区切る
         const gt = calcInvoiceTotals(
@@ -1569,24 +1576,24 @@
           (Number(g.shippingFee)||0) * (Number(g.shippingQty)||1),
           isPersonal, g.handlingCharge, g.shippingCharge, g.date
         );
+        // 列構成：日付・上代・商品名・数量・単価・金額・税率・備考（計8列）
         const subLabel = '<td colspan="3" style="text-align:right;font-size:11px;color:var(--text-muted);font-weight:600">';
         const denpyoTaxRow = isPersonal ? '' :
-          `<tr class="denpyo-sub"><td></td>${subLabel}（伝票消費税）</td><td style="text-align:right;font-size:12px">${fmt(gt.tax)}</td><td></td><td></td></tr>`;
+          `<tr class="denpyo-sub"><td></td><td></td>${subLabel}（伝票消費税）</td><td style="text-align:right;font-size:12px">${fmt(gt.tax)}</td><td></td><td></td></tr>`;
         const denpyoTotalRow =
-          `<tr class="denpyo-sub denpyo-total"><td></td>${subLabel}（伝票合計）</td><td style="text-align:right;font-weight:700;font-size:12px">${fmt(gt.total)}</td><td></td><td></td></tr>`;
+          `<tr class="denpyo-sub denpyo-total"><td></td><td></td>${subLabel}（伝票合計）</td><td style="text-align:right;font-weight:700;font-size:12px">${fmt(gt.total)}</td><td></td><td></td></tr>`;
         renderedRowCount += (g.items || []).length + feeCount + (isPersonal ? 1 : 2);
         return itemHtml + feeHtml + denpyoTaxRow + denpyoTotalRow;
       }).join('');
       dataRows = renderedRowCount > 0
         ? blocks
         // 受注ゼロの期間（前回請求額・御入金の確認用に発行するケース）
-        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">この期間のご注文はありませんでした</td></tr>`;
+        : `<tr><td colspan="${colCount}" style="text-align:center;color:#999;padding:20px;">この期間のご注文はありませんでした</td></tr>`;
     } else {
-      // 先頭列＝上代（納品書と同じ書式・products.list_priceの現在値・未設定は「—」）
-      const listPriceTd = it => `<td style="text-align:right;font-size:11px;font-family:'Space Grotesk',sans-serif">${it['上代'] != null ? fmt(it['上代']) : '<span style="color:var(--text-muted)">—</span>'}</td>`;
+      // 先頭列＝上代（納品書と同じ）
       dataRows = items.length > 0
         ? items.map(it => buildItemRow(it, listPriceTd(it))).join('') + buildFeeRowsInvoice(handlingFee, shippingFee, isPersonal, handlingCharge, shippingCharge, handlingQty, shippingQty)
-        : `<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
+        : `<tr><td colspan="${colCount}" style="text-align:center;color:#999;padding:20px;">明細データがありません</td></tr>`;
       const feeRowCount = (handlingFee > 0 ? 1 : 0) + (shippingFee > 0 ? 1 : 0);
       renderedRowCount = items.length + feeRowCount;
     }
@@ -1594,7 +1601,7 @@
     // 期間まとめの請求明細書（isPeriod）は明細を実データ分だけ並べる。受注が少ないと空の罫線行が
     // 印刷時に12mm/行で大量に出て「空欄だらけ」になるため水増ししない。
     const emptyCount = isPeriod ? 0 : Math.max(0, 10 - Math.max(renderedRowCount, 1));
-    const emptyRow = `<tr class="empty-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+    const emptyRow = `<tr class="empty-row">${'<td>&nbsp;</td>'.repeat(colCount)}</tr>`;
     const itemRows = dataRows + emptyRow.repeat(emptyCount);
 
     // TEL / FAX を1行にまとめる。同じ番号の場合は「TEL／FAX」として1つだけ表示。
@@ -1706,13 +1713,15 @@
         <table class="invoice-table">
           <thead>
             <tr>
-              ${isPeriod ? '<th style="width:74px">日付</th>' : '<th style="text-align:center;width:74px">上代</th>'}
+              ${isPeriod
+                ? '<th style="width:46px">日付</th><th style="text-align:center;width:66px">上代</th>'
+                : '<th style="text-align:center;width:74px">上代</th>'}
               <th>商品名</th>
-              <th style="text-align:center;width:48px">数量</th>
-              <th style="text-align:center;width:80px">単価</th>
-              <th style="text-align:center;width:84px">金額</th>
-              <th style="text-align:center;width:38px">税率</th>
-              <th style="width:90px">備考</th>
+              <th style="text-align:center;width:${isPeriod ? '44' : '48'}px">数量</th>
+              <th style="text-align:center;width:${isPeriod ? '84' : '80'}px">単価</th>
+              <th style="text-align:center;width:${isPeriod ? '84' : '84'}px">金額</th>
+              <th style="text-align:center;width:${isPeriod ? '44' : '38'}px">税率</th>
+              <th style="width:${isPeriod ? '72' : '90'}px">備考</th>
             </tr>
           </thead>
           <tbody>${itemRows}</tbody>
@@ -2157,7 +2166,7 @@
         const res = await sbFetch(
           '/rest/v1/orders?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
           '&order_date=gte.' + targetPeriodStart + '&order_date=lte.' + targetPeriodEnd +
-          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,products(product_code,product_name,is_food))' +
+          '&select=id,order_code,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,customers(company_name,contact_name,is_personal_trade),order_items(quantity,unit_price,remarks,list_price,products(product_code,product_name,is_food,list_price))' +
           // 並び順は必ず一意に決まるようにする（受注日だけだと同じ日の受注の順番が保証されず、
           // 発行時に凍結した明細と印刷時の伝票ブロックがズレて別の受注の内容が混ざる）
           '&order=order_date.asc,id.asc&order_items.order=display_order.asc,id.asc'
@@ -2187,7 +2196,7 @@
             '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc,issued_date.desc,created_at.desc&limit=1'
           ),
           targetInvoiceNum
-            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,prev_amount_override,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,display_order)&limit=1')
+            ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,prev_amount_override,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,list_price,display_order)&limit=1')
             : Promise.resolve(null),
         ]);
 
@@ -2280,6 +2289,10 @@
             '小計':   (it.quantity || 0) * (it.unit_price || 0),
             isFood:   it.products?.is_food || false,
             '備考':   it.remarks || '',
+            // 上代＝受注ごとに保存した値(order_items.list_price)を優先。
+            // 無ければ商品マスタ(products.list_price)の現在値（旧データ互換）。どちらも無ければ null →「—」表示。
+            '上代':   it.list_price != null ? Number(it.list_price)
+                      : (it.products?.list_price != null ? Number(it.products.list_price) : null),
           })),
           handlingFee:    Number(o.handling_fee) || 0,
           shippingFee:    Number(o.shipping_fee) || 0,
@@ -2301,6 +2314,9 @@
           '小計':       snap.subtotal != null ? snap.subtotal : (snap.quantity || 0) * (snap.unit_price || 0),
           isFood:       !!snap.is_food,
           '備考':       snap.remarks || '',
+          // 上代は発行時点の凍結値を優先。古い請求書は凍結されていないので受注側の値で補う
+          '上代':       snap.list_price != null ? Number(snap.list_price)
+                        : (fallback && fallback['上代'] != null ? fallback['上代'] : null),
         });
         let flatCount = 0;
         groups.forEach(g => { flatCount += g.items.length; });
@@ -2312,7 +2328,11 @@
           snapshotItems.forEach(s => { (byOrder[s.order_id] = byOrder[s.order_id] || []).push(s); });
           groups.forEach(g => {
             const rows = byOrder[g.orderId];
-            if (rows && rows.length) g.items = rows.map(s => snapToRow(s));
+            // 商品コードが一致する受注側の行を控えとして渡す（凍結されていない上代の補完用）
+            if (rows && rows.length) {
+              const live = g.items;
+              g.items = rows.map(s => snapToRow(s, live.find(x => x['商品コード'] === (s.product_code || ''))));
+            }
           });
           // 発行後に受注が消された等でブロックが無い凍結行は、請求済み金額を落とさないよう末尾に残す
           const known = {};

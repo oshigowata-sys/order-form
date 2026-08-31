@@ -1003,7 +1003,7 @@ async function confirmIssue() {
         + '&customer_id=eq.' + encodeURIComponent(r.customerId)
         + '&order_date=gte.' + encodeURIComponent(periodStart)
         + '&order_date=lte.' + encodeURIComponent(periodEnd)
-        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,order_items(product_id,quantity,unit_price,remarks,products(product_code,product_name,is_food))'
+        + '&select=id,order_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,handling_fee_qty,shipping_fee_qty,order_items(product_id,quantity,unit_price,remarks,list_price,products(product_code,product_name,is_food,list_price))'
         // 並び順は必ず一意に決まるようにする（受注日だけだと同じ日の受注の順番が保証されない）
         + '&order=order_date.asc,id.asc&order_items.order=display_order.asc,id.asc'
       );
@@ -1034,6 +1034,10 @@ async function confirmIssue() {
             subtotal:      Math.round(unitPrice * qty),
             is_food:       !!(it.products?.is_food),
             remarks:       it.remarks || null,
+            // 上代も発行時点で凍結する。受注ごとに保存した値を優先し、無ければ商品マスタの現在値。
+            // 後から商品マスタの上代を直しても、発行済みの請求書の見え方が変わらないようにする
+            list_price:    it.list_price != null ? Number(it.list_price)
+                           : (it.products?.list_price != null ? Number(it.products.list_price) : null),
             display_order: dispOrder++,
           });
         }
