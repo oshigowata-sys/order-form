@@ -1741,13 +1741,13 @@
 
     // 前回請求額の決定（優先順位）:
     //   1. ユーザーが手で直した値 (prev_amount_override) があればそれ ＝ 常に最優先
-    //   2. 前回請求書があればその税込合計（通常運用）
+    //   2. 前回の請求書で実際に請求した額（繰越込み。loadInvoiceData で遡って算出済み）
     //   3. どちらも無く、初回手入力 (manual_prev_amount) があればそれ（MeguRee 導入時）
     const manualPrev = currentInvoice ? currentInvoice.manual_prev_amount : null;
     const prevOverride = currentInvoice ? currentInvoice.prev_amount_override : null;
     // 自動で求まる値（手入力を外したときに戻る先）
-    const autoPrev = (prevInvoice && prevInvoice.total_incl_tax != null)
-      ? prevInvoice.total_incl_tax
+    const autoPrev = (prevInvoice && prevInvoice.billed_total != null)
+      ? prevInvoice.billed_total
       : (manualPrev != null ? manualPrev : null);
     const effectivePrev = prevOverride != null ? prevOverride : autoPrev;
     const isFirstInvoice = !prevInvoice;
@@ -2182,18 +2182,19 @@
         // 取引先詳細・前回請求書・現在の請求書（明細スナップショット込み）を並行取得
         const [custRes, prevRes, curRes] = await Promise.all([
           sbFetch('/rest/v1/customers?id=eq.' + encodeURIComponent(targetCustomerId) + '&select=company_name,contact_name,is_personal_trade,postal_code,address,closing_day,payment_month_offset,payment_day&limit=1'),
-          // 前回請求書＝「今も有効な」1枚だけを拾う。
+          // 「前回御請求額」を出すために、この取引先の過去の有効な請求書を古い順にすべて取る。
           //   superseded_at … 発行し直して置き換えられた古い請求書（一覧にも出ない）
           //   cancelled_at  … 取り消した請求書
-          // 置き換え済みを除外していないと、同じ締め期間に作り直した古い請求書が候補に残り、
-          // 期間が同点のため並び順が定まらず古い金額を拾うことがある（前回御請求額・繰越金・今回御請求額がズレる）。
-          // 期間が同点になった場合に必ず新しい方を取るよう、並び順も一意に決まるようにする。
+          // どちらも除外しないと、作り直した古い請求書を拾って金額がズレる。
+          // 1枚だけでなく全部取るのは、前回御請求額＝「前回の請求書で実際に請求した額」であり、
+          // それを求めるには繰越が積み上がってきた経緯をさかのぼる必要があるため（下の計算参照）。
           sbFetch(
             '/rest/v1/invoices?customer_id=eq.' + encodeURIComponent(targetCustomerId) +
             '&period_end=lt.' + encodeURIComponent(targetPeriodEnd) +
             '&superseded_at=is.null' +
             '&cancelled_at=is.null' +
-            '&select=invoice_number,total_incl_tax,paid_amount,period_end&order=period_end.desc,issued_date.desc,created_at.desc&limit=1'
+            '&select=invoice_number,total_incl_tax,paid_amount,manual_prev_amount,prev_amount_override,period_end,issued_date,created_at' +
+            '&order=period_end.asc,issued_date.asc,created_at.asc'
           ),
           targetInvoiceNum
             ? sbFetch('/rest/v1/invoices?invoice_number=eq.' + encodeURIComponent(targetInvoiceNum) + '&select=id,paid_amount,manual_prev_amount,prev_amount_override,notes,issued_date,is_personal_trade,handling_fee,shipping_fee,handling_fee_charge,shipping_fee_charge,invoice_items(order_id,product_code,product_name,quantity,unit_price,subtotal,is_food,remarks,list_price,display_order)&limit=1')
@@ -2203,8 +2204,31 @@
         let customerExtra = {};
         if (custRes.ok) { const d = await custRes.json(); customerExtra = d[0] || {}; }
 
+        // ── 前回御請求額の算出 ──
+        // 「前回御請求額」＝前回の請求書で実際にお客様に請求した額（＝前回の「今回御請求額」）。
+        // それは［前回の繰越 ＋ 前回の売上合計］であり、繰越はさらにその前から積み上がってくる。
+        // そのため古い請求書から順に「請求した額 → 入金を引いた繰越 → 次の請求額」とたどる。
+        //
+        // ※以前は単純に「前の請求書の売上合計(total_incl_tax)」を前回御請求額にしていたため、
+        //   未入金の繰越が翌月に引き継がれず消えていた（繰越が0だった相手は偶然一致していた）。
         let prevInvoice = null;
-        if (prevRes.ok) { const d = await prevRes.json(); prevInvoice = d[0] || null; }
+        if (prevRes.ok) {
+          const list = await prevRes.json();
+          let billed = null;                       // その請求書で請求した額
+          (list || []).forEach(inv => {
+            // その請求書自身の前回御請求額。手入力があれば最優先、無ければ1つ前の請求額、
+            // それも無ければ MeguRee 導入時に手入力した額
+            const base = inv.prev_amount_override != null ? Number(inv.prev_amount_override)
+                       : (billed != null ? billed
+                       : (inv.manual_prev_amount != null ? Number(inv.manual_prev_amount) : 0));
+            const carry = Math.max(0, base - (Number(inv.paid_amount) || 0));
+            billed = carry + (Number(inv.total_incl_tax) || 0);
+          });
+          if (list && list.length) {
+            const last = list[list.length - 1];
+            prevInvoice = Object.assign({}, last, { billed_total: billed });
+          }
+        }
 
         // 受注も無い・発行済みでもない・前回請求も無い＝本当に出すものが無いときだけ止める
         if (orders.length === 0 && !targetInvoiceNum && !prevInvoice) {
