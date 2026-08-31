@@ -910,6 +910,20 @@
     el.value = formatYen(el.value);
     el.size = Math.max((el.value || '').length, 1);
   }
+  // 前回御請求額はマイナスになりうる（前回に多く振り込まれた分＝預り金が繰り越されたとき）。
+  // 御入金金額そのものは常にプラスなので、マイナスを許すのは前回御請求額の欄だけ。
+  function yenDigitsSigned(s) {
+    const t = String(s ?? '').replace(/[^0-9-]/g, '');
+    return (t.startsWith('-') ? '-' : '') + t.replace(/-/g, '');
+  }
+  function formatYenSigned(s) {
+    const t = yenDigitsSigned(s);
+    return (t === '' || t === '-') ? t : Number(t).toLocaleString('en-US');
+  }
+  function onYenInputSigned(el) {
+    el.value = formatYenSigned(el.value);
+    el.size = Math.max((el.value || '').length, 1);
+  }
 
   // ===== 数値欄のIME対策（settings.html / orders.html と同じ仕組み） =====
   // 全角数字・記号を半角へ変換（数値入力欄の全角許容用）。
@@ -1797,7 +1811,7 @@
     // 前回請求額の現在値をセット（請求サマリの欄と操作バーの表示が同じ値を見る）
     _prevAmountValue = effectivePrev != null ? effectivePrev : 0;
     const prevEl = document.getElementById('prevAmountInput');
-    if (prevEl) prevEl.value = effectivePrev != null ? formatYen(effectivePrev) : '';
+    if (prevEl) prevEl.value = effectivePrev != null ? formatYenSigned(effectivePrev) : '';
 
     // 入金保存対象 = 今表示中の請求書（御入金金額欄に入力した値はこの請求書に保存される）
     window._currentInvoiceNum = targetInvoiceNum || null;
@@ -1850,7 +1864,7 @@
     const editingPrevInput = sumPrevEl ? sumPrevEl.querySelector('input') : null;
     let prevAmount;
     if (editingPrevInput) {
-      const v = Number(yenDigits(editingPrevInput.value));
+      const v = Number(yenDigitsSigned(editingPrevInput.value));
       prevAmount = !isNaN(v) ? v : 0;
     } else {
       prevAmount = _prevAmountValue != null ? _prevAmountValue : 0;
@@ -1871,16 +1885,17 @@
 
     // 繰越金 = 前回御請求額 − 御入金金額
     // 御入金金額は「過去の未払い分を消し込んだ金額」として扱い、編集中の入力値も即時反映。
-    // マイナスになる場合は 0 にクランプ（前払い分は預り金として別管理する想定）。
+    // 請求額より多く振り込まれた場合はマイナス（＝預り金・次回に充当）のまま出す。
+    // ※以前は 0 にクランプしていたため、払いすぎた分が消えて次回に引き継がれなかった。
     const subtractPaid = (paidAmount != null && !isNaN(paidAmount)) ? paidAmount : 0;
-    const carryOver = Math.max(0, prevAmount - subtractPaid);
+    const carryOver = prevAmount - subtractPaid;
     const grandTotal = carryOver + t.total;
 
     // 前回御請求額：編集中でなければ他セルと同じ表示に戻す
     if (sumPrevEl && !editingPrevInput) sumPrevEl.textContent = fmt(prevAmount);
     // 操作バーの表示（読み取り専用のミラー）も合わせる
     const prevBarEl = document.getElementById('prevAmountInput');
-    if (prevBarEl) prevBarEl.value = formatYen(prevAmount);
+    if (prevBarEl) prevBarEl.value = formatYenSigned(prevAmount);
     // 御入金金額：編集中でなければ他セルと同じ span 表示
     if (sumPaidEl && !editingInput) {
       sumPaidEl.textContent = (paidAmount != null && !isNaN(paidAmount)) ? fmt(paidAmount) : '—';
@@ -1937,7 +1952,7 @@
     const current = _prevAmountValue != null ? Number(_prevAmountValue).toLocaleString('en-US') : '';
     cell.style.cursor = 'text';
     cell.classList.remove('prev-overridden');
-    cell.innerHTML = `<span style="display:inline-flex;align-items:baseline;gap:0;">¥<input type="text" id="sumPrevInput" data-num="int" value="${current}" oninput="onNumInput(this, event, el=>{onYenInput(el);onPrevInputChange();})" onblur="endEditPrev()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font:inherit;color:inherit;outline:none;padding:0;margin:0;text-align:left;box-sizing:content-box;min-width:0;"></span>`;
+    cell.innerHTML = `<span style="display:inline-flex;align-items:baseline;gap:0;">¥<input type="text" id="sumPrevInput" data-num="int" value="${current}" oninput="onNumInput(this, event, el=>{onYenInputSigned(el);onPrevInputChange();})" onblur="endEditPrev()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" style="background:transparent;border:none;border-bottom:1.5px dashed var(--orange);font:inherit;color:inherit;outline:none;padding:0;margin:0;text-align:left;box-sizing:content-box;min-width:0;"></span>`;
     const input = cell.querySelector('input');
     const setWidth = () => { input.style.width = Math.max(input.value.length, 1) + 'ch'; };
     setWidth();
@@ -1957,9 +1972,10 @@
   async function endEditPrev() {
     const input = document.getElementById('sumPrevInput');
     if (!input) return;
-    const raw = yenDigits(input.value);
+    // マイナス（払いすぎの繰越）も入れられるようにする
+    const raw = yenDigitsSigned(input.value);
     const numVal = raw === '' ? null : Number(raw);
-    const isValid = numVal != null && !isNaN(numVal) && numVal >= 0;
+    const isValid = numVal != null && !isNaN(numVal);
     const t = window._invoiceTotals;
     // 入力欄を閉じて文字表示に戻す。残したまま印刷すると請求書に入力枠が出てしまう
     const cell = document.getElementById('sumPrev');
@@ -2239,7 +2255,9 @@
             const base = inv.prev_amount_override != null ? Number(inv.prev_amount_override)
                        : (billed != null ? billed
                        : (inv.manual_prev_amount != null ? Number(inv.manual_prev_amount) : 0));
-            const carry = Math.max(0, base - (Number(inv.paid_amount) || 0));
+            // 請求額より多く振り込まれた回は繰越がマイナス（＝預り金）になる。
+            // 0 にクランプすると払いすぎた分が消えて翌月の請求額が過大になるため、符号のまま持ち越す。
+            const carry = base - (Number(inv.paid_amount) || 0);
             billed = carry + (Number(inv.total_incl_tax) || 0);
           });
           if (list && list.length) {
