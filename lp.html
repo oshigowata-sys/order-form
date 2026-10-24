@@ -325,13 +325,13 @@ h1 .mg{font-family:'Palatino Linotype',Palatino,Georgia,serif;
 
 /* ===== ⑦ 運営者＋申込 ===== */
 .fo{display:flex;gap:16px;align-items:center;margin-bottom:16px;}
-.fo-img{width:86px;height:86px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
-  font-size:10px;color:var(--text-3);text-align:center;line-height:1.4;font-weight:700;
-  background:repeating-linear-gradient(45deg,#f1ece4,#f1ece4 8px,#ece6dc 8px,#ece6dc 16px);}
+.fo-img{width:92px;height:92px;border-radius:50%;flex:none;display:block;object-fit:cover;
+  border:2px solid #fff;box-shadow:0 4px 14px rgba(28,25,23,.12);}
 .fo-n{font-size:14.5px;font-weight:700;} .fo-r{font-size:12px;color:var(--text-3);}
 .fo-p{font-size:14px;line-height:2;color:var(--text-2);margin-bottom:10px;}
 .fo-link{font-size:13px;color:var(--orange);font-weight:700;text-decoration:underline;display:inline-block;margin-bottom:22px;}
 .cta-wrap{max-width:420px;margin:0 auto;}
+.cta-lead{font-size:16px;font-weight:900;line-height:1.6;margin-bottom:14px;text-align:center;}
 
 /* ===== フッター ===== */
 .ft{background:#1c1917;color:#d6d3d1;padding:30px 0 24px;font-size:12.5px;line-height:2;}
@@ -766,7 +766,7 @@ h1 .mg{font-family:'Palatino Linotype',Palatino,Georgia,serif;
     <div class="fo-wrap">
       <div>
         <div class="fo">
-          <div class="fo-img">顔写真<br>準備中</div>
+          <img class="fo-img" src="assets/lp/founder.jpg" alt="MeguRee 運営者 嶋田 渉" width="560" height="560" loading="lazy">
           <div><div class="fo-n">嶋田 渉（しまだ わたる）</div><div class="fo-r">MeguRee 運営者</div></div>
         </div>
         <p class="fo-p">私の父は、観光の卸を一人でやっています。今もFAXと電話で注文を受け、手書きの台帳と紙の請求書で、毎日その事務に時間を取られています。<br><br>
@@ -775,6 +775,7 @@ h1 .mg{font-family:'Palatino Linotype',Palatino,Georgia,serif;
         <a href="https://note.com/meguree/n/n1bcbe9d5ce96" class="fo-link" target="_blank" rel="noopener">作り手の想いを note で読む →</a>
       </div>
       <div class="cta-wrap">
+        <div class="cta-lead">まずは資料で、<br>画面と料金をご確認ください。</div>
         <a href="download.html" class="btn">資料をダウンロード（無料）</a>
         <a href="contact.html" class="btn-sub">お問い合わせはこちら</a>
       </div>
